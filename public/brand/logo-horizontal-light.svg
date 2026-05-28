@@ -1,0 +1,9 @@
+<svg width="1100" height="260" viewBox="0 0 1100 260" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="teChia Digital Solutions logo light">
+  <rect width="1100" height="260" rx="48" fill="#F8FAFC"/>
+  <rect x="44" y="44" width="172" height="172" rx="44" fill="#FFFFFF" stroke="rgba(7,17,31,.12)"/>
+  <path d="M151 76C127 76 107 91 99 112H78V92H54V112H36V134H54V184H78V134H95C101 161 124 181 151 181C178 181 201 163 208 139H182C177 151 165 159 151 159C132 159 117 144 117 125C117 106 132 98 151 98H208V76H151Z" fill="url(#g)"/>
+  <circle cx="117" cy="125" r="8" fill="#2DD4BF"/>
+  <text x="260" y="122" fill="#07111F" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="700" letter-spacing="-2">teChia</text>
+  <text x="264" y="172" fill="#526174" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="600" letter-spacing="8">DIGITAL SOLUTIONS</text>
+  <defs><linearGradient id="g" x1="36" y1="76" x2="208" y2="181" gradientUnits="userSpaceOnUse"><stop stop-color="#22D3EE"/><stop offset=".55" stop-color="#8B5CF6"/><stop offset="1" stop-color="#2DD4BF"/></linearGradient></defs>
+</svg>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="teChia Digital Solutions logo">
+
+    <defs>
+      <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#2563EB"/>
+        <stop offset="48%" stop-color="#22D3EE"/>
+        <stop offset="100%" stop-color="#8B5CF6"/>
+      </linearGradient>
+      <linearGradient id="wordGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#2563EB"/>
+        <stop offset="55%" stop-color="#22D3EE"/>
+        <stop offset="100%" stop-color="#8B5CF6"/>
+      </linearGradient>
+      <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#102A43"/>
+        <stop offset="50%" stop-color="#07111F"/>
+        <stop offset="100%" stop-color="#05070D"/>
+      </linearGradient>
+      <radialGradient id="appBg" cx="24%" cy="18%" r="92%">
+        <stop offset="0%" stop-color="#123A68"/>
+        <stop offset="46%" stop-color="#07111F"/>
+        <stop offset="100%" stop-color="#05070D"/>
+      </radialGradient>
+      <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.18"/>
+      </filter>
+    </defs>
+    
+
+
+<rect x="64" y="64" width="896" height="896" rx="210" fill="url(#appBg)"/>
+<g filter="url(#softShadow)">
+    <g transform="translate(122 126) scale(0.76171875)">
+      <rect x="244" y="152" width="104" height="704" rx="42" fill="url(#iconGrad)"/>
+      <rect x="118" y="348" width="304" height="106" rx="34" fill="url(#iconGrad)"/>
+      <path d="M704 222 H522 C436 222 384 278 384 364 V660 C384 746 436 802 522 802 H704"
+            fill="none" stroke="url(#iconGrad)" stroke-width="112" stroke-linecap="butt" stroke-linejoin="round"/>
+      <path d="M422 314 L468 360 L422 406 L376 360 Z" fill="url(#iconGrad)" opacity="0.95"/>
+      
+      <g>
+        <circle cx="384" cy="512" r="22" fill="#FFFFFF" stroke="#8B5CF6" stroke-width="8"/>
+        <path d="M384 446 L396 494 L444 512 L396 530 L384 578 L372 530 L324 512 L372 494 Z" fill="#FFFFFF" opacity="0.95"/>
+      </g>
+    
+    </g>
+    </g>
+
+</svg>

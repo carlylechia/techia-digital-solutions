@@ -1,0 +1,14 @@
+{
+  "name": "teChia Digital Solutions",
+  "short_name": "teChia",
+  "description": "Digital homes, premium websites, smart systems, automation, dashboards, and AI tools.",
+  "start_url": "/en",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#22d3ee",
+  "icons": [
+    { "src": "/brand/techia_logo_pack/SVG/09-favicon-app-icon-master.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/brand/techia_logo_pack/Favicons_App_Icons/techia-app-icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/techia_logo_pack/Favicons_App_Icons/techia-app-icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

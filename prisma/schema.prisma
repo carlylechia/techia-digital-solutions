@@ -1,0 +1,855 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  DISCOVERY_BOOKED
+  PROPOSAL_SENT
+  NEGOTIATING
+  WON
+  LOST
+  FOLLOW_UP_LATER
+}
+
+enum Locale {
+  en
+  fr
+}
+
+enum AdminStatus {
+  ACTIVE
+  INVITED
+  DISABLED
+}
+
+enum ClientStatus {
+  PROSPECT
+  ONBOARDING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum ClientPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ProjectStatus {
+  PLANNED
+  ACTIVE
+  REVIEW
+  ON_HOLD
+  DELIVERED
+  ARCHIVED
+}
+
+enum ContentStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ProcessStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum FeedbackStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+model Lead {
+  id                String           @id @default(cuid())
+  name              String
+  email             String
+  phone             String?
+  whatsapp          String?
+  company           String?
+  country           String?
+  preferredLanguage String?
+  source            String           @default("website")
+  status            LeadStatus       @default(NEW)
+  notes             String?
+  clientId          String?
+  client            Client?          @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
+  inquiries         ProjectInquiry[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@index([clientId])
+}
+
+model ProjectInquiry {
+  id                String   @id @default(cuid())
+  leadId            String?
+  lead              Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  businessType      String
+  need              String
+  budgetRange       String
+  timeline          String
+  details           String
+  internalNotes     String?
+  clientId          String?
+  client            Client?  @relation("InquiryClient", fields: [clientId], references: [id], onDelete: SetNull)
+  convertedToTaskId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([clientId])
+}
+
+model ContactMessage {
+  id        String     @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  whatsapp  String?
+  company   String?
+  message   String
+  locale    Locale?
+  status    LeadStatus @default(NEW)
+  notes     String?
+  clientId  String?
+  client    Client?    @relation("ContactMessageClient", fields: [clientId], references: [id], onDelete: SetNull)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@index([clientId])
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  locale    Locale?
+  createdAt DateTime @default(now())
+}
+
+model CaseStudy {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  type        String
+  content     Json
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BlogPost {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  excerpt     String
+  content     String
+  locale      Locale   @default(en)
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([locale, published])
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  content     Json
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Testimonial {
+  id        String   @id @default(cuid())
+  quote     String
+  name      String
+  role      String?
+  company   String?
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model DemoRequest {
+  id                String     @id @default(cuid())
+  name              String
+  email             String
+  phone             String?
+  whatsapp          String?
+  company           String?
+  demo              String
+  demoTitle         String?
+  message           String?
+  locale            Locale?
+  status            LeadStatus @default(NEW)
+  notes             String?
+  clientId          String?
+  client            Client?    @relation("DemoRequestClient", fields: [clientId], references: [id], onDelete: SetNull)
+  country           String?
+  preferredLanguage String     @default("en")
+  businessType      String?
+  projectNeed       String?
+  budgetRange       String?
+  timeline          String?
+  source            String     @default("demo_lab")
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@index([clientId])
+}
+
+model AdminUser {
+  id               String                @id @default(cuid())
+  email            String                @unique
+  name             String?
+  passwordHash     String?
+  role             String                @default("admin")
+  roleId           String?
+  roleRef          AdminRole?            @relation("RoleUsers", fields: [roleId], references: [id], onDelete: SetNull)
+  status           AdminStatus           @default(ACTIVE)
+  lastLoginAt      DateTime?
+  createdById      String?
+  createdBy        AdminUser?            @relation("AdminCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAdmins    AdminUser[]           @relation("AdminCreator")
+  createdRoles     AdminRole[]           @relation("RoleCreator")
+  ownedClients     Client[]              @relation("ClientOwner")
+  assignedProjects ClientProject[]       @relation("ProjectOwner")
+  ownedBoards      ProcessBoard[]        @relation("BoardOwner")
+  assignedTasks    ProcessTask[]         @relation("TaskAssignee")
+  createdTasks     ProcessTask[]         @relation("TaskCreator")
+  authoredPages    ContentPage[]         @relation("ContentAuthor")
+  sentMessages     ConversationMessage[] @relation("AdminSentMessages")
+  portalAccesses   ClientPortalAccess[]
+  portalMessages   PortalMessage[]
+  portalReplies    PortalMessageReply[]
+  portalFiles      PortalFile[]
+  auditLogs        AuditLog[]
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@index([roleId])
+  @@index([status])
+}
+
+model AdminRole {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  label       String
+  description String?
+  level       Int         @default(50)
+  permissions String[]    @default([])
+  users       AdminUser[] @relation("RoleUsers")
+  createdById String?
+  createdBy   AdminUser?  @relation("RoleCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([level])
+}
+
+model Client {
+  id                String           @id @default(cuid())
+  name              String
+  slug              String           @unique
+  industry          String?
+  status            ClientStatus     @default(PROSPECT)
+  priority          ClientPriority   @default(MEDIUM)
+  contactName       String?
+  contactRole       String?
+  email             String?
+  phone             String?
+  whatsapp          String?
+  website           String?
+  country           String?
+  city              String?
+  estimatedValue    Int?
+  preferredLocale   Locale           @default(en)
+  source            String           @default("admin")
+  sourceRequestId   String?
+  sourceRequestType String?
+  tags              String[]         @default([])
+  notes             String?
+  ownerId           String?
+  owner             AdminUser?       @relation("ClientOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  contacts          ClientContact[]
+  projects          ClientProject[]
+  tasks             ProcessTask[]
+  leads             Lead[]           @relation("LeadClient")
+  contactMessages   ContactMessage[] @relation("ContactMessageClient")
+  demoRequests         DemoRequest[]       @relation("DemoRequestClient")
+  inquiries            ProjectInquiry[]    @relation("InquiryClient")
+  conversations        Conversation[]
+  portalAccess         ClientPortalAccess?
+  portalMessages       PortalMessage[]
+  portalFiles          PortalFile[]
+  portalInvoices       PortalInvoice[]
+  portalRequirements   PortalRequirement[]
+  portalNotifications  PortalNotification[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([status, priority])
+  @@index([ownerId])
+  @@index([createdAt])
+}
+
+model ClientContact {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name      String
+  role      String?
+  email     String?
+  phone     String?
+  isPrimary Boolean  @default(false)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([email])
+}
+
+model ClientProject {
+  id          String         @id @default(cuid())
+  clientId    String
+  client      Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  ownerId     String?
+  owner       AdminUser?     @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  title       String
+  slug        String
+  status      ProjectStatus  @default(PLANNED)
+  priority    ClientPriority @default(MEDIUM)
+  description String?
+  budget      Int?
+  progress    Int            @default(0)
+  startDate   DateTime?
+  dueDate     DateTime?
+  completedAt DateTime?
+  showInPortfolio Boolean    @default(false)
+  showOnHomepage Boolean     @default(false)
+  showInFounder   Boolean    @default(false)
+  publicOrder     Int        @default(0)
+  publicSlug      String?    @unique
+  publicTitleEn   String?
+  publicTitleFr   String?
+  publicEyebrowEn String?
+  publicEyebrowFr String?
+  publicDescriptionEn String?
+  publicDescriptionFr String?
+  publicProblemEn String?
+  publicProblemFr String?
+  publicSolutionEn String?
+  publicSolutionFr String?
+  publicRoleEn String?
+  publicRoleFr String?
+  publicBusinessValueEn String?
+  publicBusinessValueFr String?
+  publicTechStack String[]   @default([])
+  feedbacks    CustomerFeedback[]
+  portalFiles          PortalFile[]
+  portalInvoices       PortalInvoice[]
+  portalRequirements   PortalRequirement[]
+  tasks       ProcessTask[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([clientId, slug])
+  @@index([status, priority])
+  @@index([ownerId])
+  @@index([dueDate])
+  @@index([showInPortfolio, publicOrder])
+  @@index([showOnHomepage, publicOrder])
+  @@index([showInFounder, publicOrder])
+}
+
+model CustomerFeedback {
+  id            String         @id @default(cuid())
+  projectId      String?
+  project        ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  name           String
+  nameFr         String?
+  role           String?
+  roleFr         String?
+  company        String?
+  email          String?
+  rating         Int?
+  quote          String
+  quoteFr        String?
+  locale         Locale?
+  source         String         @default("website")
+  status         FeedbackStatus @default(PENDING)
+  showOnHomepage Boolean        @default(false)
+  showOnFounder  Boolean        @default(false)
+  showOnPortfolio Boolean       @default(false)
+  displayOrder   Int            @default(0)
+  consent        Boolean        @default(false)
+  internalNotes  String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([projectId])
+  @@index([status, createdAt])
+  @@index([showOnHomepage, displayOrder])
+  @@index([showOnFounder, displayOrder])
+  @@index([showOnPortfolio, displayOrder])
+}
+
+model ContentPage {
+  id             String               @id @default(cuid())
+  slug           String               @unique
+  type           String               @default("page")
+  status         ContentStatus        @default(DRAFT)
+  seoTitle       String?
+  seoDescription String?
+  sections       Json?
+  publishedAt    DateTime?
+  authorId       String?
+  author         AdminUser?           @relation("ContentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  translations   ContentTranslation[]
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([status])
+  @@index([type])
+}
+
+model NavMenuItem {
+  id         String   @id @default(cuid())
+  labelEn    String
+  labelFr    String
+  href       String
+  visible    Boolean  @default(true)
+  position   Int      @default(0)
+  openNewTab Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([visible, position])
+}
+
+model ContentTranslation {
+  id              String      @id @default(cuid())
+  pageId          String
+  page            ContentPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  locale          Locale
+  title           String
+  excerpt         String?
+  body            String
+  metaTitle       String?
+  metaDescription String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([pageId, locale])
+  @@index([locale])
+}
+
+model ProcessBoard {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  status      ProcessStatus   @default(ACTIVE)
+  boardType   String?
+  viewerRoles String[]        @default([])
+  nextBoardId String?
+  nextBoard   ProcessBoard?   @relation("BoardChain", fields: [nextBoardId], references: [id], onDelete: SetNull)
+  prevBoards  ProcessBoard[]  @relation("BoardChain")
+  ownerId     String?
+  owner       AdminUser?      @relation("BoardOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  columns     ProcessColumn[]
+  tasks       ProcessTask[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([status])
+  @@index([ownerId])
+  @@index([boardType])
+}
+
+model ProcessColumn {
+  id        String        @id @default(cuid())
+  boardId   String
+  board     ProcessBoard  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  key       String
+  title     String
+  color     String?
+  position  Int           @default(0)
+  tasks     ProcessTask[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@unique([boardId, key])
+  @@index([boardId, position])
+}
+
+model ProcessTask {
+  id          String         @id @default(cuid())
+  boardId     String
+  board       ProcessBoard   @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  columnId    String
+  column      ProcessColumn  @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  clientId    String?
+  client      Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  projectId   String?
+  project     ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  requestType String?
+  requestId   String?
+  title       String
+  description String?
+  priority    ClientPriority @default(MEDIUM)
+  position    Int            @default(0)
+  dueDate     DateTime?
+  tags        String[]       @default([])
+  archived    Boolean        @default(false)
+  assigneeId  String?
+  assignee    AdminUser?     @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   AdminUser?     @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([boardId, columnId, position])
+  @@index([clientId])
+  @@index([projectId])
+  @@index([assigneeId])
+  @@index([dueDate])
+  @@index([archived])
+  @@index([requestType, requestId])
+}
+
+model AuditLog {
+  id         String     @id @default(cuid())
+  actorId    String?
+  actor      AdminUser? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime   @default(now())
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model Conversation {
+  id          String                @id @default(cuid())
+  requestType String
+  requestId   String
+  clientId    String?
+  client      Client?               @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  subject     String
+  messages    ConversationMessage[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([requestType, requestId])
+  @@index([clientId])
+}
+
+model ConversationMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  channel        String
+  direction      String       @default("outbound")
+  from           String
+  to             String
+  subject        String?
+  body           String
+  sentById       String?
+  sentBy         AdminUser?   @relation("AdminSentMessages", fields: [sentById], references: [id], onDelete: SetNull)
+  sentAt         DateTime     @default(now())
+
+  @@index([conversationId])
+  @@index([sentById])
+}
+
+// ─── Client Portal Models ─────────────────────────────────────────
+
+model ClientPortalAccess {
+  id          String     @id @default(cuid())
+  clientId    String     @unique
+  client      Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  code        String     @unique
+  isActive    Boolean    @default(true)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdById String?
+  createdBy   AdminUser? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([code])
+  @@index([clientId])
+}
+
+model PortalMessage {
+  id          String               @id @default(cuid())
+  clientId    String
+  client      Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  subject     String
+  body        String
+  fromAdmin   Boolean              @default(true)
+  adminId     String?
+  admin       AdminUser?           @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  readAt      DateTime?
+  replies     PortalMessageReply[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([clientId])
+  @@index([adminId])
+  @@index([createdAt])
+}
+
+model PortalMessageReply {
+  id        String        @id @default(cuid())
+  messageId String
+  message   PortalMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  body      String
+  fromAdmin Boolean       @default(false)
+  adminId   String?
+  admin     AdminUser?    @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  readAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([messageId])
+}
+
+model PortalFile {
+  id          String         @id @default(cuid())
+  clientId    String
+  client      Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  name        String
+  fileType    String
+  category    String         @default("deliverable")
+  url         String
+  publicId    String?
+  size        Int?
+  uploadedBy  String         @default("admin")
+  adminId     String?
+  admin       AdminUser?     @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  status      String         @default("available")
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([clientId])
+  @@index([projectId])
+  @@index([adminId])
+  @@index([category])
+}
+
+model PortalInvoice {
+  id            String         @id @default(cuid())
+  clientId      String
+  client        Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  projectId     String?
+  project       ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  invoiceNumber String
+  title         String
+  amount        Int
+  currency      String         @default("USD")
+  status        String         @default("DRAFT")
+  dueDate       DateTime?
+  paidAt        DateTime?
+  notes         String?
+  lineItems     Json?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([clientId])
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PortalRequirement {
+  id           String         @id @default(cuid())
+  clientId     String
+  client       Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  projectId    String?
+  project      ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  title        String
+  description  String?
+  type         String         @default("file")
+  status       String         @default("PENDING")
+  dueDate      DateTime?
+  submittedAt  DateTime?
+  response     String?
+  fileUrl      String?
+  filePublicId String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([clientId])
+  @@index([projectId])
+  @@index([status])
+}
+
+model PortalNotification {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String?
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([clientId])
+  @@index([readAt])
+  @@index([createdAt])
+}
+
+model AIConversation {
+  id             String      @id @default(cuid())
+  sessionId      String
+  userId         String?
+  visitorName    String?
+  visitorEmail   String?
+  visitorPhone   String?
+  sourcePage     String?
+  status         String      @default("ACTIVE")
+  messageCount   Int         @default(0)
+  totalTokens    Int         @default(0)
+  summary        String?
+  messages       AIMessage[]
+  usageRecords   AIUsage[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model AIMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  content        String
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+model AILead {
+  id              String   @id @default(cuid())
+  name            String?
+  email           String?
+  phone           String?
+  companyName     String?
+  industry        String?
+  serviceInterest String
+  budgetRange     String?
+  timeline        String?
+  projectSummary  String
+  leadScore       String
+  status          String   @default("NEW")
+  source          String   @default("AI_AGENT")
+  conversationId  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([leadScore])
+  @@index([status])
+  @@index([source])
+  @@index([createdAt])
+  @@index([serviceInterest])
+}
+
+model AIDemoRequest {
+  id                     String    @id @default(cuid())
+  aiLeadId               String?
+  demoType               String
+  name                   String?
+  email                  String?
+  phone                  String?
+  companyName            String?
+  preferredDate          DateTime?
+  preferredContactMethod String?
+  notes                  String?
+  status                 String    @default("NEW")
+  conversationId         String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@index([status])
+  @@index([demoType])
+  @@index([createdAt])
+  @@index([aiLeadId])
+}
+
+model AIUsage {
+  id             String          @id @default(cuid())
+  ipHash         String?
+  sessionId      String?
+  userId         String?
+  conversationId String?
+  conversation   AIConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  model          String
+  inputTokens    Int             @default(0)
+  outputTokens   Int             @default(0)
+  totalTokens    Int             @default(0)
+  estimatedCost  Float           @default(0)
+  requestType    String          @default("PUBLIC_AGENT")
+  createdAt      DateTime        @default(now())
+
+  @@index([ipHash])
+  @@index([sessionId])
+  @@index([userId])
+  @@index([conversationId])
+  @@index([createdAt])
+  @@index([requestType])
+}
+
+model AIAbuseEvent {
+  id        String   @id @default(cuid())
+  ipHash    String?
+  sessionId String?
+  reason    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([ipHash])
+  @@index([sessionId])
+  @@index([reason])
+  @@index([createdAt])
+}

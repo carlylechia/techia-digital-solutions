@@ -1,0 +1,10 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#030712"/>
+  <circle cx="920" cy="90" r="280" fill="#22D3EE" opacity=".16"/>
+  <circle cx="280" cy="600" r="260" fill="#8B5CF6" opacity=".18"/>
+  <rect x="80" y="90" width="1040" height="450" rx="48" fill="#07111F" stroke="rgba(255,255,255,.14)"/>
+  <text x="130" y="230" fill="#22D3EE" font-family="Arial" font-size="28" font-weight="700" letter-spacing="6">TECHIA DIGITAL SOLUTIONS</text>
+  <text x="130" y="330" fill="#F8FAFC" font-family="Arial" font-size="78" font-weight="800">Digital Homes</text>
+  <text x="130" y="420" fill="#F8FAFC" font-family="Arial" font-size="78" font-weight="800">for Modern Businesses</text>
+  <text x="132" y="482" fill="#9FB0C7" font-family="Arial" font-size="30">Premium websites · business systems · automation · AI tools</text>
+</svg>
