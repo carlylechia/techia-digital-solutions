@@ -1,43 +1,74 @@
 import Link from "next/link";
-import { getDictionary, getLocalizedHref, siteConfig, type Locale } from "@/content/site";
+import {
+  getDictionary,
+  getLocalizedHref,
+  getLocalizedSectionHref,
+  mergedPageAnchors,
+  siteConfig,
+  type Locale,
+} from "@/content/site";
 import { Logo } from "@/components/brand/Logo";
 import { NewsletterForm } from "@/components/forms/newsletter-form";
 
 export function SiteFooter({ locale }: { locale: Locale }) {
   const dict = getDictionary(locale);
-  const accentScript = locale === "fr" ? "composer un flagship digital" : "compose a digital flagship";
-  const footerCallout = locale === "fr"
-    ? {
-        eyebrow: "Après le lancement",
-        title: "Faites évoluer votre présence digitale sans repartir de zéro.",
-        body: "Quand le business est prêt pour l’étape suivante, teChia peut prolonger le site avec du SEO, des landing pages, des automatisations, des portails et des optimisations de performance."
-      }
-    : {
-        eyebrow: "After launch",
-        title: "Evolve the digital layer without starting over.",
-        body: "When the business is ready for the next layer, teChia can extend the website with SEO, landing pages, automation, portals, and ongoing performance refinement."
-      };
+  const accentScript =
+    locale === "fr"
+      ? "composer un flagship digital"
+      : "compose a digital flagship";
+  const footerCallout =
+    locale === "fr"
+      ? {
+          eyebrow: "Après le lancement",
+          title:
+            "Faites évoluer votre présence digitale sans repartir de zéro.",
+          body: "Quand le business est prêt pour l’étape suivante, teChia peut prolonger le site avec du SEO, des landing pages, des automatisations, des portails et des optimisations de performance.",
+        }
+      : {
+          eyebrow: "After launch",
+          title: "Evolve the digital layer without starting over.",
+          body: "When the business is ready for the next layer, teChia can extend the website with SEO, landing pages, automation, portals, and ongoing performance refinement.",
+        };
   const groups = [
-    { title: dict.nav.services, links: dict.services.slice(0, 5).map((item) => [item.title, `/services/${item.slug}`]) },
-    { title: dict.nav.industries, links: dict.industries.slice(0, 5).map((item) => [item.title, `/industries/${item.slug}`]) },
+    {
+      title: dict.nav.services,
+      links: dict.services
+        .slice(0, 5)
+        .map((item) => [item.title, `/services/${item.slug}`]),
+    },
+    {
+      title: dict.nav.industries,
+      links: dict.industries
+        .slice(0, 5)
+        .map((item) => [item.title, `/industries/${item.slug}`]),
+    },
     {
       title: dict.ui.company,
       links: [
         [dict.nav.about, "/about"],
         [dict.nav.founder, "/founder"],
-        [dict.nav.portfolio, "/portfolio"],
+        [
+          dict.nav.portfolio,
+          getLocalizedSectionHref(
+            locale,
+            "/about",
+            mergedPageAnchors.about.portfolio,
+          ),
+        ],
         [dict.nav.demoLab, "/demo-lab"],
         [dict.nav.pricing, "/pricing"],
         [dict.nav.aiConsultant, "/ai-consultant"],
-        [dict.nav.contact, "/contact"]
-      ]
+        [dict.nav.contact, "/contact"],
+      ],
     },
-    { title: dict.ui.legal, links: [[dict.legal.privacy, "/privacy"], [dict.legal.terms, "/terms"], [dict.legal.cookies, "/cookies"]] }
-  ];
-  const socialLinks = [
-    { label: "LinkedIn", href: siteConfig.socials.linkedin },
-    { label: "GitHub", href: siteConfig.socials.github },
-    { label: "X", href: siteConfig.socials.x }
+    {
+      title: dict.ui.legal,
+      links: [
+        [dict.legal.privacy, "/privacy"],
+        [dict.legal.terms, "/terms"],
+        [dict.legal.cookies, "/cookies"],
+      ],
+    },
   ];
 
   return (
@@ -47,20 +78,29 @@ export function SiteFooter({ locale }: { locale: Locale }) {
           <div className="elevated-panel px-6 py-8 md:px-10 md:py-10">
             <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
               <div>
-                <p className="font-script text-3xl text-accent-3 md:text-4xl">{accentScript}</p>
+                <p className="font-script text-3xl text-accent-3 md:text-4xl">
+                  {accentScript}
+                </p>
                 <p className="eyebrow mt-3">{footerCallout.eyebrow}</p>
                 <h2 className="mt-4 max-w-3xl text-balance text-4xl font-semibold md:text-6xl">
-                  <span className="headline-gradient">{footerCallout.title}</span>
+                  <span className="headline-gradient">
+                    {footerCallout.title}
+                  </span>
                 </h2>
-                <p className="mt-5 max-w-2xl text-base leading-8 text-muted md:text-lg">{footerCallout.body}</p>
+                <p className="mt-5 max-w-2xl text-base leading-8 text-muted md:text-lg">
+                  {footerCallout.body}
+                </p>
               </div>
               <div className="grid gap-4">
                 {[
                   dict.ui.footerDescription,
                   dict.pages.contact.location,
-                  dict.ui.footerPromise
+                  dict.ui.footerPromise,
                 ].map((item) => (
-                  <div key={item} className="subtle-tile-strong rounded-[1.4rem] p-4 text-sm leading-7 text-muted">
+                  <div
+                    key={item}
+                    className="subtle-tile-strong rounded-[1.4rem] p-4 text-sm leading-7 text-muted"
+                  >
                     {item}
                   </div>
                 ))}
@@ -72,24 +112,21 @@ export function SiteFooter({ locale }: { locale: Locale }) {
 
       <div className="container grid gap-10 py-14 lg:grid-cols-[1.05fr_1.95fr]">
         <div>
-          <Logo locale={locale} variant="horizontal" size="lg" theme="auto" interactive />
-          <p className="mt-5 max-w-md text-sm leading-7 text-muted">{dict.ui.footerDescription}</p>
-          <div className="mt-6 flex flex-wrap gap-2">
-            {socialLinks.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                target="_blank"
-                rel="noreferrer"
-                className="trust-pill"
-              >
-                {item.label}
-              </a>
-            ))}
-          </div>
+          <Logo
+            locale={locale}
+            variant="horizontal"
+            size="lg"
+            theme="auto"
+            interactive
+          />
+          <p className="mt-5 max-w-md text-sm leading-7 text-muted">
+            {dict.ui.footerDescription}
+          </p>
           <div className="mt-6 rounded-[1.5rem] border border-border bg-surface-strong p-5">
             <p className="eyebrow">Newsletter</p>
-            <p className="mt-3 text-sm leading-7 text-muted">{dict.pages.contact.location}</p>
+            <p className="mt-3 text-sm leading-7 text-muted">
+              {dict.pages.contact.location}
+            </p>
             <div className="mt-4">
               <NewsletterForm locale={locale} />
             </div>
@@ -99,11 +136,21 @@ export function SiteFooter({ locale }: { locale: Locale }) {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {groups.map((group) => (
             <div key={group.title}>
-              <h3 className="text-sm font-semibold text-primary">{group.title}</h3>
+              <h3 className="text-sm font-semibold text-primary">
+                {group.title}
+              </h3>
               <ul className="mt-4 grid gap-3 text-sm text-muted">
                 {group.links.map(([label, href]) => (
                   <li key={href}>
-                    <Link href={getLocalizedHref(locale, href)} className="footer-link inline-flex">
+                    <Link
+                      href={
+                        href.startsWith(`/${locale}/`) ||
+                        href.startsWith("/client-portal")
+                          ? href
+                          : getLocalizedHref(locale, href)
+                      }
+                      className="footer-link inline-flex"
+                    >
                       {label}
                     </Link>
                   </li>
@@ -115,7 +162,10 @@ export function SiteFooter({ locale }: { locale: Locale }) {
       </div>
 
       <div className="container flex flex-col gap-3 border-t border-border py-6 text-xs text-muted md:flex-row md:items-center md:justify-between">
-        <p>© {new Date().getFullYear()} {siteConfig.name}. {dict.ui.allRightsReserved}</p>
+        <p>
+          © {new Date().getFullYear()} {siteConfig.name}.{" "}
+          {dict.ui.allRightsReserved}
+        </p>
         <p>{dict.ui.footerPromise}</p>
       </div>
     </footer>

@@ -4,14 +4,28 @@ import { DEFAULT_ADMIN_ROLES } from "./permissions";
 let bootstrapped = false;
 
 const DEFAULT_NAV_ITEMS = [
-  { labelEn: "Services", labelFr: "Services", href: "/services", position: 0 },
-  { labelEn: "Solutions", labelFr: "Solutions", href: "/solutions", position: 1 },
-  { labelEn: "Industries", labelFr: "Secteurs", href: "/industries", position: 2 },
-  { labelEn: "Portfolio", labelFr: "Réalisations", href: "/portfolio", position: 3 },
-  { labelEn: "Demo Lab", labelFr: "Espace démo", href: "/demo-lab", position: 4 },
-  { labelEn: "Pricing", labelFr: "Offres", href: "/pricing", position: 5 },
-  { labelEn: "Blog", labelFr: "Blog", href: "/blog", position: 6 },
-  { labelEn: "Contact", labelFr: "Contact", href: "/contact", position: 7 }
+  { labelEn: "Founder", labelFr: "Fondateur", href: "/founder", position: 0 },
+  {
+    labelEn: "Demo Lab",
+    labelFr: "Espace démo",
+    href: "/demo-lab",
+    position: 1,
+  },
+  {
+    labelEn: "Client Portal",
+    labelFr: "Portail client",
+    href: "/client-portal",
+    position: 2,
+  },
+  {
+    labelEn: "AI Consultant",
+    labelFr: "Agent IA",
+    href: "/ai-consultant",
+    position: 3,
+  },
+  { labelEn: "Services", labelFr: "Services", href: "/services", position: 4 },
+  { labelEn: "About", labelFr: "À propos", href: "/about", position: 5 },
+  { labelEn: "Contact", labelFr: "Contact", href: "/contact", position: 6 },
 ];
 
 export async function ensureDefaultAdminRoles(prisma: PrismaClient) {
@@ -23,9 +37,9 @@ export async function ensureDefaultAdminRoles(prisma: PrismaClient) {
         label: role.label,
         description: role.description,
         level: role.level,
-        permissions: role.permissions
+        permissions: role.permissions,
       },
-      create: role
+      create: role,
     });
   }
 
