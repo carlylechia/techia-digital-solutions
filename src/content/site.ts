@@ -4,10 +4,10 @@ export type Locale = (typeof locales)[number];
 export const siteConfig = {
   name: "teChia Digital Solutions",
   shortName: "teChia",
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://techia.digital",
-  email: "hello@techia.digital",
-  whatsapp: "653262837",
-  phone: "653262837",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://techiadigital.com",
+  email: process.env.NEXT_PUBLIC_OFFICIAL_EMAIL || process.env.OFFICIAL_EMAIL || "",
+  whatsapp: process.env.NEXT_PUBLIC_OFFICIAL_WHATSAPP || process.env.OFFICIAL_WHATSAPP || "",
+  phone: process.env.NEXT_PUBLIC_OFFICIAL_CALL || process.env.OFFICIAL_CALL || "",
   location: "Douala, Cameroon — serving Africa and international SMEs",
   socials: {
     linkedin: "https://www.linkedin.com/company/techia-digital-solutions",

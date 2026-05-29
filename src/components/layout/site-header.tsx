@@ -249,7 +249,7 @@ export function SiteHeader({
 
         <button
           type="button"
-          className="icon-button lg:hidden"
+          className="icon-button justify-self-end lg:hidden"
           aria-label={dict.ui.openMenu}
           aria-controls="locale-mobile-nav"
           aria-expanded={open}

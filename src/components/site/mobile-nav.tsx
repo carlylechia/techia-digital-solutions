@@ -14,7 +14,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 export function MobileNav({
   items,
   ctaLabel,
-  ctaHref
+  ctaHref,
 }: {
   items: NavigationItem[];
   ctaLabel: string;
@@ -45,7 +45,7 @@ export function MobileNav({
     <>
       <button
         type="button"
-        className="icon-button lg:hidden"
+        className="icon-button justify-self-end lg:hidden"
         aria-label="Open navigation menu"
         aria-controls="mobile-site-nav"
         aria-expanded={open}
@@ -87,7 +87,9 @@ export function MobileNav({
                 </button>
               </div>
 
-              <p className="font-script mt-6 text-3xl text-[#FDBA74]">enter the showcase</p>
+              <p className="font-script mt-6 text-3xl text-[#FDBA74]">
+                enter the showcase
+              </p>
 
               <div className="mt-6 grid gap-2">
                 {items.map((item) => (
@@ -102,13 +104,26 @@ export function MobileNav({
                 ))}
               </div>
 
-              <Link href={ctaHref} className={cn(buttonVariants({ variant: "primary", size: "lg" }), "mt-4")} onClick={() => setOpen(false)}>
+              <Link
+                href={ctaHref}
+                className={cn(
+                  buttonVariants({ variant: "primary", size: "lg" }),
+                  "mt-4",
+                )}
+                onClick={() => setOpen(false)}
+              >
                 {ctaLabel}
               </Link>
 
               <div className="header-action-cluster mt-auto flex items-center gap-3 pt-6">
-                <LanguageToggle className="bg-white/[0.06] text-white" tone="inverted" />
-                <ThemeToggle className="border-white/10 bg-white/[0.06] text-white" label="Toggle theme" />
+                <LanguageToggle
+                  className="bg-white/[0.06] text-white"
+                  tone="inverted"
+                />
+                <ThemeToggle
+                  className="border-white/10 bg-white/[0.06] text-white"
+                  label="Toggle theme"
+                />
               </div>
             </motion.div>
           </motion.div>

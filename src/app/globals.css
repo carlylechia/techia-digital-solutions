@@ -28,7 +28,8 @@
   --ring: rgba(37, 99, 235, 0.26);
   --shadow-soft: 0 24px 80px rgba(7, 17, 31, 0.08);
   --shadow-strong: 0 34px 120px rgba(7, 17, 31, 0.13);
-  --shadow-glow: 0 0 0 1px rgba(34, 211, 238, 0.12), 0 22px 70px rgba(34, 211, 238, 0.18);
+  --shadow-glow:
+    0 0 0 1px rgba(34, 211, 238, 0.12), 0 22px 70px rgba(34, 211, 238, 0.18);
   --grid-line: rgba(110, 133, 158, 0.08);
   --font-inter: Arial, sans-serif;
   --font-display: Arial, sans-serif;
@@ -52,7 +53,8 @@
   --ring: rgba(34, 211, 238, 0.28);
   --shadow-soft: 0 30px 100px rgba(0, 0, 0, 0.38);
   --shadow-strong: 0 36px 120px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 0 1px rgba(34, 211, 238, 0.12), 0 24px 80px rgba(34, 211, 238, 0.16);
+  --shadow-glow:
+    0 0 0 1px rgba(34, 211, 238, 0.12), 0 24px 80px rgba(34, 211, 238, 0.16);
   --grid-line: rgba(148, 163, 184, 0.08);
 }
 
@@ -105,12 +107,35 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(34, 211, 238, 0.16), transparent 28%),
-    radial-gradient(circle at top right, rgba(251, 113, 133, 0.12), transparent 22%),
-    radial-gradient(circle at 50% 100%, rgba(245, 185, 66, 0.1), transparent 26%),
-    linear-gradient(180deg, color-mix(in srgb, var(--background) 95%, white 5%), var(--background));
+    radial-gradient(
+      circle at top left,
+      rgba(34, 211, 238, 0.16),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(251, 113, 133, 0.12),
+      transparent 22%
+    ),
+    radial-gradient(
+      circle at 50% 100%,
+      rgba(245, 185, 66, 0.1),
+      transparent 26%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--background) 95%, white 5%),
+      var(--background)
+    );
   color: var(--foreground);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    var(--font-inter),
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -121,9 +146,21 @@ body[data-scroll-locked="true"] {
 
 .dark body {
   background:
-    radial-gradient(circle at top left, rgba(34, 211, 238, 0.15), transparent 28%),
-    radial-gradient(circle at top right, rgba(251, 113, 133, 0.13), transparent 24%),
-    radial-gradient(circle at 50% 100%, rgba(245, 185, 66, 0.08), transparent 28%),
+    radial-gradient(
+      circle at top left,
+      rgba(34, 211, 238, 0.15),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(251, 113, 133, 0.13),
+      transparent 24%
+    ),
+    radial-gradient(
+      circle at 50% 100%,
+      rgba(245, 185, 66, 0.08),
+      transparent 28%
+    ),
     linear-gradient(180deg, #040812, #081424 55%, #040812);
 }
 
@@ -253,7 +290,9 @@ textarea {
   h4,
   h5,
   h6 {
-    font-family: var(--font-display), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-family:
+      var(--font-display), var(--font-inter), ui-sans-serif, system-ui,
+      sans-serif;
     letter-spacing: -0.045em;
     line-height: 0.98;
   }
@@ -261,7 +300,9 @@ textarea {
 
 @layer components {
   .font-display {
-    font-family: var(--font-display), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-family:
+      var(--font-display), var(--font-inter), ui-sans-serif, system-ui,
+      sans-serif;
   }
 
   .font-script {
@@ -269,7 +310,13 @@ textarea {
   }
 
   .headline-gradient {
-    background: linear-gradient(115deg, color-mix(in srgb, var(--foreground) 92%, white 8%), var(--accent-2), var(--accent-3), var(--sun-amber));
+    background: linear-gradient(
+      115deg,
+      color-mix(in srgb, var(--foreground) 92%, white 8%),
+      var(--accent-2),
+      var(--accent-3),
+      var(--sun-amber)
+    );
     background-size: 220% 220%;
     -webkit-background-clip: text;
     background-clip: text;
@@ -280,7 +327,12 @@ textarea {
   .headline-underline {
     height: 1px;
     width: min(14rem, 46vw);
-    background: linear-gradient(90deg, color-mix(in srgb, var(--accent-2) 84%, transparent), color-mix(in srgb, var(--sun-amber) 88%, transparent), transparent);
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--accent-2) 84%, transparent),
+      color-mix(in srgb, var(--sun-amber) 88%, transparent),
+      transparent
+    );
     box-shadow: 0 0 22px color-mix(in srgb, var(--accent-2) 28%, transparent);
   }
 
@@ -291,7 +343,8 @@ textarea {
     line-height: 0.86;
     letter-spacing: 0.01em;
     color: color-mix(in srgb, var(--accent-3) 78%, var(--sun-amber));
-    text-shadow: 0 10px 40px color-mix(in srgb, var(--accent-3) 18%, transparent);
+    text-shadow: 0 10px 40px
+      color-mix(in srgb, var(--accent-3) 18%, transparent);
   }
 
   .page-frame {
@@ -318,9 +371,21 @@ textarea {
     inset: 0;
     z-index: -3;
     background:
-      radial-gradient(circle at 15% 15%, rgba(34, 211, 238, 0.09), transparent 24%),
-      radial-gradient(circle at 85% 0%, rgba(251, 113, 133, 0.12), transparent 28%),
-      radial-gradient(circle at 50% 100%, rgba(245, 185, 66, 0.07), transparent 30%);
+      radial-gradient(
+        circle at 15% 15%,
+        rgba(34, 211, 238, 0.09),
+        transparent 24%
+      ),
+      radial-gradient(
+        circle at 85% 0%,
+        rgba(251, 113, 133, 0.12),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at 50% 100%,
+        rgba(245, 185, 66, 0.07),
+        transparent 30%
+      );
     animation: float-drift 14s ease-in-out infinite;
     pointer-events: none;
   }
@@ -335,18 +400,42 @@ textarea {
     border: 1px solid color-mix(in srgb, var(--accent-2) 10%, var(--border));
     border-radius: 1.5rem;
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 86%, transparent), color-mix(in srgb, var(--surface) 92%, transparent)),
-      radial-gradient(circle at top right, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent 34%),
-      radial-gradient(circle at bottom left, color-mix(in srgb, var(--accent-3) 10%, transparent), transparent 28%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-strong) 86%, transparent),
+        color-mix(in srgb, var(--surface) 92%, transparent)
+      ),
+      radial-gradient(
+        circle at top right,
+        color-mix(in srgb, var(--accent-2) 10%, transparent),
+        transparent 34%
+      ),
+      radial-gradient(
+        circle at bottom left,
+        color-mix(in srgb, var(--accent-3) 10%, transparent),
+        transparent 28%
+      );
     box-shadow: var(--shadow-soft);
     backdrop-filter: blur(22px);
   }
 
   .elevated-panel {
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-elevated) 90%, transparent), color-mix(in srgb, var(--surface) 92%, transparent)),
-      radial-gradient(circle at top left, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent 34%),
-      radial-gradient(circle at bottom right, color-mix(in srgb, var(--sun-amber) 10%, transparent), transparent 28%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-elevated) 90%, transparent),
+        color-mix(in srgb, var(--surface) 92%, transparent)
+      ),
+      radial-gradient(
+        circle at top left,
+        color-mix(in srgb, var(--accent-2) 10%, transparent),
+        transparent 34%
+      ),
+      radial-gradient(
+        circle at bottom right,
+        color-mix(in srgb, var(--sun-amber) 10%, transparent),
+        transparent 28%
+      );
     box-shadow: var(--shadow-strong);
   }
 
@@ -361,8 +450,16 @@ textarea {
     inset: 0;
     padding: 1px;
     border-radius: inherit;
-    background: linear-gradient(135deg, rgba(34, 211, 238, 0.62), rgba(37, 99, 235, 0.34), rgba(251, 113, 133, 0.38), rgba(245, 185, 66, 0.34));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    background: linear-gradient(
+      135deg,
+      rgba(34, 211, 238, 0.62),
+      rgba(37, 99, 235, 0.34),
+      rgba(251, 113, 133, 0.38),
+      rgba(245, 185, 66, 0.34)
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
@@ -385,7 +482,12 @@ textarea {
     height: 0.55rem;
     flex-shrink: 0;
     border-radius: 999px;
-    background: linear-gradient(135deg, var(--accent-2), var(--accent-3), var(--sun-amber));
+    background: linear-gradient(
+      135deg,
+      var(--accent-2),
+      var(--accent-3),
+      var(--sun-amber)
+    );
     box-shadow: 0 0 18px color-mix(in srgb, var(--accent-2) 38%, transparent);
     animation: pulse-beacon 2.8s ease-in-out infinite;
   }
@@ -398,8 +500,16 @@ textarea {
     border-radius: 999px;
     padding: 0.55rem 0.85rem;
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, transparent), color-mix(in srgb, var(--surface-elevated) 88%, transparent)),
-      radial-gradient(circle at top left, color-mix(in srgb, var(--accent-2) 12%, transparent), transparent 32%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface) 92%, transparent),
+        color-mix(in srgb, var(--surface-elevated) 88%, transparent)
+      ),
+      radial-gradient(
+        circle at top left,
+        color-mix(in srgb, var(--accent-2) 12%, transparent),
+        transparent 32%
+      );
     color: color-mix(in srgb, var(--foreground) 86%, var(--muted) 14%);
     font-size: 0.82rem;
     font-weight: 650;
@@ -483,7 +593,11 @@ textarea {
 
   .dark-section {
     border: 1px solid rgba(255, 255, 255, 0.1);
-    background: linear-gradient(180deg, rgba(7, 17, 31, 0.94), rgba(10, 24, 43, 0.92));
+    background: linear-gradient(
+      180deg,
+      rgba(7, 17, 31, 0.94),
+      rgba(10, 24, 43, 0.92)
+    );
     box-shadow: var(--shadow-strong);
   }
 
@@ -499,10 +613,27 @@ textarea {
     inset: 0;
     z-index: -2;
     background:
-      radial-gradient(circle at 8% 6%, rgba(34, 211, 238, 0.14), transparent 24%),
-      radial-gradient(circle at 92% 14%, rgba(139, 92, 246, 0.16), transparent 22%),
-      radial-gradient(circle at 50% 52%, rgba(37, 99, 235, 0.08), transparent 30%),
-      linear-gradient(180deg, transparent, rgba(34, 211, 238, 0.04) 38%, transparent 72%);
+      radial-gradient(
+        circle at 8% 6%,
+        rgba(34, 211, 238, 0.14),
+        transparent 24%
+      ),
+      radial-gradient(
+        circle at 92% 14%,
+        rgba(139, 92, 246, 0.16),
+        transparent 22%
+      ),
+      radial-gradient(
+        circle at 50% 52%,
+        rgba(37, 99, 235, 0.08),
+        transparent 30%
+      ),
+      linear-gradient(
+        180deg,
+        transparent,
+        rgba(34, 211, 238, 0.04) 38%,
+        transparent 72%
+      );
     pointer-events: none;
   }
 
@@ -515,7 +646,12 @@ textarea {
       linear-gradient(to right, rgba(148, 163, 184, 0.06) 1px, transparent 1px),
       linear-gradient(to bottom, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
     background-size: 120px 120px;
-    mask-image: radial-gradient(circle at top center, black 0%, black 58%, transparent 100%);
+    mask-image: radial-gradient(
+      circle at top center,
+      black 0%,
+      black 58%,
+      transparent 100%
+    );
     opacity: 0.7;
     pointer-events: none;
   }
@@ -530,7 +666,12 @@ textarea {
     inset-inline: 10%;
     top: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent-2) 20%, var(--line)), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--accent-2) 20%, var(--line)),
+      transparent
+    );
     opacity: 0.55;
     pointer-events: none;
   }
@@ -558,8 +699,16 @@ textarea {
     inset: 0;
     border-radius: inherit;
     background:
-      radial-gradient(circle at top left, rgba(34, 211, 238, 0.14), transparent 34%),
-      radial-gradient(circle at bottom right, rgba(139, 92, 246, 0.12), transparent 26%);
+      radial-gradient(
+        circle at top left,
+        rgba(34, 211, 238, 0.14),
+        transparent 34%
+      ),
+      radial-gradient(
+        circle at bottom right,
+        rgba(139, 92, 246, 0.12),
+        transparent 26%
+      );
     opacity: 0;
     transition: opacity 0.34s ease;
     pointer-events: none;
@@ -585,8 +734,16 @@ textarea {
     border-radius: 1.4rem;
     padding: 1.15rem;
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-elevated) 90%, transparent), color-mix(in srgb, var(--surface) 92%, transparent)),
-      radial-gradient(circle at top left, rgba(34, 211, 238, 0.08), transparent 40%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-elevated) 90%, transparent),
+        color-mix(in srgb, var(--surface) 92%, transparent)
+      ),
+      radial-gradient(
+        circle at top left,
+        rgba(34, 211, 238, 0.08),
+        transparent 40%
+      );
     box-shadow: var(--shadow-soft);
   }
 
@@ -634,8 +791,16 @@ textarea {
     border-radius: 1.4rem;
     padding: 1rem 1rem 1.05rem;
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-elevated) 94%, transparent), color-mix(in srgb, var(--surface) 92%, transparent)),
-      radial-gradient(circle at top right, rgba(34, 211, 238, 0.08), transparent 34%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-elevated) 94%, transparent),
+        color-mix(in srgb, var(--surface) 92%, transparent)
+      ),
+      radial-gradient(
+        circle at top right,
+        rgba(34, 211, 238, 0.08),
+        transparent 34%
+      );
     box-shadow: var(--shadow-soft);
   }
 
@@ -683,8 +848,16 @@ textarea {
     border-radius: 999px;
     padding: 0.5rem 0.8rem;
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 92%, transparent), color-mix(in srgb, var(--surface) 90%, transparent)),
-      radial-gradient(circle at top left, rgba(34, 211, 238, 0.08), transparent 34%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-strong) 92%, transparent),
+        color-mix(in srgb, var(--surface) 90%, transparent)
+      ),
+      radial-gradient(
+        circle at top left,
+        rgba(34, 211, 238, 0.08),
+        transparent 34%
+      );
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.18em;
@@ -708,8 +881,16 @@ textarea {
     border: 1px solid color-mix(in srgb, var(--accent-2) 18%, var(--border));
     border-radius: 999px;
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 92%, transparent), color-mix(in srgb, var(--surface) 88%, transparent)),
-      radial-gradient(circle at top left, rgba(34, 211, 238, 0.08), transparent 40%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-strong) 92%, transparent),
+        color-mix(in srgb, var(--surface) 88%, transparent)
+      ),
+      radial-gradient(
+        circle at top left,
+        rgba(34, 211, 238, 0.08),
+        transparent 40%
+      );
     font-size: 0.82rem;
     font-weight: 600;
     color: var(--muted);
@@ -786,8 +967,13 @@ textarea {
     margin-inline-end: var(--carousel-gap, 1rem);
     opacity: var(--carousel-far-opacity, 0.24);
     filter: saturate(0.76) blur(1px);
-    transform:
-      translate3d(calc(var(--slide-direction, 1) * var(--carousel-far-shift, 1.5rem) * -1), 1rem, 0)
+    transform: translate3d(
+        calc(
+          var(--slide-direction, 1) * var(--carousel-far-shift, 1.5rem) * -1
+        ),
+        1rem,
+        0
+      )
       scale(var(--carousel-far-scale, 0.84));
     transform-origin: center center;
     pointer-events: none;
@@ -814,8 +1000,14 @@ textarea {
   .swipe-dots-slide[data-neighbor="true"] {
     opacity: var(--carousel-neighbor-opacity, 0.66);
     filter: saturate(0.92) blur(0.35px);
-    transform:
-      translate3d(calc(var(--slide-direction, 1) * var(--carousel-neighbor-shift, 0.75rem) * -1), 0.55rem, 0)
+    transform: translate3d(
+        calc(
+          var(--slide-direction, 1) * var(--carousel-neighbor-shift, 0.75rem) *
+            -1
+        ),
+        0.55rem,
+        0
+      )
       scale(var(--carousel-neighbor-scale, 0.92));
     z-index: 2;
   }
@@ -890,7 +1082,11 @@ textarea {
   .swipe-dots-dot[data-active="true"] {
     width: 1.8rem;
     opacity: 1;
-    background: linear-gradient(90deg, var(--accent-2), color-mix(in srgb, var(--accent) 72%, white 28%));
+    background: linear-gradient(
+      90deg,
+      var(--accent-2),
+      color-mix(in srgb, var(--accent) 72%, white 28%)
+    );
     border-color: color-mix(in srgb, var(--accent-2) 54%, var(--border));
   }
 
@@ -1032,7 +1228,9 @@ textarea {
     font-size: 0.88rem;
     font-weight: 700;
     cursor: pointer;
-    transition: color 0.22s ease, transform 0.22s ease;
+    transition:
+      color 0.22s ease,
+      transform 0.22s ease;
   }
 
   .founder-recommendation-toggle:hover,
@@ -1070,8 +1268,16 @@ textarea {
   .founder-page .trust-pill {
     border-color: color-mix(in srgb, var(--accent-2) 16%, var(--border));
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 92%, transparent), color-mix(in srgb, var(--surface) 90%, transparent)),
-      radial-gradient(circle at top left, rgba(34, 211, 238, 0.06), transparent 38%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-strong) 92%, transparent),
+        color-mix(in srgb, var(--surface) 90%, transparent)
+      ),
+      radial-gradient(
+        circle at top left,
+        rgba(34, 211, 238, 0.06),
+        transparent 38%
+      );
     color: var(--foreground);
   }
 
@@ -1099,7 +1305,12 @@ textarea {
     position: absolute;
     inset: 1px;
     border-radius: inherit;
-    background: linear-gradient(110deg, transparent 20%, rgba(255, 255, 255, 0.28) 48%, transparent 76%);
+    background: linear-gradient(
+      110deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.28) 48%,
+      transparent 76%
+    );
     transform: translateX(-130%);
     transition: transform 0.6s ease;
     pointer-events: none;
@@ -1162,14 +1373,30 @@ textarea {
 
   .founder-page .btn-secondary {
     background-image:
-      linear-gradient(135deg, color-mix(in srgb, var(--surface-strong) 96%, transparent), color-mix(in srgb, var(--surface-elevated) 88%, transparent)),
-      linear-gradient(135deg, rgba(34, 211, 238, 0.14), rgba(139, 92, 246, 0.12));
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--surface-strong) 96%, transparent),
+        color-mix(in srgb, var(--surface-elevated) 88%, transparent)
+      ),
+      linear-gradient(
+        135deg,
+        rgba(34, 211, 238, 0.14),
+        rgba(139, 92, 246, 0.12)
+      );
   }
 
   .founder-page .btn-ghost {
     background-image:
-      linear-gradient(135deg, color-mix(in srgb, var(--surface-strong) 86%, transparent), color-mix(in srgb, var(--surface) 88%, transparent)),
-      linear-gradient(135deg, rgba(34, 211, 238, 0.08), rgba(139, 92, 246, 0.08));
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--surface-strong) 86%, transparent),
+        color-mix(in srgb, var(--surface) 88%, transparent)
+      ),
+      linear-gradient(
+        135deg,
+        rgba(34, 211, 238, 0.08),
+        rgba(139, 92, 246, 0.08)
+      );
   }
 
   .founder-page .btn-primary {
@@ -1214,7 +1441,11 @@ textarea {
     top: -3rem;
     z-index: 100;
     border-radius: 999px;
-    background: linear-gradient(135deg, var(--foreground), color-mix(in srgb, var(--accent) 55%, var(--foreground)));
+    background: linear-gradient(
+      135deg,
+      var(--foreground),
+      color-mix(in srgb, var(--accent) 55%, var(--foreground))
+    );
     color: var(--cloud-white);
     padding: 0.7rem 1rem;
     font-size: 0.9rem;
@@ -1264,7 +1495,12 @@ textarea {
     inset-block: -30%;
     left: -24%;
     width: 28%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.34), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.34),
+      transparent
+    );
     transform: skewX(-22deg);
     opacity: 0;
     transition:
@@ -1274,7 +1510,13 @@ textarea {
 
   .btn-primary {
     border: 1px solid color-mix(in srgb, white 18%, var(--accent-2) 30%);
-    background: linear-gradient(135deg, var(--accent), var(--accent-2), var(--accent-3), var(--sun-amber));
+    background: linear-gradient(
+      135deg,
+      var(--accent),
+      var(--accent-2),
+      var(--accent-3),
+      var(--sun-amber)
+    );
     background-size: 220% 220%;
     color: #04101c;
     box-shadow: var(--shadow-glow);
@@ -1284,8 +1526,16 @@ textarea {
   .btn-secondary {
     border: 1px solid color-mix(in srgb, var(--accent-2) 14%, var(--border));
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 92%, transparent), color-mix(in srgb, var(--surface) 88%, transparent)),
-      radial-gradient(circle at top right, color-mix(in srgb, var(--accent-2) 9%, transparent), transparent 34%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-strong) 92%, transparent),
+        color-mix(in srgb, var(--surface) 88%, transparent)
+      ),
+      radial-gradient(
+        circle at top right,
+        color-mix(in srgb, var(--accent-2) 9%, transparent),
+        transparent 34%
+      );
     color: var(--foreground);
   }
 
@@ -1330,8 +1580,16 @@ textarea {
   .nav-link[data-active="true"] {
     border-color: color-mix(in srgb, var(--accent-2) 18%, var(--border));
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 94%, transparent), color-mix(in srgb, var(--surface) 90%, transparent)),
-      radial-gradient(circle at top left, color-mix(in srgb, var(--accent-2) 12%, transparent), transparent 32%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-strong) 94%, transparent),
+        color-mix(in srgb, var(--surface) 90%, transparent)
+      ),
+      radial-gradient(
+        circle at top left,
+        color-mix(in srgb, var(--accent-2) 12%, transparent),
+        transparent 32%
+      );
     color: var(--foreground);
     box-shadow:
       0 16px 34px rgba(8, 20, 36, 0.08),
@@ -1358,12 +1616,20 @@ textarea {
 
   .nav-scroll-shell::before {
     left: 0;
-    background: linear-gradient(90deg, color-mix(in srgb, var(--surface-strong) 95%, transparent), transparent);
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--surface-strong) 95%, transparent),
+      transparent
+    );
   }
 
   .nav-scroll-shell::after {
     right: 0;
-    background: linear-gradient(270deg, color-mix(in srgb, var(--surface-strong) 98%, transparent), transparent);
+    background: linear-gradient(
+      270deg,
+      color-mix(in srgb, var(--surface-strong) 98%, transparent),
+      transparent
+    );
   }
 
   .nav-scroll-shell[data-can-scroll="false"]::before,
@@ -1401,8 +1667,16 @@ textarea {
     border: 1px solid color-mix(in srgb, var(--accent-2) 18%, var(--border));
     border-radius: 1rem;
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 97%, transparent), color-mix(in srgb, var(--surface) 94%, transparent)),
-      radial-gradient(circle at top right, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent 40%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-strong) 97%, transparent),
+        color-mix(in srgb, var(--surface) 94%, transparent)
+      ),
+      radial-gradient(
+        circle at top right,
+        color-mix(in srgb, var(--accent-2) 10%, transparent),
+        transparent 40%
+      );
     color: color-mix(in srgb, var(--foreground) 82%, var(--accent-2) 18%);
     transform: translateY(-50%);
     box-shadow:
@@ -1437,7 +1711,8 @@ textarea {
   }
 
   .nav-scroll-button[data-direction="left"]:hover .nav-scroll-button-icon,
-  .nav-scroll-button[data-direction="left"]:focus-visible .nav-scroll-button-icon {
+  .nav-scroll-button[data-direction="left"]:focus-visible
+    .nav-scroll-button-icon {
     transform: translateX(-1px);
   }
 
@@ -1450,14 +1725,23 @@ textarea {
     border: 1px solid color-mix(in srgb, var(--accent-2) 14%, var(--border));
     border-radius: 999px;
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 84%, transparent), color-mix(in srgb, var(--surface) 90%, transparent)),
-      radial-gradient(circle at top right, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent 35%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-strong) 84%, transparent),
+        color-mix(in srgb, var(--surface) 90%, transparent)
+      ),
+      radial-gradient(
+        circle at top right,
+        color-mix(in srgb, var(--accent-2) 10%, transparent),
+        transparent 35%
+      );
     color: var(--foreground);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     backdrop-filter: blur(16px);
   }
 
   .icon-button {
+    flex-shrink: 0;
     height: 2.9rem;
     width: 2.9rem;
   }
@@ -1478,18 +1762,40 @@ textarea {
   .header-shell {
     position: relative;
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 1rem;
+    gap: 0.85rem;
     border: 1px solid color-mix(in srgb, var(--accent-2) 12%, var(--border));
-    border-radius: 2rem;
-    padding: 0.95rem 1rem;
+    border-radius: 1.6rem;
+    padding: 0.8rem 0.85rem;
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 90%, transparent), color-mix(in srgb, var(--surface) 88%, transparent)),
-      radial-gradient(circle at top left, color-mix(in srgb, var(--accent-2) 12%, transparent), transparent 30%),
-      radial-gradient(circle at top right, color-mix(in srgb, var(--accent-3) 10%, transparent), transparent 28%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-strong) 90%, transparent),
+        color-mix(in srgb, var(--surface) 88%, transparent)
+      ),
+      radial-gradient(
+        circle at top left,
+        color-mix(in srgb, var(--accent-2) 12%, transparent),
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at top right,
+        color-mix(in srgb, var(--accent-3) 10%, transparent),
+        transparent 28%
+      );
     box-shadow: var(--shadow-soft);
     backdrop-filter: blur(26px);
+  }
+
+  .header-shell > .logo-lockup,
+  .header-shell > a.logo-lockup,
+  .header-shell > span.logo-lockup {
+    min-width: 0;
+  }
+
+  .header-shell > .icon-button {
+    justify-self: end;
   }
 
   .header-action-cluster {
@@ -1502,8 +1808,16 @@ textarea {
     border: 1px solid color-mix(in srgb, var(--accent-2) 14%, var(--border));
     border-radius: 999px;
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 92%, transparent), color-mix(in srgb, var(--surface) 90%, transparent)),
-      radial-gradient(circle at top right, color-mix(in srgb, var(--accent-2) 10%, transparent), transparent 34%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-strong) 92%, transparent),
+        color-mix(in srgb, var(--surface) 90%, transparent)
+      ),
+      radial-gradient(
+        circle at top right,
+        color-mix(in srgb, var(--accent-2) 10%, transparent),
+        transparent 34%
+      );
     box-shadow: var(--shadow-soft);
   }
 
@@ -1548,9 +1862,21 @@ textarea {
     border-radius: 1.4rem;
     padding: 0.75rem 0.95rem;
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 92%, transparent), color-mix(in srgb, var(--surface) 88%, transparent)),
-      radial-gradient(circle at top left, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 38%),
-      radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-3) 14%, transparent), transparent 34%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-strong) 92%, transparent),
+        color-mix(in srgb, var(--surface) 88%, transparent)
+      ),
+      radial-gradient(
+        circle at top left,
+        color-mix(in srgb, var(--accent-2) 14%, transparent),
+        transparent 38%
+      ),
+      radial-gradient(
+        circle at bottom right,
+        color-mix(in srgb, var(--accent-3) 14%, transparent),
+        transparent 34%
+      );
     box-shadow: var(--shadow-soft);
   }
 
@@ -1565,7 +1891,12 @@ textarea {
     inset-block: -35%;
     left: -24%;
     width: 26%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.28),
+      transparent
+    );
     transform: skewX(-22deg);
     animation: shimmer-x 6.8s linear infinite;
     opacity: 0.7;
@@ -1603,14 +1934,24 @@ textarea {
     right: 0.45rem;
     width: 1.4rem;
     height: 1px;
-    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sun-amber) 78%, transparent));
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--sun-amber) 78%, transparent)
+    );
     opacity: 0.8;
   }
 
   .marquee-shell {
     position: relative;
     overflow: hidden;
-    mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+    mask-image: linear-gradient(
+      90deg,
+      transparent,
+      black 10%,
+      black 90%,
+      transparent
+    );
   }
 
   .marquee-track {
@@ -1638,14 +1979,30 @@ textarea {
     overflow: hidden;
     border-top: 1px solid color-mix(in srgb, var(--accent-2) 12%, var(--border));
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--deep-navy) 12%, transparent), transparent 24%),
-      linear-gradient(180deg, color-mix(in srgb, var(--background) 94%, black 6%), color-mix(in srgb, var(--background) 98%, white 2%));
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--deep-navy) 12%, transparent),
+        transparent 24%
+      ),
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--background) 94%, black 6%),
+        color-mix(in srgb, var(--background) 98%, white 2%)
+      );
   }
 
   .dark .footer-stage {
     background:
-      radial-gradient(circle at top left, rgba(34, 211, 238, 0.08), transparent 24%),
-      radial-gradient(circle at top right, rgba(251, 113, 133, 0.07), transparent 22%),
+      radial-gradient(
+        circle at top left,
+        rgba(34, 211, 238, 0.08),
+        transparent 24%
+      ),
+      radial-gradient(
+        circle at top right,
+        rgba(251, 113, 133, 0.07),
+        transparent 22%
+      ),
       linear-gradient(180deg, #06101d, #040812);
   }
 
@@ -1654,9 +2011,21 @@ textarea {
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(circle at 12% 8%, rgba(34, 211, 238, 0.08), transparent 24%),
-      radial-gradient(circle at 88% 12%, rgba(251, 113, 133, 0.07), transparent 20%),
-      radial-gradient(circle at 50% 100%, rgba(245, 185, 66, 0.06), transparent 24%);
+      radial-gradient(
+        circle at 12% 8%,
+        rgba(34, 211, 238, 0.08),
+        transparent 24%
+      ),
+      radial-gradient(
+        circle at 88% 12%,
+        rgba(251, 113, 133, 0.07),
+        transparent 20%
+      ),
+      radial-gradient(
+        circle at 50% 100%,
+        rgba(245, 185, 66, 0.06),
+        transparent 24%
+      );
     pointer-events: none;
   }
 
@@ -1681,6 +2050,9 @@ textarea {
   @media (min-width: 1024px) {
     .header-shell {
       grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 1rem;
+      border-radius: 2rem;
+      padding: 0.95rem 1rem;
     }
   }
 
@@ -1697,8 +2069,16 @@ textarea {
     border: 1px solid color-mix(in srgb, var(--accent-2) 12%, var(--border));
     border-radius: 1rem;
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 94%, transparent), color-mix(in srgb, var(--surface) 88%, transparent)),
-      radial-gradient(circle at top right, color-mix(in srgb, var(--accent-2) 7%, transparent), transparent 34%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-strong) 94%, transparent),
+        color-mix(in srgb, var(--surface) 88%, transparent)
+      ),
+      radial-gradient(
+        circle at top right,
+        color-mix(in srgb, var(--accent-2) 7%, transparent),
+        transparent 34%
+      );
     color: var(--foreground);
     padding: 0.92rem 1rem;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -1717,7 +2097,12 @@ textarea {
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, var(--cloud-white), color-mix(in srgb, var(--accent-2) 85%, white), color-mix(in srgb, var(--accent-3) 70%, white));
+    background: linear-gradient(
+      135deg,
+      var(--cloud-white),
+      color-mix(in srgb, var(--accent-2) 85%, white),
+      color-mix(in srgb, var(--accent-3) 70%, white)
+    );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

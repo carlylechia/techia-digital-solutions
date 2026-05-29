@@ -40,9 +40,9 @@ export function PremiumPageHero({
     locale === "fr" ? "conçu pour demain" : "crafted for tomorrow";
 
   return (
-    <section className={cn("container pt-8 pb-8 md:pt-12", className)}>
+    <section className={cn("container pt-6 pb-8 sm:pt-8 md:pt-12", className)}>
       <div className="gradient-border rounded-[2.1rem]">
-        <div className="elevated-panel relative overflow-hidden px-6 py-9 md:px-10 md:py-12">
+        <div className="elevated-panel relative overflow-hidden px-5 py-8 sm:px-7 sm:py-9 md:px-10 md:py-12">
           <AnimatedGridBackground className="opacity-80 [mask-image:radial-gradient(circle_at_top_right,black,transparent_82%)]" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.14),transparent_30%),radial-gradient(circle_at_80%_22%,rgba(251,113,133,0.12),transparent_26%),radial-gradient(circle_at_50%_100%,rgba(245,185,66,0.1),transparent_28%)]" />
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#22D3EE]/60 to-transparent" />
@@ -58,7 +58,7 @@ export function PremiumPageHero({
                 {accentScript}
               </span>
               {eyebrow ? <p className="eyebrow mb-4 mt-3">{eyebrow}</p> : null}
-              <h1 className="max-w-4xl text-balance text-5xl font-semibold leading-[0.94] text-foreground md:text-7xl">
+              <h1 className="max-w-4xl text-balance text-[clamp(2.9rem,10vw,5.4rem)] font-semibold leading-[0.94] text-foreground">
                 <span className="headline-gradient">{title}</span>
               </h1>
               <div className="headline-underline mt-6" aria-hidden="true" />
@@ -106,7 +106,7 @@ export function PremiumPageHero({
             </div>
 
             {aside ? (
-              <div className="relative z-10 rounded-[1.85rem] border border-border bg-white/[0.08] p-1 backdrop-blur-xl dark:bg-white/[0.04]">
+              <div className="relative z-10 rounded-[1.7rem] border border-border bg-white/[0.08] p-1.5 backdrop-blur-xl dark:bg-white/[0.04] sm:rounded-[1.85rem]">
                 {aside}
               </div>
             ) : null}

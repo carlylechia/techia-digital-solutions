@@ -35,7 +35,7 @@ export function PremiumPageCta({
   return (
     <section className={cn("container pb-20", className)}>
       <div className="gradient-border rounded-[2.1rem]">
-        <div className="elevated-panel relative overflow-hidden px-6 py-10 text-center md:px-10 md:py-14">
+        <div className="elevated-panel relative overflow-hidden px-5 py-9 text-center sm:px-7 md:px-10 md:py-14">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_center,rgba(34,211,238,0.14),transparent_30%),radial-gradient(circle_at_80%_80%,rgba(251,113,133,0.14),transparent_24%),radial-gradient(circle_at_15%_85%,rgba(245,185,66,0.12),transparent_20%)]" />
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#22D3EE]/60 to-transparent" />
           <div className="relative z-10">
@@ -47,7 +47,7 @@ export function PremiumPageCta({
                 {eyebrow}
               </p>
             ) : null}
-            <h2 className="mx-auto mt-2 max-w-4xl text-balance text-5xl font-semibold text-foreground md:text-7xl">
+            <h2 className="mx-auto mt-2 max-w-4xl text-balance text-[clamp(2.6rem,9vw,5rem)] font-semibold text-foreground">
               <span className="headline-gradient">{title}</span>
             </h2>
             <div
@@ -63,14 +63,14 @@ export function PremiumPageCta({
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
                 href={primaryHref}
-                className="btn-primary justify-center px-5 py-3.5"
+                className="btn-primary w-full justify-center px-5 py-3.5 sm:w-auto"
               >
                 {primaryAction.label}
               </Link>
               {secondaryAction && secondaryHref ? (
                 <Link
                   href={secondaryHref}
-                  className="btn-secondary justify-center px-5 py-3.5"
+                  className="btn-secondary w-full justify-center px-5 py-3.5 sm:w-auto"
                 >
                   {secondaryAction.label}
                 </Link>
