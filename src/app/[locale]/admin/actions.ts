@@ -2111,6 +2111,7 @@ export async function createPortalInvoiceAction(_prevState: unknown, formData: F
   const currency = String(formData.get("currency") || "USD").toUpperCase();
   const dueDateStr = String(formData.get("dueDate") || "");
   const projectId = String(formData.get("projectId") || "") || undefined;
+  const paymentId = String(formData.get("paymentId") || "") || undefined;
   const notes = String(formData.get("notes") || "").trim() || undefined;
 
   if (!clientId || !title || !amountStr) return { success: false, error: "Required fields missing." };
@@ -2120,6 +2121,13 @@ export async function createPortalInvoiceAction(_prevState: unknown, formData: F
 
   const dueDate = dueDateStr ? new Date(dueDateStr) : undefined;
 
+  // If linked to a payment, verify it belongs to this client
+  if (paymentId) {
+    const payment = await prisma.portalPayment.findUnique({ where: { id: paymentId }, select: { clientId: true, status: true } });
+    if (!payment || payment.clientId !== clientId) return { success: false, error: "Payment plan not found." };
+    if (payment.status === "COMPLETED") return { success: false, error: "Cannot add invoices to a completed payment." };
+  }
+
   // Generate invoice number
   const count = await prisma.portalInvoice.count({ where: { clientId } });
   const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}-${(count + 1).toString().padStart(3, "0")}`;
@@ -2128,6 +2136,7 @@ export async function createPortalInvoiceAction(_prevState: unknown, formData: F
     data: {
       clientId,
       projectId,
+      paymentId,
       invoiceNumber,
       title,
       amount,
@@ -2151,6 +2160,7 @@ export async function createPortalInvoiceAction(_prevState: unknown, formData: F
 
   await writeAuditLog({ actorId: actor.id, action: "portal.invoice_created", entityType: "Client", entityId: clientId });
   revalidatePath("/[locale]/admin", "layout");
+  revalidatePath("/client-portal/invoices");
   return { success: true, invoiceNumber };
 }
 
@@ -2211,12 +2221,274 @@ export async function updatePortalInvoiceStatusAction(formData: FormData) {
   await prisma.portalInvoice.update({
     where: { id: invoiceId },
     data: {
-      status: status as "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "CANCELLED",
+      status: status as "DRAFT" | "SENT" | "AWAITING_CONFIRMATION" | "PAID" | "OVERDUE" | "CANCELLED",
       paidAt: status === "PAID" ? new Date() : undefined,
     },
   });
 
   revalidatePath("/[locale]/admin", "layout");
+  revalidatePath("/client-portal/invoices");
+  return { success: true };
+}
+
+export async function deletePortalInvoiceAction(formData: FormData) {
+  await requireAdmin();
+  const prisma = getPrisma();
+  if (!prisma) return { success: false, error: "Database unavailable." };
+
+  const invoiceId = String(formData.get("invoiceId") || "");
+  if (!invoiceId) return { success: false, error: "Invoice ID required." };
+
+  const invoice = await prisma.portalInvoice.findUnique({
+    where: { id: invoiceId },
+    select: { id: true, status: true, clientId: true },
+  });
+  if (!invoice) return { success: false, error: "Invoice not found." };
+  if (invoice.status === "PAID") return { success: false, error: "Cannot delete a paid invoice." };
+  if (invoice.status === "AWAITING_CONFIRMATION") return { success: false, error: "Cannot delete an invoice awaiting confirmation. Ask the client to cancel their claim first, or confirm the payment instead." };
+
+  await prisma.portalInvoice.delete({ where: { id: invoiceId } });
+
+  revalidatePath("/[locale]/admin", "layout");
+  revalidatePath("/client-portal/invoices");
+  return { success: true };
+}
+
+
+
+export async function createPortalPaymentAction(_prevState: unknown, formData: FormData) {
+  const actor = await requireAdmin();
+  const prisma = getPrisma();
+  if (!prisma) return { success: false, error: "Database unavailable." };
+
+  const clientId = String(formData.get("clientId") || "");
+  const title = String(formData.get("title") || "").trim();
+  const description = String(formData.get("description") || "").trim() || undefined;
+  const totalAmountStr = String(formData.get("totalAmount") || "");
+  const initialPaymentStr = String(formData.get("initialPayment") || "0");
+  const currency = String(formData.get("currency") || "USD").toUpperCase();
+  const notes = String(formData.get("notes") || "").trim() || undefined;
+  const projectIds = formData.getAll("projectIds").map((v) => String(v)).filter(Boolean);
+
+  if (!clientId || !title || !totalAmountStr) return { success: false, error: "Required fields missing." };
+
+  const totalAmount = Math.round(parseFloat(totalAmountStr) * 100);
+  if (!Number.isFinite(totalAmount) || totalAmount <= 0) return { success: false, error: "Invalid total amount." };
+
+  const initialPayment = Math.round(parseFloat(initialPaymentStr || "0") * 100);
+  if (!Number.isFinite(initialPayment) || initialPayment < 0) return { success: false, error: "Invalid initial payment." };
+  if (initialPayment > totalAmount) return { success: false, error: "Initial payment cannot exceed total amount." };
+
+  // Verify client exists
+  const client = await prisma.client.findUnique({ where: { id: clientId }, select: { id: true } });
+  if (!client) return { success: false, error: "Client not found." };
+
+  const payment = await prisma.portalPayment.create({
+    data: {
+      clientId,
+      title,
+      description,
+      totalAmount,
+      initialPayment,
+      currency,
+      notes,
+      status: initialPayment >= totalAmount ? "COMPLETED" : "ACTIVE",
+      createdById: actor.id,
+      projects: projectIds.length > 0
+        ? { create: projectIds.map((projectId) => ({ projectId })) }
+        : undefined,
+    },
+  });
+
+  await prisma.portalNotification.create({
+    data: {
+      clientId,
+      type: "PAYMENT",
+      title: "Payment plan created",
+      body: `${title} — ${new Intl.NumberFormat("en-US", { style: "currency", currency }).format(totalAmount / 100)} total`,
+      link: "/client-portal/invoices",
+    },
+  });
+
+  await writeAuditLog({ actorId: actor.id, action: "portal.payment_created", entityType: "Client", entityId: clientId });
+  revalidatePath("/[locale]/admin", "layout");
+  revalidatePath("/client-portal/invoices");
+  return { success: true, paymentId: payment.id };
+}
+
+export async function updatePortalPaymentAction(_prevState: unknown, formData: FormData) {
+  await requireAdmin();
+  const prisma = getPrisma();
+  if (!prisma) return { success: false, error: "Database unavailable." };
+
+  const paymentId = String(formData.get("paymentId") || "");
+  const title = String(formData.get("title") || "").trim();
+  const description = String(formData.get("description") || "").trim() || undefined;
+  const totalAmountStr = String(formData.get("totalAmount") || "");
+  const initialPaymentStr = String(formData.get("initialPayment") || "0");
+  const notes = String(formData.get("notes") || "").trim() || undefined;
+  const projectIds = formData.getAll("projectIds").map((v) => String(v)).filter(Boolean);
+
+  if (!paymentId || !title || !totalAmountStr) return { success: false, error: "Required fields missing." };
+
+  const totalAmount = Math.round(parseFloat(totalAmountStr) * 100);
+  if (!Number.isFinite(totalAmount) || totalAmount <= 0) return { success: false, error: "Invalid total amount." };
+
+  const initialPayment = Math.round(parseFloat(initialPaymentStr || "0") * 100);
+  if (!Number.isFinite(initialPayment) || initialPayment < 0) return { success: false, error: "Invalid initial payment." };
+  if (initialPayment > totalAmount) return { success: false, error: "Initial payment cannot exceed total amount." };
+
+  const existing = await prisma.portalPayment.findUnique({
+    where: { id: paymentId },
+    include: { invoices: { where: { status: "PAID" }, select: { amount: true } } },
+  });
+  if (!existing) return { success: false, error: "Payment plan not found." };
+
+  const paidViaInvoices = existing.invoices.reduce((s, i) => s + i.amount, 0);
+  const totalPaid = initialPayment + paidViaInvoices;
+  const newStatus = totalPaid >= totalAmount ? "COMPLETED" : existing.status === "CANCELLED" ? "CANCELLED" : "ACTIVE";
+
+  // Replace project links
+  await prisma.$transaction([
+    prisma.portalPaymentProject.deleteMany({ where: { paymentId } }),
+    prisma.portalPayment.update({
+      where: { id: paymentId },
+      data: {
+        title,
+        description,
+        totalAmount,
+        initialPayment,
+        notes,
+        status: newStatus,
+        projects: projectIds.length > 0
+          ? { create: projectIds.map((pid) => ({ projectId: pid })) }
+          : undefined,
+      },
+    }),
+  ]);
+
+  revalidatePath("/[locale]/admin", "layout");
+  revalidatePath("/client-portal/invoices");
+  return { success: true };
+}
+
+export async function deletePortalPaymentAction(_prevState: unknown, formData: FormData) {
+  const actor = await requireAdmin();
+  const prisma = getPrisma();
+  if (!prisma) return { success: false, error: "Database unavailable." };
+
+  const paymentId = String(formData.get("paymentId") || "");
+  if (!paymentId) return { success: false, error: "Payment ID required." };
+
+  const payment = await prisma.portalPayment.findUnique({
+    where: { id: paymentId },
+    include: { _count: { select: { invoices: true } } },
+  });
+  if (!payment) return { success: false, error: "Payment plan not found." };
+  if (payment._count.invoices > 0) return { success: false, error: "Cannot delete a payment plan that has linked invoices. Remove or unlink the invoices first." };
+
+  await prisma.portalPayment.delete({ where: { id: paymentId } });
+  await writeAuditLog({ actorId: actor.id, action: "portal.payment_deleted", entityType: "Client", entityId: payment.clientId });
+  revalidatePath("/[locale]/admin", "layout");
+  revalidatePath("/client-portal/invoices");
+  return { success: true };
+}
+
+export async function confirmPortalInvoicePaymentAction(formData: FormData) {
+  const actor = await requireAdmin();
+  const prisma = getPrisma();
+  if (!prisma) return { success: false, error: "Database unavailable." };
+
+  const invoiceId = String(formData.get("invoiceId") || "");
+  if (!invoiceId) return { success: false, error: "Invoice ID required." };
+
+  const invoice = await prisma.portalInvoice.findUnique({
+    where: { id: invoiceId },
+    include: { payment: { include: { invoices: { where: { status: "PAID" }, select: { id: true, amount: true } } } } },
+  });
+  if (!invoice) return { success: false, error: "Invoice not found." };
+  if (invoice.status !== "AWAITING_CONFIRMATION") return { success: false, error: "Invoice is not awaiting confirmation." };
+
+  const now = new Date();
+
+  await prisma.portalInvoice.update({
+    where: { id: invoiceId },
+    data: { status: "PAID", paidAt: now, confirmedAt: now, confirmedById: actor.id },
+  });
+
+  // If linked to a payment plan, recalculate and possibly complete it
+  if (invoice.payment) {
+    const previouslyPaid = invoice.payment.invoices.reduce((s, i) => s + i.amount, 0);
+    const totalPaid = invoice.payment.initialPayment + previouslyPaid + invoice.amount;
+    const isCompleted = totalPaid >= invoice.payment.totalAmount;
+
+    if (isCompleted && invoice.payment.status === "ACTIVE") {
+      await prisma.portalPayment.update({
+        where: { id: invoice.payment.id },
+        data: { status: "COMPLETED" },
+      });
+    }
+  }
+
+  // Notify client
+  await prisma.portalNotification.create({
+    data: {
+      clientId: invoice.clientId,
+      type: "INVOICE",
+      title: "Payment confirmed",
+      body: `${invoice.title} — payment has been confirmed. Thank you!`,
+      link: "/client-portal/invoices",
+    },
+  });
+
+  await writeAuditLog({ actorId: actor.id, action: "portal.invoice_payment_confirmed", entityType: "Client", entityId: invoice.clientId });
+  revalidatePath("/[locale]/admin", "layout");
+  revalidatePath("/client-portal/invoices");
+  return { success: true };
+}
+
+export async function queryPortalInvoicePaymentAction(formData: FormData) {
+  const actor = await requireAdmin();
+  const prisma = getPrisma();
+  if (!prisma) return { success: false, error: "Database unavailable." };
+
+  const invoiceId = String(formData.get("invoiceId") || "");
+  const note = String(formData.get("note") || "").trim();
+  if (!invoiceId) return { success: false, error: "Invoice ID required." };
+  if (!note) return { success: false, error: "Please provide a note to the client explaining the issue." };
+
+  const invoice = await prisma.portalInvoice.findUnique({
+    where: { id: invoiceId },
+    select: { id: true, clientId: true, title: true, status: true, notes: true },
+  });
+  if (!invoice) return { success: false, error: "Invoice not found." };
+  if (invoice.status !== "AWAITING_CONFIRMATION") return { success: false, error: "Invoice is not awaiting confirmation." };
+
+  // Revert to SENT and append the query note so the client can see it on the invoice
+  const timestamp = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const updatedNotes = invoice.notes
+    ? `${invoice.notes}\n\n⚠️ Payment query (${timestamp}):\n${note}`
+    : `⚠️ Payment query (${timestamp}):\n${note}`;
+
+  await prisma.portalInvoice.update({
+    where: { id: invoiceId },
+    data: { status: "SENT", notes: updatedNotes, proofRequired: true },
+  });
+
+  // Notify the client
+  await prisma.portalNotification.create({
+    data: {
+      clientId: invoice.clientId,
+      type: "INVOICE",
+      title: "Payment query on: " + invoice.title,
+      body: note,
+      link: "/client-portal/invoices",
+    },
+  });
+
+  await writeAuditLog({ actorId: actor.id, action: "portal.invoice_payment_queried", entityType: "Client", entityId: invoice.clientId });
+  revalidatePath("/[locale]/admin", "layout");
+  revalidatePath("/client-portal/invoices");
   return { success: true };
 }
 

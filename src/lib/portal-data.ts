@@ -4,6 +4,59 @@ function iso(d: Date | null | undefined) {
   return d ? d.toISOString() : null;
 }
 
+export async function loadPortalPayments(clientId: string) {
+  const prisma = getPrisma();
+  if (!prisma) return [];
+
+  const payments = await prisma.portalPayment.findMany({
+    where: { clientId },
+    orderBy: { createdAt: "desc" },
+    include: {
+      projects: {
+        include: { project: { select: { id: true, title: true, status: true } } },
+      },
+      invoices: {
+        orderBy: { createdAt: "asc" },
+        include: { project: { select: { id: true, title: true } } },
+      },
+    },
+  });
+
+  return payments.map((p) => {
+    const paidViaInvoices = p.invoices
+      .filter((inv) => inv.status === "PAID")
+      .reduce((sum, inv) => sum + inv.amount, 0);
+    const totalPaid = p.initialPayment + paidViaInvoices;
+    const remainingAmount = Math.max(0, p.totalAmount - totalPaid);
+
+    return {
+      id: p.id,
+      clientId: p.clientId,
+      title: p.title,
+      description: p.description,
+      totalAmount: p.totalAmount,
+      initialPayment: p.initialPayment,
+      paidAmount: totalPaid,
+      remainingAmount,
+      currency: p.currency,
+      status: p.status,
+      notes: p.notes,
+      projects: p.projects.map((pp) => pp.project),
+      invoices: p.invoices.map((inv) => ({
+        ...inv,
+        lineItems: inv.lineItems as Array<{ description: string; quantity: number; unitPrice: number }> | null,
+        dueDate: iso(inv.dueDate),
+        paidAt: iso(inv.paidAt),
+        confirmedAt: iso(inv.confirmedAt),
+        createdAt: iso(inv.createdAt),
+        updatedAt: iso(inv.updatedAt),
+      })),
+      createdAt: iso(p.createdAt),
+      updatedAt: iso(p.updatedAt),
+    };
+  });
+}
+
 export async function loadPortalOverview(clientId: string) {
   const prisma = getPrisma();
   if (!prisma) return null;
@@ -202,14 +255,16 @@ export async function loadPortalInvoices(clientId: string) {
     orderBy: { createdAt: "desc" },
     include: {
       project: { select: { id: true, title: true } },
+      payment: { select: { id: true, title: true, currency: true } },
     },
   });
 
   return invoices.map((inv) => ({
     ...inv,
-    lineItems: inv.lineItems as Array<{ description: string; amount: number; qty: number }> | null,
+    lineItems: inv.lineItems as Array<{ description: string; quantity: number; unitPrice: number }> | null,
     dueDate: iso(inv.dueDate),
     paidAt: iso(inv.paidAt),
+    confirmedAt: iso(inv.confirmedAt),
     createdAt: iso(inv.createdAt),
     updatedAt: iso(inv.updatedAt),
   }));
@@ -270,3 +325,4 @@ export type PortalFile = Awaited<ReturnType<typeof loadPortalFiles>>[number];
 export type PortalInvoice = Awaited<ReturnType<typeof loadPortalInvoices>>[number];
 export type PortalProject = Awaited<ReturnType<typeof loadPortalProjects>>[number];
 export type PortalRequirement = Awaited<ReturnType<typeof loadPortalRequirements>>[number];
+export type PortalPayment = Awaited<ReturnType<typeof loadPortalPayments>>[number];

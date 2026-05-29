@@ -1,11 +1,24 @@
 "use client";
 
-import { Receipt, CheckCircle2, Clock, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+// This component is kept for backward compatibility.
+// The main invoices/payments page now uses PortalPaymentsView from portal-payments-view.tsx.
+// This file still exports PortalInvoicesView for any callers that reference it (e.g., overview page),
+// but renders via the consolidated payments view internally.
+
+import {
+  Receipt,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Hourglass,
+  XCircle,
+} from "lucide-react";
 import { useState } from "react";
 import type { PortalInvoice } from "@/lib/portal-data";
 import { usePortalLocale } from "@/lib/portal-locale-context";
 import { formatPortalDate, formatPortalCurrency } from "@/lib/portal-i18n";
-
 
 function InvoiceCard({ invoice }: { invoice: PortalInvoice }) {
   const { locale, t } = usePortalLocale();
@@ -16,6 +29,8 @@ function InvoiceCard({ invoice }: { invoice: PortalInvoice }) {
     SENT:    { label: statusLabels.SENT,    color: "text-cyan-400 bg-cyan-400/10 ring-cyan-400/20",         Icon: Clock },
     OVERDUE: { label: statusLabels.OVERDUE, color: "text-red-400 bg-red-400/10 ring-red-400/20",           Icon: AlertTriangle },
     DRAFT:   { label: statusLabels.DRAFT,   color: "text-slate-400 bg-slate-400/10 ring-slate-400/20",     Icon: Receipt },
+    AWAITING_CONFIRMATION: { label: statusLabels.AWAITING_CONFIRMATION, color: "text-amber-400 bg-amber-400/10 ring-amber-400/20", Icon: Hourglass },
+    CANCELLED: { label: statusLabels.CANCELLED, color: "text-slate-500 bg-slate-500/10 ring-slate-500/20", Icon: XCircle },
   };
   const { label, color, Icon } = statusMap[invoice.status] ?? { label: invoice.status, color: "text-slate-400 bg-slate-400/10 ring-slate-400/20", Icon: Receipt };
   const lineItems = invoice.lineItems as Array<{ description: string; quantity: number; unitPrice: number }> | null;
@@ -41,6 +56,11 @@ function InvoiceCard({ invoice }: { invoice: PortalInvoice }) {
               {invoice.status === "PAID"
                 ? t.invoices.paid(formatPortalDate(invoice.paidAt, locale) ?? "")
                 : t.invoices.due(formatPortalDate(invoice.dueDate, locale) ?? "")}
+            </p>
+          )}
+          {invoice.payment && (
+            <p className="mt-1 text-xs text-slate-500">
+              {t.invoices.linkedPayment}: <span className="text-slate-400">{invoice.payment.title}</span>
             </p>
           )}
         </div>
@@ -152,13 +172,12 @@ export function PortalInvoicesView({ invoices }: { invoices: PortalInvoice[] }) 
 
   const totals = {
     paid: invoices.filter((i) => i.status === "PAID").reduce((s, i) => s + i.amount, 0),
-    due: invoices.filter((i) => ["SENT", "OVERDUE"].includes(i.status)).reduce((s, i) => s + i.amount, 0),
+    due: invoices.filter((i) => ["SENT", "OVERDUE", "AWAITING_CONFIRMATION"].includes(i.status)).reduce((s, i) => s + i.amount, 0),
   };
   const currency = invoices[0]?.currency || "USD";
 
   return (
     <div className="grid gap-5">
-      {/* Summary cards */}
       <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-4">
         {[
           { label: t.invoices.summaryTotalInvoiced, value: formatPortalCurrency(invoices.reduce((s, i) => s + i.amount, 0), currency, locale), color: "text-white" },
@@ -173,7 +192,6 @@ export function PortalInvoicesView({ invoices }: { invoices: PortalInvoice[] }) 
         ))}
       </div>
 
-      {/* Invoice list */}
       <div className="grid gap-3">
         {invoices.map((invoice) => (
           <InvoiceCard key={invoice.id} invoice={invoice} />

@@ -312,6 +312,78 @@ export async function submitPortalFeedbackAction(formData: FormData) {
   return { success: true };
 }
 
+// ─── Invoices ─────────────────────────────────────────────────────────────────
+
+export async function markInvoiceAsPaidAction(formData: FormData) {
+  const session = await requirePortalSession();
+  const prisma = requirePortalDatabase();
+
+  const invoiceId = String(formData.get("invoiceId") || "").trim();
+  if (!invoiceId) return { error: "Invalid request." };
+
+  const invoice = await prisma.portalInvoice.findUnique({
+    where: { id: invoiceId },
+    select: { id: true, clientId: true, title: true, status: true, proofRequired: true },
+  });
+  if (!invoice || invoice.clientId !== session.clientId) return { error: "Invoice not found." };
+
+  if (invoice.status !== "SENT" && invoice.status !== "OVERDUE") {
+    return { error: "This invoice cannot be marked as paid in its current state." };
+  }
+
+  // Handle optional / required proof-of-payment upload
+  const proofFile = formData.get("proofFile") as File | null;
+  const hasFile = proofFile && proofFile.size > 0;
+
+  if (invoice.proofRequired && !hasFile) {
+    return { error: "Proof of payment is required for this invoice. Please attach a screenshot or document before submitting." };
+  }
+
+  let proofOfPaymentUrl: string | undefined;
+  let proofOfPaymentName: string | undefined;
+
+  if (hasFile) {
+    if (proofFile!.size > 20 * 1024 * 1024) return { error: "File is too large (max 20 MB)." };
+
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf",
+      "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+    if (!allowed.includes(proofFile!.type)) {
+      return { error: "Only images (JPG, PNG, WebP) and documents (PDF, DOC, DOCX) are accepted." };
+    }
+
+    try {
+      const upload = await uploadToCloudinary(proofFile!, `portal/${session.clientId}/proofs`, { forcePublic: true });
+      proofOfPaymentUrl = upload.secure_url;
+      proofOfPaymentName = proofFile!.name || "proof-of-payment";
+    } catch {
+      return { error: "Could not upload your proof of payment. Please try again." };
+    }
+  }
+
+  await prisma.portalInvoice.update({
+    where: { id: invoiceId },
+    data: {
+      status: "AWAITING_CONFIRMATION",
+      ...(proofOfPaymentUrl ? { proofOfPaymentUrl, proofOfPaymentName } : {}),
+    },
+  });
+
+  // Notify admin via portal notification (admin reads these)
+  await prisma.portalNotification.create({
+    data: {
+      clientId: session.clientId,
+      type: "PAYMENT_CLAIMED",
+      title: "Client marked invoice as paid",
+      body: `${invoice.title} — ${session.clientName} has claimed payment${hasFile ? " (proof attached)" : ""}. Please confirm.`,
+      link: `/client-portal/invoices`,
+    },
+  });
+
+  revalidatePath("/client-portal/invoices");
+  revalidatePath("/[locale]/admin", "layout");
+  return { success: true };
+}
+
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export async function markAllNotificationsReadAction() {

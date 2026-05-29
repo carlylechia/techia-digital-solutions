@@ -6,10 +6,12 @@ import { GradientOrb } from "@/components/site/gradient-orb";
 import { Navbar } from "@/components/site/navbar";
 import { AIChatWidget } from "@/components/ai/AIChatWidget";
 import { PublicScrollEffects } from "@/components/site/public-scroll-effects";
+import { Analytics } from "@/components/analytics/analytics";
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
     <div className="page-frame relative min-h-screen">
+      <Analytics />
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>

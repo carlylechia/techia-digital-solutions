@@ -2,12 +2,14 @@
 
 import {
   Activity,
+  BadgeCheck,
   BookOpenText,
   BriefcaseBusiness,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  CircleDollarSign,
   ClipboardList,
   Copy,
   Edit2,
@@ -15,6 +17,7 @@ import {
   FileText,
   FolderKanban,
   GripVertical,
+  Hourglass,
   KanbanSquare,
   LayoutDashboard,
   Loader2,
@@ -23,6 +26,7 @@ import {
   Mail,
   Menu,
   MessageCircle,
+  MessageSquare,
   Moon,
   Phone,
   Plus,
@@ -33,9 +37,12 @@ import {
   Sparkles,
   Sun,
   Trash2,
+  TrendingDown,
   UserPlus,
   Users,
-  X
+  Wallet,
+  X,
+  XCircle,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -82,6 +89,12 @@ import {
   revokePortalAccessAction,
   sendPortalMessageAction,
   createPortalInvoiceAction,
+  createPortalPaymentAction,
+  updatePortalPaymentAction,
+  deletePortalPaymentAction,
+  confirmPortalInvoicePaymentAction,
+  queryPortalInvoicePaymentAction,
+  deletePortalInvoiceAction,
   createPortalRequirementAction,
   markClientPortalThreadsReadAction,
   sendPortalMessageReplyAction,
@@ -335,6 +348,144 @@ function DeletePageButton({ pageId, locale }: { pageId: string; locale: Locale }
         Cancel
       </button>
       {error && <span className="text-xs text-red-400">{error}</span>}
+    </div>
+  );
+}
+
+// ─── Invoice Confirm / Query Widget ─────────────────────────────────────────
+// Shown on every AWAITING_CONFIRMATION invoice. Two actions:
+//   1. Confirm — marks as PAID and notifies client
+//   2. Send query — reverts to SENT, appends a note, notifies client
+
+function InvoiceConfirmWidget({ invoiceId, invoiceTitle }: { invoiceId: string; invoiceTitle: string }) {
+  const [mode, setMode] = useState<"idle" | "confirm" | "query">("idle");
+  const [note, setNote] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+
+  async function handleConfirm() {
+    setPending(true);
+    setError(null);
+    const fd = new FormData();
+    fd.append("invoiceId", invoiceId);
+    const res = await confirmPortalInvoicePaymentAction(fd) as { success: boolean; error?: string };
+    if (!res.success) {
+      setError(res.error ?? "Something went wrong");
+      setPending(false);
+    } else {
+      setDone(true);
+    }
+  }
+
+  async function handleQuery() {
+    if (!note.trim()) { setError("Please write a note before sending."); return; }
+    setPending(true);
+    setError(null);
+    const fd = new FormData();
+    fd.append("invoiceId", invoiceId);
+    fd.append("note", note.trim());
+    const res = await queryPortalInvoicePaymentAction(fd) as { success: boolean; error?: string };
+    if (!res.success) {
+      setError(res.error ?? "Something went wrong");
+      setPending(false);
+    } else {
+      setDone(true);
+    }
+  }
+
+  if (done) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-300">
+        <CheckCircle2 className="size-3" /> Done
+      </span>
+    );
+  }
+
+  if (mode === "idle") {
+    return (
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => setMode("confirm")}
+          className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/20 transition"
+        >
+          <BadgeCheck className="size-3" />
+          Confirm
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("query")}
+          className="inline-flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-amber-300 hover:bg-amber-500/20 transition"
+        >
+          <MessageSquare className="size-3" />
+          Send query
+        </button>
+      </div>
+    );
+  }
+
+  if (mode === "confirm") {
+    return (
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[11px] text-muted">Confirm receipt of payment?</span>
+        <button
+          type="button"
+          onClick={handleConfirm}
+          disabled={pending}
+          className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-60 transition"
+        >
+          {pending ? <Loader2 className="size-3 animate-spin" /> : <BadgeCheck className="size-3" />}
+          {pending ? "Confirming…" : "Yes, confirm"}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setMode("idle"); setError(null); }}
+          className="rounded-lg border border-border px-2.5 py-1.5 text-[11px] text-muted hover:bg-surface transition"
+        >
+          Cancel
+        </button>
+        {error && <span className="w-full text-[11px] text-red-400 mt-1">{error}</span>}
+      </div>
+    );
+  }
+
+  // mode === "query"
+  return (
+    <div className="mt-2 w-full rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 space-y-2">
+      <div className="flex items-center gap-1.5">
+        <MessageSquare className="size-3.5 shrink-0 text-amber-400" />
+        <p className="text-[11px] font-semibold text-amber-300">Send payment query to client</p>
+      </div>
+      <p className="text-[11px] text-slate-400">
+        The invoice will revert to <strong className="text-slate-300">Sent</strong>. The client will receive a notification with your note and can re-submit their payment evidence.
+      </p>
+      <textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder={`e.g. We haven't received the payment for "${invoiceTitle}" yet. Please check your bank statement or re-send your proof of payment.`}
+        rows={3}
+        className="w-full rounded-md border border-amber-500/20 bg-background px-3 py-2 text-xs text-primary placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-amber-500/50 resize-none"
+      />
+      {error && <p className="text-[11px] text-red-400">{error}</p>}
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={handleQuery}
+          disabled={pending}
+          className="inline-flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-amber-300 hover:bg-amber-500/20 disabled:opacity-60 transition"
+        >
+          {pending ? <Loader2 className="size-3 animate-spin" /> : <Send className="size-3" />}
+          {pending ? "Sending…" : "Send query & revert"}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setMode("idle"); setNote(""); setError(null); }}
+          className="rounded-lg border border-border px-2.5 py-1.5 text-[11px] text-muted hover:bg-surface transition"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }
@@ -1015,7 +1166,9 @@ function ClientPortalManagement({ client, projects }: { client: ClientRecord; pr
   const [msgState, msgAction, msgPending] = useActionState(sendPortalMessageAction, null);
   const [invState, invAction, invPending] = useActionState(createPortalInvoiceAction, null);
   const [reqState, reqAction, reqPending] = useActionState(createPortalRequirementAction, null);
+  const [pmtState, pmtAction, pmtPending] = useActionState(createPortalPaymentAction, null);
   const [uploadFilter, setUploadFilter] = useState<"ALL" | "PENDING">("ALL");
+  const [openPaymentId, setOpenPaymentId] = useState<string | null>(null);
   const sortedThreads = [...(client.portalMessages || [])].sort((a, b) => {
     const aTs = new Date(a.updatedAt || a.createdAt || 0).getTime();
     const bTs = new Date(b.updatedAt || b.createdAt || 0).getTime();
@@ -1036,11 +1189,328 @@ function ClientPortalManagement({ client, projects }: { client: ClientRecord; pr
   const portalFiles = client.portalFiles || [];
   const pendingPortalFiles = portalFiles.filter((file) => file.status === "PENDING");
   const filteredPortalFiles = uploadFilter === "PENDING" ? pendingPortalFiles : portalFiles;
+  const portalPayments = client.portalPayments || [];
+  const standaloneInvoices = client.standaloneInvoices || [];
+  const awaitingConfirmation = [
+    ...portalPayments.flatMap((p) => p.invoices.filter((i) => i.status === "AWAITING_CONFIRMATION")),
+    ...standaloneInvoices.filter((i) => i.status === "AWAITING_CONFIRMATION"),
+  ];
+
+  const paymentStatusMap: Record<string, { label: string; color: string }> = {
+    ACTIVE:    { label: "Active",    color: "text-cyan-400 bg-cyan-400/10 ring-1 ring-cyan-400/20" },
+    COMPLETED: { label: "Completed", color: "text-emerald-400 bg-emerald-400/10 ring-1 ring-emerald-400/20" },
+    CANCELLED: { label: "Cancelled", color: "text-slate-400 bg-slate-400/10 ring-1 ring-slate-400/20" },
+  };
+  const invoiceStatusMap: Record<string, { label: string; color: string }> = {
+    DRAFT:                 { label: "Draft",               color: "text-slate-400 bg-slate-400/10 ring-1 ring-slate-400/20" },
+    SENT:                  { label: "Sent",                color: "text-cyan-400 bg-cyan-400/10 ring-1 ring-cyan-400/20" },
+    AWAITING_CONFIRMATION: { label: "Awaiting Confirm.",   color: "text-amber-400 bg-amber-400/10 ring-1 ring-amber-400/20" },
+    PAID:                  { label: "Paid",                color: "text-emerald-400 bg-emerald-400/10 ring-1 ring-emerald-400/20" },
+    OVERDUE:               { label: "Overdue",             color: "text-red-400 bg-red-400/10 ring-1 ring-red-400/20" },
+    CANCELLED:             { label: "Cancelled",           color: "text-slate-400 bg-slate-400/10 ring-1 ring-slate-400/20" },
+  };
+
+  const fmt = (cents: number, currency: string) =>
+    new Intl.NumberFormat("en", { style: "currency", currency: currency || "USD" }).format(cents / 100);
 
   return (
     <div className="grid gap-6">
       {/* Access Card */}
       <PortalAccessCard client={client} />
+
+      {/* ─── Payment Plans ─── */}
+      <section className="grid gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">Payment Plans</h3>
+          {awaitingConfirmation.length > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-300">
+              <Hourglass className="size-3" />
+              {awaitingConfirmation.length} awaiting confirmation
+            </span>
+          )}
+        </div>
+
+        {/* Existing payment plans */}
+        {portalPayments.length > 0 && (
+          <div className="grid gap-3">
+            {portalPayments.map((payment) => {
+              const pct = payment.totalAmount > 0
+                ? Math.min(100, Math.round((payment.paidAmount / payment.totalAmount) * 100))
+                : 0;
+              const pmtStatus = paymentStatusMap[payment.status] ?? { label: payment.status, color: "text-slate-400 bg-slate-400/10 ring-1 ring-slate-400/20" };
+              const isOpen = openPaymentId === payment.id;
+              const awaitingInvoices = payment.invoices.filter((i) => i.status === "AWAITING_CONFIRMATION");
+              return (
+                <article key={payment.id} className="rounded-lg border border-border bg-background overflow-hidden">
+                  {/* Header */}
+                  <button
+                    type="button"
+                    className="flex w-full items-start justify-between gap-4 px-4 py-4 text-left"
+                    onClick={() => setOpenPaymentId(isOpen ? null : payment.id)}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${pmtStatus.color}`}>
+                          {pmtStatus.label}
+                        </span>
+                        {awaitingInvoices.length > 0 && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300">
+                            <Hourglass className="size-2.5" />
+                            {awaitingInvoices.length} to confirm
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1.5 text-sm font-semibold text-primary">{payment.title}</p>
+                      {payment.projects.length > 0 && (
+                        <p className="mt-0.5 text-[11px] text-muted">
+                          {payment.projects.map((p) => p.title).join(" · ")}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <p className="text-sm font-bold text-primary">{fmt(payment.totalAmount, payment.currency)}</p>
+                      <p className="text-[11px] text-muted">
+                        Remaining: <span className="font-semibold text-amber-400">{fmt(payment.remainingAmount, payment.currency)}</span>
+                      </p>
+                    </div>
+                    {isOpen ? <ChevronUp className="mt-1 size-4 text-muted shrink-0" /> : <ChevronDown className="mt-1 size-4 text-muted shrink-0" />}
+                  </button>
+
+                  {/* Expanded details */}
+                  {isOpen && (
+                    <div className="border-t border-border px-4 pb-4 pt-3 grid gap-4">
+                      {/* Progress */}
+                      <div className="grid gap-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted">Progress</span>
+                          <span className="font-semibold text-primary">{pct}%</span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                          <div
+                            className={`h-full rounded-full transition-all ${payment.status === "COMPLETED" ? "bg-emerald-500" : "bg-cyan-500"}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-[11px]">
+                          <div className="rounded-lg border border-border bg-surface px-3 py-2 text-center">
+                            <p className="text-muted">Total</p>
+                            <p className="mt-0.5 font-semibold text-primary">{fmt(payment.totalAmount, payment.currency)}</p>
+                          </div>
+                          <div className="rounded-lg border border-border bg-surface px-3 py-2 text-center">
+                            <p className="text-muted">Paid</p>
+                            <p className="mt-0.5 font-semibold text-emerald-400">{fmt(payment.paidAmount, payment.currency)}</p>
+                          </div>
+                          <div className="rounded-lg border border-border bg-surface px-3 py-2 text-center">
+                            <p className="text-muted">Remaining</p>
+                            <p className="mt-0.5 font-semibold text-amber-400">{fmt(payment.remainingAmount, payment.currency)}</p>
+                          </div>
+                        </div>
+                        {payment.initialPayment > 0 && (
+                          <p className="text-[11px] text-muted">
+                            Initial deposit: <span className="text-slate-300">{fmt(payment.initialPayment, payment.currency)}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Invoices list */}
+                      {payment.invoices.length > 0 && (
+                        <div className="grid gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-muted">Invoices</p>
+                          <div className="grid gap-2">
+                            {payment.invoices.map((inv) => {
+                              const invStatus = invoiceStatusMap[inv.status] ?? { label: inv.status, color: "text-slate-400 bg-slate-400/10 ring-1 ring-slate-400/20" };
+                              return (
+                                <div key={inv.id} className="rounded-lg border border-border bg-surface px-3 py-2.5 space-y-2">
+                                  {/* Top row: info + amount */}
+                                  <div className="flex min-w-0 items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${invStatus.color}`}>
+                                          {invStatus.label}
+                                        </span>
+                                        <span className="text-[11px] text-muted">{inv.invoiceNumber}</span>
+                                      </div>
+                                      <p className="mt-0.5 text-xs font-medium text-primary">{inv.title}</p>
+                                      {inv.dueDate && (
+                                        <p className="text-[10px] text-muted">Due {formatDate(inv.dueDate)}</p>
+                                      )}
+                                      {inv.confirmedAt && (
+                                        <p className="text-[10px] text-emerald-400">Confirmed {formatDate(inv.confirmedAt)}</p>
+                                      )}
+                                      {inv.notes && (
+                                        <p className={`mt-1 text-[10px] whitespace-pre-wrap leading-relaxed ${inv.notes.includes("⚠️ Payment query") ? "text-amber-300/80" : "text-muted"}`}>
+                                          {inv.notes}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-2">
+                                      <span className="text-sm font-bold text-primary">{fmt(inv.amount, inv.currency)}</span>
+                                      {inv.status !== "PAID" && inv.status !== "AWAITING_CONFIRMATION" && (
+                                        <form action={async (fd) => { await deletePortalInvoiceAction(fd); }} onSubmit={(e) => { if (!confirm(`Delete invoice "${inv.title}"?`)) e.preventDefault(); }}>
+                                          <input type="hidden" name="invoiceId" value={inv.id} />
+                                          <button type="submit" className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/5 px-2 py-1.5 text-[11px] font-semibold text-red-400 hover:bg-red-500/15 transition">
+                                            <Trash2 className="size-3" />
+                                          </button>
+                                        </form>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {/* Proof of payment link */}
+                                  {inv.proofOfPaymentUrl && (
+                                    <a
+                                      href={`/api/admin/portal-proof?invoiceId=${inv.id}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-[11px] font-medium text-emerald-400 hover:bg-emerald-500/10 transition"
+                                    >
+                                      <ExternalLink className="size-3" />
+                                      View proof of payment{inv.proofOfPaymentName ? ` — ${inv.proofOfPaymentName}` : ""}
+                                    </a>
+                                  )}
+                                  {/* Full-width confirm widget */}
+                                  {inv.status === "AWAITING_CONFIRMATION" && (
+                                    <InvoiceConfirmWidget invoiceId={inv.id} invoiceTitle={inv.title} />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {payment.notes && (
+                        <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Notes</p>
+                          <p className="mt-1 text-sm text-slate-400 whitespace-pre-wrap">{payment.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Create Payment Plan form */}
+        <form action={pmtAction} className="grid gap-3 rounded-lg border border-border bg-background p-4">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
+            <Plus className="size-3" /> Create Payment Plan
+          </div>
+          <input type="hidden" name="clientId" value={client.id} />
+          <Field label="Title"><Input name="title" required placeholder="Website Redesign — Full Project" /></Field>
+          <Field label="Description (optional)"><Textarea name="description" placeholder="Agreed scope and deliverables…" rows={2} /></Field>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Total agreed amount">
+              <Input name="totalAmount" required type="number" step="0.01" min="0.01" placeholder="5000.00" />
+            </Field>
+            <Field label="Initial deposit already paid">
+              <Input name="initialPayment" type="number" step="0.01" min="0" defaultValue="0" placeholder="0.00" />
+            </Field>
+            <Field label="Currency">
+              <Select name="currency" defaultValue="USD">
+                {["USD", "EUR", "GBP", "CAD", "AUD", "MAD", "XAF"].map((c) => <option key={c} value={c}>{c}</option>)}
+              </Select>
+            </Field>
+          </div>
+          {projects.length > 0 && (
+            <Field label="Linked projects (hold Ctrl/Cmd to select multiple)">
+              <select
+                name="projectIds"
+                multiple
+                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                style={{ height: Math.min(projects.length, 4) * 36 + 16 }}
+              >
+                {projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
+              </select>
+            </Field>
+          )}
+          <Field label="Notes (optional)"><Textarea name="notes" placeholder="Payment terms, bank details, conditions…" /></Field>
+          <button type="submit" disabled={pmtPending} className="btn-primary flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60">
+            {pmtPending ? <Loader2 className="size-3.5 animate-spin" /> : <Wallet className="size-3.5" />}
+            {pmtPending ? "Creating…" : "Create payment plan"}
+          </button>
+          {pmtState?.error && <p className="text-xs text-red-400">{pmtState.error}</p>}
+          {pmtState?.success && <p className="text-xs text-emerald-400">Payment plan created and visible in client portal.</p>}
+        </form>
+      </section>
+
+      {/* ─── Standalone Invoices ─── */}
+      {standaloneInvoices.length > 0 && (
+        <section className="grid gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">Standalone Invoices</h3>
+            {standaloneInvoices.some((i) => i.status === "AWAITING_CONFIRMATION") && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-300">
+                <Hourglass className="size-3" />
+                {standaloneInvoices.filter((i) => i.status === "AWAITING_CONFIRMATION").length} awaiting confirmation
+              </span>
+            )}
+          </div>
+          <div className="grid gap-2">
+            {standaloneInvoices.map((inv) => {
+              const invStatus = invoiceStatusMap[inv.status] ?? { label: inv.status, color: "text-slate-400 bg-slate-400/10 ring-1 ring-slate-400/20" };
+              const canDelete = inv.status !== "PAID" && inv.status !== "AWAITING_CONFIRMATION";
+              return (
+                 <article key={inv.id} className={`rounded-lg border bg-background px-4 py-3 space-y-2.5 ${inv.status === "AWAITING_CONFIRMATION" ? "border-amber-500/30 bg-amber-500/5" : "border-border"}`}>
+                   {/* Top row */}
+                   <div className="flex min-w-0 items-start justify-between gap-3">
+                     <div className="min-w-0 flex-1">
+                       <div className="flex flex-wrap items-center gap-2">
+                         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${invStatus.color}`}>
+                           {inv.status === "AWAITING_CONFIRMATION" && <Hourglass className="size-2.5" />}
+                           {invStatus.label}
+                         </span>
+                         <span className="text-[11px] text-muted">{inv.invoiceNumber}</span>
+                       </div>
+                       <p className="mt-0.5 text-sm font-medium text-primary">{inv.title}</p>
+                       <div className="flex flex-wrap items-center gap-3 mt-0.5">
+                         {inv.dueDate && <p className="text-[11px] text-muted">Due {formatDate(inv.dueDate)}</p>}
+                         {inv.confirmedAt && <p className="text-[11px] text-emerald-400">Confirmed {formatDate(inv.confirmedAt)}</p>}
+                       </div>
+                       {inv.notes && (
+                         <p className={`mt-1 text-[11px] whitespace-pre-wrap leading-relaxed ${inv.notes.includes("⚠️ Payment query") ? "text-amber-300/80" : "text-muted"}`}>
+                           {inv.notes}
+                         </p>
+                       )}
+                     </div>
+                     <div className="flex shrink-0 items-center gap-2">
+                       <span className="text-sm font-bold text-primary">{fmt(inv.amount, inv.currency)}</span>
+                       {canDelete && (
+                         <form action={async (fd) => { await deletePortalInvoiceAction(fd); }} onSubmit={(e) => { if (!confirm(`Delete invoice "${inv.title}"? This cannot be undone.`)) e.preventDefault(); }}>
+                           <input type="hidden" name="invoiceId" value={inv.id} />
+                           <button
+                             type="submit"
+                             className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/5 px-2.5 py-1.5 text-[11px] font-semibold text-red-400 hover:bg-red-500/15 transition"
+                           >
+                             <Trash2 className="size-3" />
+                           </button>
+                         </form>
+                       )}
+                     </div>
+                   </div>
+                   {/* Proof of payment link */}
+                   {inv.proofOfPaymentUrl && (
+                     <a
+                       href={`/api/admin/portal-proof?invoiceId=${inv.id}`}
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-[11px] font-medium text-emerald-400 hover:bg-emerald-500/10 transition"
+                     >
+                       <ExternalLink className="size-3" />
+                       View proof of payment{inv.proofOfPaymentName ? ` — ${inv.proofOfPaymentName}` : ""}
+                     </a>
+                   )}
+                   {/* Full-width confirm widget */}
+                   {inv.status === "AWAITING_CONFIRMATION" && (
+                     <InvoiceConfirmWidget invoiceId={inv.id} invoiceTitle={inv.title} />
+                   )}
+                 </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Send Message */}
       <section className="grid gap-2">
@@ -1083,6 +1553,18 @@ function ClientPortalManagement({ client, projects }: { client: ClientRecord; pr
               </Field>
             )}
           </div>
+          {portalPayments.length > 0 && (
+            <Field label="Link to payment plan (optional)">
+              <Select name="paymentId">
+                <option value="">— None (standalone invoice) —</option>
+                {portalPayments.map((pay) => (
+                  <option key={pay.id} value={pay.id}>
+                    {pay.title} ({fmt(pay.remainingAmount, pay.currency)} remaining)
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
           <Field label="Notes (optional)"><Textarea name="notes" placeholder="Payment instructions, terms…" /></Field>
           <button type="submit" disabled={invPending} className="btn-primary flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60">
             {invPending ? <Loader2 className="size-3.5 animate-spin" /> : <Receipt className="size-3.5" />}

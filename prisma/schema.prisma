@@ -249,6 +249,7 @@ model AdminUser {
   portalMessages   PortalMessage[]
   portalReplies    PortalMessageReply[]
   portalFiles      PortalFile[]
+  portalPayments   PortalPayment[]       @relation("PaymentCreatedBy")
   auditLogs        AuditLog[]
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
@@ -311,6 +312,7 @@ model Client {
   portalInvoices       PortalInvoice[]
   portalRequirements   PortalRequirement[]
   portalNotifications  PortalNotification[]
+  portalPayments       PortalPayment[]
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 
@@ -377,6 +379,7 @@ model ClientProject {
   portalInvoices       PortalInvoice[]
   portalRequirements   PortalRequirement[]
   tasks       ProcessTask[]
+  portalPaymentProjects PortalPaymentProject[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
@@ -677,22 +680,66 @@ model PortalInvoice {
   client        Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   projectId     String?
   project       ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  paymentId     String?
+  payment       PortalPayment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   invoiceNumber String
   title         String
   amount        Int
   currency      String         @default("USD")
+  // DRAFT | SENT | AWAITING_CONFIRMATION | PAID | OVERDUE | CANCELLED
   status        String         @default("DRAFT")
   dueDate       DateTime?
   paidAt        DateTime?
-  notes         String?
-  lineItems     Json?
-  createdAt     DateTime       @default(now())
+  confirmedAt          DateTime?
+  confirmedById        String?
+  notes                String?
+  lineItems            Json?
+  proofOfPaymentUrl    String?
+  proofOfPaymentName   String?
+  proofRequired        Boolean   @default(false)
+  createdAt            DateTime  @default(now())
   updatedAt     DateTime       @updatedAt
 
   @@index([clientId])
   @@index([projectId])
+  @@index([paymentId])
   @@index([status])
   @@index([createdAt])
+}
+
+model PortalPayment {
+  id             String                 @id @default(cuid())
+  clientId       String
+  client         Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  totalAmount    Int
+  initialPayment Int                    @default(0)
+  currency       String                 @default("USD")
+  // ACTIVE | COMPLETED | CANCELLED
+  status         String                 @default("ACTIVE")
+  notes          String?
+  projects       PortalPaymentProject[]
+  invoices       PortalInvoice[]
+  createdById    String?
+  createdBy      AdminUser?             @relation("PaymentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([clientId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PortalPaymentProject {
+  paymentId String
+  projectId String
+  payment   PortalPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  project   ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([paymentId, projectId])
+  @@index([paymentId])
+  @@index([projectId])
 }
 
 model PortalRequirement {

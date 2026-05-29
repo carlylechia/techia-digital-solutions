@@ -23,11 +23,16 @@ export function isCloudinaryConfigured() {
 
 /**
  * Server-side signed upload to Cloudinary.
- * Uses the unsigned upload preset for simpler setup or signed for security.
+ *
+ * @param forcePublic - When true, bypass any upload preset and use a fully-signed
+ *   request with `access_mode: "public"`. Use this for sensitive files (e.g.
+ *   proof-of-payment) where you need a guaranteed public `secure_url` regardless
+ *   of how the preset is configured in the Cloudinary dashboard.
  */
 export async function uploadToCloudinary(
   file: File,
-  folder = "portal-files"
+  folder = "portal-files",
+  options: { forcePublic?: boolean } = {}
 ): Promise<CloudinaryUploadResult> {
   const config = getCloudinaryConfig();
 
@@ -39,15 +44,17 @@ export async function uploadToCloudinary(
   formData.append("file", file);
   formData.append("folder", folder);
 
-  if (config.uploadPreset) {
-    // Unsigned upload (simpler)
+  if (!options.forcePublic && config.uploadPreset) {
+    // Unsigned upload via preset — also append access_mode to override preset default
     formData.append("upload_preset", config.uploadPreset);
+    formData.append("access_mode", "public");
   } else {
-    // Signed upload
+    // Signed upload — explicit public access_mode included in signature
     const timestamp = Math.round(Date.now() / 1000);
-    const signature = await generateSignature({ folder, timestamp }, config.apiSecret);
+    const signature = await generateSignature({ access_mode: "public", folder, timestamp }, config.apiSecret);
     formData.append("api_key", config.apiKey);
     formData.append("timestamp", String(timestamp));
+    formData.append("access_mode", "public");
     formData.append("signature", signature);
   }
 
@@ -72,6 +79,82 @@ async function generateSignature(params: Record<string, string | number>, apiSec
   const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** SHA-1 (used by Cloudinary's Admin/download API endpoints). */
+async function generateSha1(data: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(data);
+  const hashBuffer = await crypto.subtle.digest("SHA-1", msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Parse a Cloudinary delivery URL into its components.
+ * Handles: https://res.cloudinary.com/{cloud}/{resource_type}/upload/v{ver}/{public_id}.{format}
+ */
+export function parseCloudinaryUrl(url: string): {
+  publicId: string;
+  format: string;
+  resourceType: string;
+} | null {
+  const match = url.match(/cloudinary\.com\/[^/]+\/([^/]+)\/upload\/(?:v\d+\/)?(.+)\.([^.]+)$/);
+  if (!match) return null;
+  return {
+    resourceType: match[1], // "image", "video", "raw"
+    publicId: match[2],     // "portal/client123/proofs/filename"
+    format: match[3],       // "pdf", "jpg", "png" …
+  };
+}
+
+/**
+ * Generate a signed Cloudinary private-download URL.
+ *
+ * This URL bypasses access-mode and folder-level restrictions by using a
+ * server-side signature (API key + secret).  The URL expires after `ttlSeconds`
+ * (default 10 min) — plenty of time for a browser download to complete.
+ */
+export async function getCloudinaryPrivateDownloadUrl(
+  publicId: string,
+  format: string,
+  resourceType = "image",
+  ttlSeconds = 600,
+): Promise<string | null> {
+  const config = getCloudinaryConfig();
+  if (!config.cloudName || !config.apiKey || !config.apiSecret) return null;
+
+  const timestamp = Math.round(Date.now() / 1000);
+  const expiresAt = timestamp + ttlSeconds;
+
+  // Cloudinary download API signature: all query params (except api_key + signature)
+  // sorted alphabetically, concatenated as key=value&… then API secret appended.
+  // Uses SHA-1 (the default for Cloudinary Admin API).
+  const paramsForSig: Record<string, string | number> = {
+    expires_at: expiresAt,
+    format,
+    public_id: publicId,
+    timestamp,
+    type: "upload",
+  };
+
+  const sigString = Object.entries(paramsForSig)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join("&") + config.apiSecret;
+
+  const signature = await generateSha1(sigString);
+
+  const params = new URLSearchParams({
+    public_id: publicId,
+    format,
+    type: "upload",
+    expires_at: String(expiresAt),
+    timestamp: String(timestamp),
+    api_key: config.apiKey,
+    signature,
+  });
+
+  return `https://api.cloudinary.com/v1_1/${config.cloudName}/${resourceType}/download?${params.toString()}`;
 }
 
 export async function deleteFromCloudinary(publicId: string) {

@@ -223,6 +223,58 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
             project: { select: { id: true, title: true } },
             admin: { select: { id: true, name: true, email: true } }
           }
+        },
+        portalPayments: {
+          orderBy: { createdAt: "desc" },
+          take: 20,
+          include: {
+            projects: {
+              include: { project: { select: { id: true, title: true } } }
+            },
+            invoices: {
+              orderBy: { createdAt: "asc" },
+              select: {
+                id: true,
+                invoiceNumber: true,
+                title: true,
+                amount: true,
+                currency: true,
+                status: true,
+                notes: true,
+                dueDate: true,
+                paidAt: true,
+                confirmedAt: true,
+                proofOfPaymentUrl: true,
+                proofOfPaymentName: true,
+                proofRequired: true,
+                createdAt: true,
+                projectId: true,
+              }
+            }
+          }
+        },
+        portalInvoices: {
+          where: { paymentId: null },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+          select: {
+            id: true,
+            invoiceNumber: true,
+            title: true,
+            amount: true,
+            currency: true,
+            status: true,
+            notes: true,
+            dueDate: true,
+            paidAt: true,
+            confirmedAt: true,
+            proofOfPaymentUrl: true,
+            proofOfPaymentName: true,
+            proofRequired: true,
+            createdAt: true,
+            projectId: true,
+            paymentId: true,
+          }
         }
       }
     }),
@@ -448,6 +500,61 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
         admin: file.admin,
         createdAt: iso(file.createdAt),
         updatedAt: iso(file.updatedAt),
+      })),
+      portalPayments: client.portalPayments.map((payment) => {
+        const paidViaInvoices = payment.invoices
+          .filter((inv) => inv.status === "PAID")
+          .reduce((sum, inv) => sum + inv.amount, 0);
+        const totalPaid = payment.initialPayment + paidViaInvoices;
+        return {
+          id: payment.id,
+          title: payment.title,
+          description: payment.description,
+          totalAmount: payment.totalAmount,
+          initialPayment: payment.initialPayment,
+          paidAmount: totalPaid,
+          remainingAmount: Math.max(0, payment.totalAmount - totalPaid),
+          currency: payment.currency,
+          status: payment.status,
+          notes: payment.notes,
+          projects: payment.projects.map((pp) => pp.project),
+          invoices: payment.invoices.map((inv) => ({
+            id: inv.id,
+            invoiceNumber: inv.invoiceNumber,
+            title: inv.title,
+            amount: inv.amount,
+            currency: inv.currency,
+            status: inv.status,
+            notes: inv.notes,
+            dueDate: iso(inv.dueDate),
+            paidAt: iso(inv.paidAt),
+            confirmedAt: iso(inv.confirmedAt),
+            proofOfPaymentUrl: inv.proofOfPaymentUrl,
+            proofOfPaymentName: inv.proofOfPaymentName,
+            proofRequired: inv.proofRequired,
+            projectId: inv.projectId,
+            createdAt: iso(inv.createdAt),
+          })),
+          createdAt: iso(payment.createdAt),
+        };
+      }),
+      standaloneInvoices: client.portalInvoices.map((inv) => ({
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        title: inv.title,
+        amount: inv.amount,
+        currency: inv.currency,
+        status: inv.status,
+        notes: inv.notes,
+        dueDate: iso(inv.dueDate),
+        paidAt: iso(inv.paidAt),
+        confirmedAt: iso(inv.confirmedAt),
+        proofOfPaymentUrl: inv.proofOfPaymentUrl,
+        proofOfPaymentName: inv.proofOfPaymentName,
+        proofRequired: inv.proofRequired,
+        projectId: inv.projectId,
+        paymentId: inv.paymentId,
+        createdAt: iso(inv.createdAt),
       })),
       preferredLocale: client.preferredLocale,
       createdAt: iso(client.createdAt),
