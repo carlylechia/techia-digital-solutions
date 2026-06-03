@@ -1415,7 +1415,7 @@ export async function sendConversationEmailAction(
     const { sendOutboundEmail } = await import("@/lib/email");
 
     // Strip any surrounding quotes that may have been stored in Vercel env vars
-    const rawFrom = process.env.RESEND_FROM_EMAIL || "noreply@techia.com";
+    const rawFrom = process.env.RESEND_FROM_EMAIL || "noreply@techiadigital.com";
     const fromEmail = rawFrom.trim().replace(/^["']|["']$/g, "").trim();
     const rawReplyTo = process.env.RESEND_REPLY_TO || process.env.OFFICIAL_EMAIL || process.env.CONTACT_TO_EMAIL || "";
     const replyTo = rawReplyTo.trim().replace(/^["']|["']$/g, "").trim() || undefined;

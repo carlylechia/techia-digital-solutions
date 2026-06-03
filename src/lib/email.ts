@@ -21,7 +21,7 @@ function officialInfo() {
     email: cleanEnv(process.env.OFFICIAL_EMAIL) || cleanEnv(process.env.CONTACT_TO_EMAIL) || cleanEnv(process.env.ADMIN_EMAIL) || "",
     whatsapp: cleanEnv(process.env.OFFICIAL_WHATSAPP) || "",
     call: cleanEnv(process.env.OFFICIAL_CALL) || "",
-    from: cleanEnv(process.env.RESEND_FROM_EMAIL) || "noreply@techia.com",
+    from: cleanEnv(process.env.RESEND_FROM_EMAIL) || "noreply@techiadigital.com",
     replyTo: cleanEnv(process.env.RESEND_REPLY_TO) || cleanEnv(process.env.OFFICIAL_EMAIL) || undefined
   };
 }
@@ -45,7 +45,7 @@ function baseHtml(content: string, title: string) {
         <tr><td style="padding:28px 32px;">${content}</td></tr>
         <tr><td style="padding:24px 32px;border-top:1px solid #1e1e2e;background:#0d0d1a;">
           <p style="margin:0;font-size:12px;color:#64748b;line-height:1.6;">
-            teChia Digital Solutions · <a href="https://techia.com" style="color:#06b6d4;text-decoration:none;">techia.com</a>
+            teChia Digital Solutions · <a href="https://techiadigital.com" style="color:#06b6d4;text-decoration:none;">techiadigital.com</a>
           </p>
         </td></tr>
       </table>
