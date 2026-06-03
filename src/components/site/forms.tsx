@@ -304,6 +304,7 @@ export function QuoteForm({ locale }: { locale?: Locale }) {
     handleSubmit,
     trigger,
     reset,
+    setError,
     formState: { errors, isSubmitting }
   } = useForm<QuoteValues>({
     resolver: zodResolver(quoteSchema),
@@ -351,6 +352,39 @@ export function QuoteForm({ locale }: { locale?: Locale }) {
     });
 
     if (!response.ok) {
+      // Try to map server-side field issues back to form fields
+      try {
+        const json = await response.json();
+        if (json?.issues && Array.isArray(json.issues) && json.issues.length > 0) {
+          // Map Zod issue paths to QuoteValues field names
+          const fieldMap: Record<string, FieldPath<QuoteValues>> = {
+            name: "name",
+            email: "email",
+            phone: "whatsapp",
+            whatsapp: "whatsapp",
+            company: "businessName",
+            country: "location",
+            businessType: "industry",
+            need: "need",
+            budgetRange: "budget",
+            timeline: "timeline"
+          };
+          let mappedAny = false;
+          for (const issue of json.issues as Array<{ path: string[]; message: string }>) {
+            const key = issue.path[0];
+            const formField = key ? fieldMap[key] : undefined;
+            if (formField) {
+              const fieldStepIndex = copy.steps.findIndex((s) => s.fields.includes(formField));
+              if (fieldStepIndex !== -1 && fieldStepIndex !== step) setStep(fieldStepIndex);
+              setError(formField, { type: "server", message: issue.message });
+              mappedAny = true;
+            }
+          }
+          if (mappedAny) return;
+        }
+      } catch {
+        // JSON parse failed — fall through to generic error
+      }
       setSubmitError(copy.errors.submit);
       return;
     }

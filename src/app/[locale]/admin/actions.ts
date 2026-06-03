@@ -1413,14 +1413,20 @@ export async function sendConversationEmailAction(
 
     const conv = await prisma.conversation.findUniqueOrThrow({ where: { id: data.conversationId } });
     const { sendOutboundEmail } = await import("@/lib/email");
-    const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@techia.com";
-    const officialEmail = process.env.OFFICIAL_EMAIL || process.env.CONTACT_TO_EMAIL || "";
 
-    const safeBody = data.body.replace(/[<>]/g, "").replace(/javascript:/gi, "");
+    // Strip any surrounding quotes that may have been stored in Vercel env vars
+    const rawFrom = process.env.RESEND_FROM_EMAIL || "noreply@techia.com";
+    const fromEmail = rawFrom.trim().replace(/^["']|["']$/g, "").trim();
+    const rawReplyTo = process.env.RESEND_REPLY_TO || process.env.OFFICIAL_EMAIL || process.env.CONTACT_TO_EMAIL || "";
+    const replyTo = rawReplyTo.trim().replace(/^["']|["']$/g, "").trim() || undefined;
+
+    const safeBody = data.body.replace(/javascript:/gi, "");
+
+    // Send the email FIRST — only persist the message if the send succeeds
     await sendOutboundEmail({
       to: data.to,
       from: fromEmail,
-      replyTo: officialEmail || undefined,
+      replyTo,
       subject: sanitizeText(data.subject),
       body: safeBody
     });
@@ -1443,6 +1449,71 @@ export async function sendConversationEmailAction(
     return { success: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to send email.";
+    console.error("[admin] sendConversationEmailAction failed", { message, stack: err instanceof Error ? err.stack : undefined });
+    return { success: false, error: message };
+  }
+}
+
+// ── Delete / Archive Requests ─────────────────────────────────────────────────
+
+const deleteRequestSchema = z.object({
+  locale: localeSchema,
+  id: z.string().min(1),
+  type: z.enum(["lead", "contact", "demo"] as const)
+});
+
+const deleteInquirySchema = z.object({
+  locale: localeSchema,
+  id: z.string().min(1)
+});
+
+export async function deleteRequestAction(
+  _prevState: unknown,
+  formData: FormData
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const actor = await requireAdmin("requests.manage");
+    // super-admin only (roleLevel >= 100)
+    if (actor.roleLevel < 100) throw new Error("Only super-admins can delete requests.");
+    const prisma = requireDatabase();
+    const data = deleteRequestSchema.parse(formEntries(formData));
+
+    if (data.type === "lead") {
+      await prisma.lead.delete({ where: { id: data.id } });
+    } else if (data.type === "contact") {
+      await prisma.contactMessage.delete({ where: { id: data.id } });
+    } else if (data.type === "demo") {
+      await prisma.demoRequest.delete({ where: { id: data.id } });
+    }
+
+    await writeAuditLog({ actorId: actor.id, action: `${data.type}.deleted`, entityType: data.type, entityId: data.id });
+    revalidateAdmin(data.locale);
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to delete request.";
+    console.error("[admin] deleteRequestAction failed", { message, stack: err instanceof Error ? err.stack : undefined });
+    return { success: false, error: message };
+  }
+}
+
+export async function deleteInquiryAction(
+  _prevState: unknown,
+  formData: FormData
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const actor = await requireAdmin("requests.manage");
+    if (actor.roleLevel < 100) throw new Error("Only super-admins can delete inquiries.");
+    const prisma = requireDatabase();
+    const data = deleteInquirySchema.parse(formEntries(formData));
+
+    await prisma.projectInquiry.delete({ where: { id: data.id } });
+
+    await writeAuditLog({ actorId: actor.id, action: "inquiry.deleted", entityType: "ProjectInquiry", entityId: data.id });
+    revalidateAdmin(data.locale);
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to delete inquiry.";
+    console.error("[admin] deleteInquiryAction failed", { message, stack: err instanceof Error ? err.stack : undefined });
     return { success: false, error: message };
   }
 }

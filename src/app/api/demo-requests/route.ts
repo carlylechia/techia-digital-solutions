@@ -20,7 +20,12 @@ export async function POST(request: NextRequest) {
   const locale = (raw?.preferredLanguage === "fr" ? "fr" : "en") as "en" | "fr";
 
   const parsed = demoLabRequestSchema.safeParse(raw);
-  if (!parsed.success) return apiError("invalid_payload", 400, locale);
+  if (!parsed.success) {
+    return Response.json(
+      { error: locale === "fr" ? "Données invalides" : "Invalid payload", code: "invalid_payload", issues: parsed.error.issues },
+      { status: 400 }
+    );
+  }
   if (parsed.data.honeypot) return apiOk();
 
   const data = sanitizeObject(parsed.data);

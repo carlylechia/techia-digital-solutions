@@ -95,6 +95,8 @@ import {
   sendPortalMessageReplyAction,
   reviewPortalFileAction,
   sendPortalInviteEmailAction,
+  deleteRequestAction,
+  deleteInquiryAction,
 } from "@/app/[locale]/admin/actions";
 import { AdminKanbanBoard } from "@/components/admin/admin-kanban-board";
 import { DatePicker } from "@/components/admin/date-picker";
@@ -2608,6 +2610,7 @@ function RequestCard({
   locale,
   conversations,
   onOpenDetail,
+  onDeleted,
   demo,
   demoTitle,
   projectNeed,
@@ -2631,6 +2634,7 @@ function RequestCard({
   locale: Locale;
   conversations: AdminDashboardData["conversations"];
   onOpenDetail: (info: { id: string; type: "lead" | "contact" | "demo"; name: string; email: string; phone?: string | null; whatsapp?: string | null; company?: string | null; status: string; notes?: string | null; clientId?: string | null; demo?: string | null; demoTitle?: string | null; projectNeed?: string | null; businessType?: string | null; budgetRange?: string | null; timeline?: string | null; country?: string | null; preferredLanguage?: string | null }) => void;
+  onDeleted?: () => void;
   // Demo-specific optional fields
   demo?: string | null;
   demoTitle?: string | null;
@@ -2642,6 +2646,13 @@ function RequestCard({
   preferredLanguage?: string | null;
 }) {
   const conv = conversations.find((c) => c.requestType === type && c.requestId === id);
+  const [deleteState, deleteAction, deletePending] = useActionState(deleteRequestAction, null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    if (deleteState?.success) onDeleted?.();
+  }, [deleteState?.success, onDeleted]);
+
   return (
     <article className="rounded-lg border border-border bg-background p-4">
       <div className="flex items-start justify-between gap-3">
@@ -2676,7 +2687,29 @@ function RequestCard({
             <Mail className="size-3" />{conv.messages.length} message{conv.messages.length !== 1 ? "s" : ""}
           </span>
         ) : null}
+        {!showDeleteConfirm ? (
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-muted hover:text-red-400 transition"
+            title="Delete request"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        ) : (
+          <form action={deleteAction} className="ml-auto flex items-center gap-2">
+            <input type="hidden" name="locale" value={locale} />
+            <input type="hidden" name="id" value={id} />
+            <input type="hidden" name="type" value={type} />
+            <span className="text-xs text-muted">Delete?</span>
+            <button type="submit" disabled={deletePending} className="rounded px-2 py-1 text-xs font-semibold text-red-400 hover:text-red-300 disabled:opacity-60">
+              {deletePending ? <Loader2 className="size-3 animate-spin" /> : "Yes, delete"}
+            </button>
+            <button type="button" onClick={() => setShowDeleteConfirm(false)} className="text-xs text-muted hover:text-primary">Cancel</button>
+          </form>
+        )}
       </div>
+      {deleteState?.error ? <p className="mt-1 text-xs text-red-400">{deleteState.error}</p> : null}
       <StatusForm locale={locale} id={id} type={type} status={status} notes={notes} />
     </article>
   );
@@ -3274,6 +3307,10 @@ function Requests({ data, locale }: { data: AdminDashboardData; locale: Locale }
     country?: string | null; preferredLanguage?: string | null;
   } | null>(null);
   const [detailInquiry, setDetailInquiry] = useState<InquiryDetail | null>(null);
+  // Track locally-deleted ids to hide them optimistically while revalidation happens
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+
+  const markDeleted = (id: string) => setDeletedIds((prev) => new Set([...prev, id]));
 
   return (
     <div className="grid gap-5">
@@ -3293,7 +3330,7 @@ function Requests({ data, locale }: { data: AdminDashboardData; locale: Locale }
       <div className="grid gap-5 xl:grid-cols-2">
         <Panel title="Leads" eyebrow="Sales">
           <div className="grid gap-3">
-            {data.leads.map((lead) => (
+            {data.leads.filter((l) => !deletedIds.has(l.id)).map((lead) => (
               <RequestCard
                 key={lead.id}
                 id={lead.id}
@@ -3309,69 +3346,31 @@ function Requests({ data, locale }: { data: AdminDashboardData; locale: Locale }
                 locale={locale}
                 conversations={data.conversations}
                 onOpenDetail={setDetailRequest}
+                onDeleted={() => markDeleted(lead.id)}
               />
             ))}
-            {!data.leads.length ? <EmptyState title="No leads yet." /> : null}
+            {!data.leads.filter((l) => !deletedIds.has(l.id)).length ? <EmptyState title="No leads yet." /> : null}
           </div>
         </Panel>
 
         <Panel title="Project Inquiries" eyebrow="Opportunity">
           <div className="grid gap-3">
-            {data.inquiries.map((inquiry) => {
-              const lead = inquiry.lead;
-              const isConverted = !!inquiry.convertedToTaskId;
-              return (
-                <article key={inquiry.id} className={cn("rounded-lg border bg-background p-4 transition", isConverted ? "border-emerald-500/20 opacity-70" : "border-border hover:border-accent/30")}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="break-words font-semibold text-primary">{lead?.name || inquiry.businessType}</h3>
-                      <p className="break-words text-sm text-muted">{inquiry.need} · {inquiry.budgetRange}</p>
-                      {lead?.company ? <p className="text-xs text-muted">{lead.company}{lead.country ? ` · ${lead.country}` : ""}</p> : null}
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      {lead ? <Pill tone={statusTone(lead.status)}>{labelMap[lead.status]}</Pill> : null}
-                      {isConverted ? <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400 border border-emerald-500/20">Converted</span> : null}
-                      {inquiry.clientId && !isConverted ? <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-400 border border-blue-500/20">Client linked</span> : null}
-                    </div>
-                  </div>
-                  <p className="mt-2 text-xs text-muted line-clamp-2 leading-relaxed">{inquiry.details}</p>
-                  {inquiry.internalNotes ? (
-                    <p className="mt-1.5 text-xs text-accent/70 italic line-clamp-1">📝 {inquiry.internalNotes}</p>
-                  ) : null}
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <p className="text-xs text-muted">Timeline: {inquiry.timeline}</p>
-                    <span className="text-xs text-muted">·</span>
-                    <p className="text-xs text-muted">{formatDate(inquiry.createdAt)}</p>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setDetailInquiry(inquiry)}
-                      className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted hover:text-primary transition"
-                    >
-                      <FolderKanban className="size-3.5" />View Details
-                    </button>
-                    {!isConverted && lead ? (
-                      <button
-                        type="button"
-                        onClick={() => setDetailInquiry(inquiry)}
-                        className="flex items-center gap-1.5 rounded-lg border border-accent/20 bg-accent/5 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 transition"
-                      >
-                        Convert to Project →
-                      </button>
-                    ) : null}
-                  </div>
-                  {lead ? <StatusForm locale={locale} id={lead.id} type="lead" status={lead.status} notes={lead.notes} /> : null}
-                </article>
-              );
-            })}
-            {!data.inquiries.length ? <EmptyState title="No project inquiries yet." /> : null}
+            {data.inquiries.filter((i) => !deletedIds.has(i.id)).map((inquiry) => (
+              <InquiryCard
+                key={inquiry.id}
+                inquiry={inquiry}
+                locale={locale}
+                onOpenDetail={setDetailInquiry}
+                onDeleted={() => markDeleted(inquiry.id)}
+              />
+            ))}
+            {!data.inquiries.filter((i) => !deletedIds.has(i.id)).length ? <EmptyState title="No project inquiries yet." /> : null}
           </div>
         </Panel>
 
         <Panel title="Contact Messages" eyebrow="Support">
           <div className="grid gap-3">
-            {data.contacts.map((contact) => (
+            {data.contacts.filter((c) => !deletedIds.has(c.id)).map((contact) => (
               <RequestCard
                 key={contact.id}
                 id={contact.id}
@@ -3387,16 +3386,17 @@ function Requests({ data, locale }: { data: AdminDashboardData; locale: Locale }
                 locale={locale}
                 conversations={data.conversations}
                 onOpenDetail={setDetailRequest}
+                onDeleted={() => markDeleted(contact.id)}
                 extra={<p className="mt-2 text-sm leading-6 text-muted line-clamp-2">{contact.message}</p>}
               />
             ))}
-            {!data.contacts.length ? <EmptyState title="No contact messages yet." /> : null}
+            {!data.contacts.filter((c) => !deletedIds.has(c.id)).length ? <EmptyState title="No contact messages yet." /> : null}
           </div>
         </Panel>
 
         <Panel title="Demo Requests" eyebrow="Product">
           <div className="grid gap-3">
-            {data.demos.map((demo) => (
+            {data.demos.filter((d) => !deletedIds.has(d.id)).map((demo) => (
               <RequestCard
                 key={demo.id}
                 id={demo.id}
@@ -3412,6 +3412,7 @@ function Requests({ data, locale }: { data: AdminDashboardData; locale: Locale }
                 locale={locale}
                 conversations={data.conversations}
                 onOpenDetail={setDetailRequest}
+                onDeleted={() => markDeleted(demo.id)}
                 demo={demo.demo}
                 demoTitle={demo.demoTitle}
                 projectNeed={demo.projectNeed}
@@ -3423,7 +3424,7 @@ function Requests({ data, locale }: { data: AdminDashboardData; locale: Locale }
                 extra={<p className="mt-2 text-xs text-muted">Demo: {demo.demoTitle ?? demo.demo}</p>}
               />
             ))}
-            {!data.demos.length ? <EmptyState title="No demo requests yet." /> : null}
+            {!data.demos.filter((d) => !deletedIds.has(d.id)).length ? <EmptyState title="No demo requests yet." /> : null}
           </div>
         </Panel>
       </div>
@@ -3446,6 +3447,93 @@ function Requests({ data, locale }: { data: AdminDashboardData; locale: Locale }
         />
       ) : null}
     </div>
+  );
+}
+
+function InquiryCard({
+  inquiry,
+  locale,
+  onOpenDetail,
+  onDeleted
+}: {
+  inquiry: InquiryDetail;
+  locale: Locale;
+  onOpenDetail: (inquiry: InquiryDetail) => void;
+  onDeleted?: () => void;
+}) {
+  const lead = inquiry.lead;
+  const isConverted = !!inquiry.convertedToTaskId;
+  const [deleteState, deleteAction, deletePending] = useActionState(deleteInquiryAction, null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    if (deleteState?.success) onDeleted?.();
+  }, [deleteState?.success, onDeleted]);
+
+  return (
+    <article className={cn("rounded-lg border bg-background p-4 transition", isConverted ? "border-emerald-500/20 opacity-70" : "border-border hover:border-accent/30")}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="break-words font-semibold text-primary">{lead?.name || inquiry.businessType}</h3>
+          <p className="break-words text-sm text-muted">{inquiry.need} · {inquiry.budgetRange}</p>
+          {lead?.company ? <p className="text-xs text-muted">{lead.company}{lead.country ? ` · ${lead.country}` : ""}</p> : null}
+        </div>
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          {lead ? <Pill tone={statusTone(lead.status)}>{labelMap[lead.status]}</Pill> : null}
+          {isConverted ? <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400 border border-emerald-500/20">Converted</span> : null}
+          {inquiry.clientId && !isConverted ? <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-400 border border-blue-500/20">Client linked</span> : null}
+        </div>
+      </div>
+      <p className="mt-2 text-xs text-muted line-clamp-2 leading-relaxed">{inquiry.details}</p>
+      {inquiry.internalNotes ? (
+        <p className="mt-1.5 text-xs text-accent/70 italic line-clamp-1">📝 {inquiry.internalNotes}</p>
+      ) : null}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <p className="text-xs text-muted">Timeline: {inquiry.timeline}</p>
+        <span className="text-xs text-muted">·</span>
+        <p className="text-xs text-muted">{formatDate(inquiry.createdAt)}</p>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onOpenDetail(inquiry)}
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted hover:text-primary transition"
+        >
+          <FolderKanban className="size-3.5" />View Details
+        </button>
+        {!isConverted && lead ? (
+          <button
+            type="button"
+            onClick={() => onOpenDetail(inquiry)}
+            className="flex items-center gap-1.5 rounded-lg border border-accent/20 bg-accent/5 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 transition"
+          >
+            Convert to Project →
+          </button>
+        ) : null}
+        {!showDeleteConfirm ? (
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-muted hover:text-red-400 transition"
+            title="Delete inquiry"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        ) : (
+          <form action={deleteAction} className="ml-auto flex items-center gap-2">
+            <input type="hidden" name="locale" value={locale} />
+            <input type="hidden" name="id" value={inquiry.id} />
+            <span className="text-xs text-muted">Delete?</span>
+            <button type="submit" disabled={deletePending} className="rounded px-2 py-1 text-xs font-semibold text-red-400 hover:text-red-300 disabled:opacity-60">
+              {deletePending ? <Loader2 className="size-3 animate-spin" /> : "Yes, delete"}
+            </button>
+            <button type="button" onClick={() => setShowDeleteConfirm(false)} className="text-xs text-muted hover:text-primary">Cancel</button>
+          </form>
+        )}
+      </div>
+      {deleteState?.error ? <p className="mt-1 text-xs text-red-400">{deleteState.error}</p> : null}
+      {lead ? <StatusForm locale={locale} id={lead.id} type="lead" status={lead.status} notes={lead.notes} /> : null}
+    </article>
   );
 }
 

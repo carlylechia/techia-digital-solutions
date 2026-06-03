@@ -1,18 +1,28 @@
 import { Resend } from "resend";
 
+/** Strip surrounding quotes that may be present if env values were pasted with quotes in Vercel. */
+function cleanEnv(value: string | undefined): string | undefined {
+  if (!value) return value;
+  const trimmed = value.trim();
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
 function getResend() {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = cleanEnv(process.env.RESEND_API_KEY);
   if (!apiKey || apiKey.startsWith("re_placeholder")) return null;
   return new Resend(apiKey);
 }
 
 function officialInfo() {
   return {
-    email: process.env.OFFICIAL_EMAIL || process.env.CONTACT_TO_EMAIL || process.env.ADMIN_EMAIL || "",
-    whatsapp: process.env.OFFICIAL_WHATSAPP || "",
-    call: process.env.OFFICIAL_CALL || "",
-    from: process.env.RESEND_FROM_EMAIL || "noreply@techia.com",
-    replyTo: process.env.RESEND_REPLY_TO || process.env.OFFICIAL_EMAIL || undefined
+    email: cleanEnv(process.env.OFFICIAL_EMAIL) || cleanEnv(process.env.CONTACT_TO_EMAIL) || cleanEnv(process.env.ADMIN_EMAIL) || "",
+    whatsapp: cleanEnv(process.env.OFFICIAL_WHATSAPP) || "",
+    call: cleanEnv(process.env.OFFICIAL_CALL) || "",
+    from: cleanEnv(process.env.RESEND_FROM_EMAIL) || "noreply@techia.com",
+    replyTo: cleanEnv(process.env.RESEND_REPLY_TO) || cleanEnv(process.env.OFFICIAL_EMAIL) || undefined
   };
 }
 
@@ -61,9 +71,28 @@ function infoTable(fields: Array<[string, string | null | undefined]>) {
 export async function sendLeadEmail(subject: string, html: string) {
   const resend = getResend();
   const info = officialInfo();
-  if (!resend || !info.email) return { skipped: true };
-  await resend.emails.send({ from: info.from, to: info.email, replyTo: info.replyTo, subject, html });
-  return { skipped: false };
+  if (!resend) {
+    console.warn("[email] sendLeadEmail skipped: RESEND_API_KEY not configured or is placeholder");
+    return { skipped: true };
+  }
+  if (!info.email) {
+    console.warn("[email] sendLeadEmail skipped: no recipient email configured (OFFICIAL_EMAIL / CONTACT_TO_EMAIL / ADMIN_EMAIL)");
+    return { skipped: true };
+  }
+  const { data, error } = await resend.emails.send({ from: info.from, to: info.email, replyTo: info.replyTo, subject, html });
+  if (error) {
+    console.error("[email] sendLeadEmail failed — Resend API error", {
+      name: error.name,
+      message: error.message,
+      statusCode: error.statusCode,
+      from: info.from,
+      to: info.email,
+      subject
+    });
+    throw new Error(`Resend error (${error.name}): ${error.message}`);
+  }
+  console.info("[email] sendLeadEmail delivered", { id: data?.id, to: info.email, subject });
+  return { skipped: false, id: data?.id };
 }
 
 export async function sendContactNotification(data: {
@@ -133,21 +162,36 @@ export async function sendOutboundEmail(options: {
   const info = officialInfo();
   if (!resend) {
     throw new Error(
-      "Email not configured — add a valid RESEND_API_KEY to your environment variables (current key is a placeholder)."
+      "Email not configured — add a valid RESEND_API_KEY to your environment variables (current key is missing or a placeholder)."
     );
   }
 
-  const content = `<div style="font-size:15px;color:#e2e8f0;line-height:1.7;white-space:pre-wrap;">${options.body.replace(/\n/g, "<br>")}</div>`;
+  const content = `<div style="font-size:15px;color:#e2e8f0;line-height:1.7;white-space:pre-wrap;">${options.body.replace(/[<>]/g, (c) => (c === "<" ? "&lt;" : "&gt;")).replace(/\n/g, "<br>")}</div>`;
   const html = baseHtml(content, options.subject);
 
-  await resend.emails.send({
-    from: options.from || info.from,
+  const from = options.from || info.from;
+  const { data, error } = await resend.emails.send({
+    from,
     to: options.to,
     replyTo: options.replyTo || info.replyTo,
     subject: options.subject,
     html
   });
-  return { skipped: false };
+
+  if (error) {
+    console.error("[email] sendOutboundEmail failed — Resend API error", {
+      name: error.name,
+      message: error.message,
+      statusCode: error.statusCode,
+      from,
+      to: options.to,
+      subject: options.subject
+    });
+    throw new Error(`Failed to send email (${error.name}): ${error.message}`);
+  }
+
+  console.info("[email] sendOutboundEmail delivered", { id: data?.id, to: options.to, subject: options.subject });
+  return { skipped: false, id: data?.id };
 }
 
 export function whatsappLink(number: string, message?: string) {
@@ -242,13 +286,23 @@ export async function sendPortalInviteEmail(data: {
   const html = baseHtml(content, subject);
 
   try {
-    await resend.emails.send({
+    const { data: sendResult, error } = await resend.emails.send({
       from: info.from,
       to: data.toEmail,
       replyTo: info.replyTo,
       subject,
       html,
     });
+    if (error) {
+      console.error("[sendPortalInviteEmail] Resend API error", {
+        name: error.name,
+        message: error.message,
+        statusCode: error.statusCode,
+        to: data.toEmail
+      });
+      return { skipped: true, error: `Resend error (${error.name}): ${error.message}` };
+    }
+    console.info("[sendPortalInviteEmail] delivered", { id: sendResult?.id, to: data.toEmail });
     return { skipped: false };
   } catch (err) {
     console.error("[sendPortalInviteEmail]", err);

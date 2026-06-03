@@ -17,14 +17,61 @@ interface DemoRequestFormProps {
   compact?: boolean;
 }
 
+type FieldErrors = Partial<Record<string, string>>;
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function validateDemoForm(
+  body: Record<string, string | boolean | undefined>,
+  locale: Locale
+): FieldErrors {
+  const e: FieldErrors = {};
+  const t = locale === "fr";
+
+  const name = (body.name as string | undefined)?.trim() ?? "";
+  if (!name) e.name = t ? "Le nom est requis." : "Name is required.";
+  else if (name.length < 2) e.name = t ? "Le nom est trop court." : "Name must be at least 2 characters.";
+
+  const email = (body.email as string | undefined)?.trim() ?? "";
+  if (!email) e.email = t ? "L'adresse e-mail est requise." : "Email address is required.";
+  else if (!EMAIL_RE.test(email)) e.email = t ? "Adresse e-mail invalide." : "Enter a valid email address.";
+
+  const need = (body.projectNeed as string | undefined)?.trim() ?? "";
+  if (!need) e.projectNeed = t ? "Décrivez votre besoin." : "Please describe what you need.";
+  else if (need.length < 5) e.projectNeed = t ? "Décrivez un peu plus votre besoin." : "Please provide a bit more detail.";
+
+  if (!body.consent) e.consent = t ? "Votre consentement est requis." : "Please accept the terms to continue.";
+
+  return e;
+}
+
+/** Map Zod issues from API back to field names */
+function mapApiIssues(issues: Array<{ path: string[]; message: string }>): FieldErrors {
+  const e: FieldErrors = {};
+  for (const issue of issues) {
+    const key = issue.path[0];
+    if (key && !e[key]) e[key] = issue.message;
+  }
+  return e;
+}
+
 export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: DemoRequestFormProps) {
   const ui = demoLabUi[locale];
   const [state, setState] = useState<FormState>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
+  function clearFieldError(field: string) {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setState("submitting");
     setErrorMsg("");
 
     const fd = new FormData(e.currentTarget);
@@ -47,8 +94,17 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
       honeypot: (fd.get("_h") as string) || ""
     };
 
+    // Client-side validation before hitting the network
+    const validationErrors = validateDemoForm(body as Record<string, string | boolean | undefined>, locale);
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
+      return;
+    }
+    setFieldErrors({});
+
+    setState("submitting");
+
     try {
-      // Analytics
       if (typeof window !== "undefined") {
         window.dispatchEvent(
           new CustomEvent("techia:analytics", {
@@ -68,6 +124,22 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
         onSuccess?.();
       } else {
         const json = await res.json().catch(() => ({}));
+
+        // Map server-side field issues back to per-field errors when available
+        if (json?.issues && Array.isArray(json.issues) && json.issues.length > 0) {
+          const apiErrors = mapApiIssues(json.issues);
+          if (Object.keys(apiErrors).length > 0) {
+            setFieldErrors(apiErrors);
+            setState("idle");
+            setErrorMsg(
+              locale === "fr"
+                ? "Veuillez corriger les erreurs ci-dessous."
+                : "Please correct the errors below."
+            );
+            return;
+          }
+        }
+
         setErrorMsg(
           locale === "fr"
             ? "Une erreur s'est produite. Veuillez réessayer."
@@ -113,9 +185,18 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
     );
   }
 
-  const inputCls = "form-input rounded-lg text-sm";
+  const inputCls = (field: string) =>
+    `form-input rounded-lg text-sm${fieldErrors[field] ? " border-red-500 focus:ring-red-400" : ""}`;
   const labelCls = "form-label";
   const selectCls = "form-input rounded-lg text-sm";
+
+  function FieldErr({ field }: { field: string }) {
+    return fieldErrors[field] ? (
+      <p className="mt-1 flex items-center gap-1 text-xs text-red-400">
+        <X className="size-3 shrink-0" />{fieldErrors[field]}
+      </p>
+    ) : null;
+  }
 
   return (
     <form onSubmit={handleSubmit} noValidate className="grid gap-4">
@@ -138,13 +219,15 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
           <input
             id="rlf-name"
             name="name"
-            required
             minLength={2}
             maxLength={180}
-            className={inputCls}
+            className={inputCls("name")}
             placeholder="Jean Dupont"
             autoComplete="name"
+            aria-invalid={!!fieldErrors.name}
+            onChange={() => clearFieldError("name")}
           />
+          <FieldErr field="name" />
         </div>
         <div className="grid gap-1.5">
           <label htmlFor="rlf-email" className={labelCls}>
@@ -154,11 +237,13 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
             id="rlf-email"
             name="email"
             type="email"
-            required
-            className={inputCls}
+            className={inputCls("email")}
             placeholder="you@company.com"
             autoComplete="email"
+            aria-invalid={!!fieldErrors.email}
+            onChange={() => clearFieldError("email")}
           />
+          <FieldErr field="email" />
         </div>
       </div>
 
@@ -171,7 +256,7 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
             name="phone"
             type="tel"
             maxLength={30}
-            className={inputCls}
+            className={inputCls("phone")}
             placeholder="+237 6XX XXX XXX"
             autoComplete="tel"
           />
@@ -182,7 +267,7 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
             id="rlf-company"
             name="companyName"
             maxLength={180}
-            className={inputCls}
+            className={inputCls("companyName")}
             placeholder="Acme Logistics"
             autoComplete="organization"
           />
@@ -197,7 +282,7 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
             id="rlf-country"
             name="country"
             maxLength={80}
-            className={inputCls}
+            className={inputCls("country")}
             placeholder="Cameroon, France, Canada…"
             autoComplete="country-name"
           />
@@ -218,7 +303,7 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
           id="rlf-biztype"
           name="businessType"
           maxLength={180}
-          className={inputCls}
+          className={inputCls("businessType")}
           placeholder={
             locale === "fr"
               ? "Ex: Agence de voyage, Clinique, PME..."
@@ -235,17 +320,19 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
         <textarea
           id="rlf-need"
           name="projectNeed"
-          required
           minLength={5}
           maxLength={2000}
           rows={3}
-          className={`${inputCls} min-h-20 resize-y`}
+          className={`${inputCls("projectNeed")} min-h-20 resize-y`}
           placeholder={
             locale === "fr"
               ? "Décrivez ce que vous voulez construire ou améliorer..."
               : "Describe what you want to build or improve..."
           }
+          aria-invalid={!!fieldErrors.projectNeed}
+          onChange={() => clearFieldError("projectNeed")}
         />
+        <FieldErr field="projectNeed" />
       </div>
 
       {/* Budget + Timeline */}
@@ -271,19 +358,23 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
       </div>
 
       {/* Consent */}
-      <label className="flex cursor-pointer items-start gap-3 text-sm text-muted">
-        <input
-          type="checkbox"
-          name="consent"
-          required
-          className="mt-0.5 size-4 shrink-0 accent-cyan-400"
-        />
-        <span>{ui.fields.consent}</span>
-      </label>
+      <div className="grid gap-1">
+        <label className="flex cursor-pointer items-start gap-3 text-sm text-muted">
+          <input
+            type="checkbox"
+            name="consent"
+            className="mt-0.5 size-4 shrink-0 accent-cyan-400"
+            aria-invalid={!!fieldErrors.consent}
+            onChange={() => clearFieldError("consent")}
+          />
+          <span>{ui.fields.consent}</span>
+        </label>
+        <FieldErr field="consent" />
+      </div>
 
-      {/* Error */}
-      {state === "error" && errorMsg && (
-        <p className="flex items-start gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
+      {/* Global error */}
+      {(state === "error" || errorMsg) && errorMsg && (
+        <p className="flex items-start gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400" role="alert">
           <X className="mt-0.5 size-3 shrink-0" />
           {errorMsg}
         </p>
