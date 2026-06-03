@@ -1907,3 +1907,15 @@ export function getLocalizedSectionHref(
 ) {
   return `${getLocalizedHref(locale, path)}#${hash}`;
 }
+
+export function getSolutionSectionId(slug: string) {
+  return `solution-${slug}`;
+}
+
+export function getSolutionHrefPath(slug: string) {
+  return `/services#${getSolutionSectionId(slug)}`;
+}
+
+export function getLocalizedSolutionHref(locale: Locale, slug: string) {
+  return getLocalizedSectionHref(locale, "/services", getSolutionSectionId(slug));
+}

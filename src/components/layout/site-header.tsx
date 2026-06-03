@@ -260,7 +260,7 @@ export function SiteHeader({
       </nav>
       {open ? (
         <div
-          className="fixed inset-0 z-50 bg-[#040812]/82 p-4 backdrop-blur-2xl lg:hidden"
+          className="fixed inset-0 z-[80] bg-[#040812]/82 p-4 backdrop-blur-2xl lg:hidden"
           onClick={(event) => {
             if (event.target === event.currentTarget) setOpen(false);
           }}
@@ -314,10 +314,7 @@ export function SiteHeader({
                 {dict.nav.startProject}
               </Link>
             </div>
-            <div className="header-action-cluster mt-auto flex items-center justify-between gap-3 pt-6">
-              <span className="header-status-pill border-white/10 text-white">
-                {launchModeLabel}
-              </span>
+            <div className="header-action-cluster mt-auto flex flex-wrap items-center justify-between gap-3 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-6">
               <div className="flex items-center gap-3">
                 <LanguageSwitcher locale={locale} />
                 <ThemeToggle
@@ -325,6 +322,9 @@ export function SiteHeader({
                   className="border-white/10 bg-white/[0.06] text-white"
                 />
               </div>
+              <span className="header-status-pill border-white/10 text-white">
+                {launchModeLabel}
+              </span>
             </div>
           </div>
         </div>

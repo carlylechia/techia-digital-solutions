@@ -9,6 +9,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import {
   getDictionary,
   getLocalizedSectionHref,
+  getSolutionSectionId,
   isLocale,
   mergedPageAnchors,
   type Locale,
@@ -224,11 +225,16 @@ export default async function ServicesPage({
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {dict.solutions.map((item, index) => (
             <Reveal key={item.slug} delay={index * 0.04}>
-              <FeatureCard
-                item={item}
-                locale={locale}
-                cta={dict.common.learnMore}
-              />
+              <div
+                id={getSolutionSectionId(item.slug)}
+                className="scroll-mt-28"
+              >
+                <FeatureCard
+                  item={item}
+                  locale={locale}
+                  cta={dict.common.learnMore}
+                />
+              </div>
             </Reveal>
           ))}
         </div>

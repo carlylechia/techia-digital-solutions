@@ -25,6 +25,7 @@ import {
   getDictionary,
   getLocalizedHref,
   getLocalizedSectionHref,
+  getSolutionHrefPath,
   isLocale,
   mergedPageAnchors,
   type Locale,
@@ -447,7 +448,7 @@ export default async function HomePage({
               key={item.slug}
               item={item}
               locale={locale}
-              hrefBase="solutions"
+              href={getSolutionHrefPath(item.slug)}
               cta={dict.common.learnMore}
             />
           ))}

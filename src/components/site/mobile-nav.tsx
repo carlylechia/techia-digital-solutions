@@ -115,7 +115,7 @@ export function MobileNav({
                 {ctaLabel}
               </Link>
 
-              <div className="header-action-cluster mt-auto flex items-center gap-3 pt-6">
+              <div className="header-action-cluster mt-auto flex items-center gap-3 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-6">
                 <LanguageToggle
                   className="bg-white/[0.06] text-white"
                   tone="inverted"

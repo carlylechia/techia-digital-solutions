@@ -6,6 +6,7 @@ import { MessageCircleMore, Sparkles, X } from "lucide-react";
 
 export function AIChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isScrollLocked, setIsScrollLocked] = useState(false);
 
   // Close on Escape
   useEffect(() => {
@@ -14,6 +15,23 @@ export function AIChatWidget() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  useEffect(() => {
+    const body = document.body;
+    const syncScrollLockState = () => {
+      setIsScrollLocked(body.getAttribute("data-scroll-locked") === "true");
+    };
+
+    syncScrollLockState();
+
+    const observer = new MutationObserver(syncScrollLockState);
+    observer.observe(body, {
+      attributes: true,
+      attributeFilter: ["data-scroll-locked"],
+    });
+
+    return () => observer.disconnect();
   }, []);
 
   return (
@@ -48,6 +66,9 @@ export function AIChatWidget() {
         className={[
           "group fixed bottom-4 right-4 z-50 flex h-16 w-16 items-center justify-center",
           "rounded-full text-white transition-transform duration-200 hover:scale-[1.03] active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+          isOpen || isScrollLocked
+            ? "pointer-events-none translate-y-4 opacity-0 sm:pointer-events-auto sm:translate-y-0 sm:opacity-100"
+            : "opacity-100",
         ].join(" ")}
         aria-label={isOpen ? "Close AI assistant" : "Open teChia AI Growth Agent"}
         aria-describedby="ai-chat-widget-tooltip"

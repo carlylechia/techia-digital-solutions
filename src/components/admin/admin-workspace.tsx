@@ -9,7 +9,6 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
-  CircleDollarSign,
   ClipboardList,
   Copy,
   Edit2,
@@ -37,12 +36,10 @@ import {
   Sparkles,
   Sun,
   Trash2,
-  TrendingDown,
   UserPlus,
   Users,
   Wallet,
   X,
-  XCircle,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -90,8 +87,6 @@ import {
   sendPortalMessageAction,
   createPortalInvoiceAction,
   createPortalPaymentAction,
-  updatePortalPaymentAction,
-  deletePortalPaymentAction,
   confirmPortalInvoicePaymentAction,
   queryPortalInvoicePaymentAction,
   deletePortalInvoiceAction,
