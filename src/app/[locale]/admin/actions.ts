@@ -48,6 +48,8 @@ const optionalStringArray = z.preprocess((value) => {
 }, z.array(z.string()));
 
 const requestTypes = ["lead", "contact", "demo"] as const;
+// Superset used for conversation/client-creation — includes project inquiries
+const conversationRequestTypes = ["lead", "contact", "demo", "inquiry"] as const;
 
 const updateRequestSchema = z.object({
   locale: localeSchema,
@@ -1129,7 +1131,7 @@ export async function archiveTaskAction(formData: FormData) {
 
 const createClientFromRequestSchema = z.object({
   locale: localeSchema,
-  requestType: z.enum(requestTypes),
+  requestType: z.enum(conversationRequestTypes),
   requestId: z.string().min(1),
   // override fields (pre-filled from request, editable by admin)
   name: shortText,
@@ -1158,6 +1160,9 @@ export async function createClientFromRequestAction(
     } else if (data.requestType === "contact") {
       const contact = await prisma.contactMessage.findUnique({ where: { id: data.requestId }, select: { clientId: true } });
       existingClientId = contact?.clientId ?? null;
+    } else if (data.requestType === "inquiry") {
+      const inquiry = await prisma.projectInquiry.findUnique({ where: { id: data.requestId }, select: { clientId: true } });
+      existingClientId = inquiry?.clientId ?? null;
     } else {
       const demo = await prisma.demoRequest.findUnique({ where: { id: data.requestId }, select: { clientId: true } });
       existingClientId = demo?.clientId ?? null;
@@ -1191,6 +1196,7 @@ export async function createClientFromRequestAction(
     if (data.requestType === "lead") await prisma.lead.update({ where: { id: data.requestId }, data: { clientId: client.id, status: "WON" } });
     if (data.requestType === "contact") await prisma.contactMessage.update({ where: { id: data.requestId }, data: { clientId: client.id } });
     if (data.requestType === "demo") await prisma.demoRequest.update({ where: { id: data.requestId }, data: { clientId: client.id } });
+    if (data.requestType === "inquiry") await prisma.projectInquiry.update({ where: { id: data.requestId }, data: { clientId: client.id } });
 
     // Auto-create a contact record
     if (data.name || data.email || data.phone) {
@@ -1349,7 +1355,7 @@ export async function convertDemoToProjectAction(
 
 const createConversationSchema = z.object({
   locale: localeSchema,
-  requestType: z.enum(requestTypes),
+  requestType: z.enum(conversationRequestTypes),
   requestId: z.string().min(1),
   clientId: z.string().optional().or(z.literal("")),
   subject: shortText
