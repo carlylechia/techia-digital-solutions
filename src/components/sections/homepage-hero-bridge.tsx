@@ -268,17 +268,17 @@ export function HomepageHeroBridge({ locale }: { locale: Locale }) {
                                     ease: [0.16, 1, 0.3, 1],
                                   }
                             }
-                            className="rounded-[1.2rem] border border-white/8 bg-[#0B1525] px-4 py-3"
+                            className="panel-safe rounded-[1.2rem] border border-white/8 bg-[#0B1525] px-4 py-3"
                           >
-                            <div className="flex items-start gap-3">
+                            <div className="panel-safe flex items-start gap-3">
                               <span className="grid size-10 shrink-0 place-items-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 text-cyan-100">
                                 <Icon className="size-[18px]" />
                               </span>
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold text-white">
+                              <div className="panel-safe">
+                                <p className="break-safe text-sm font-semibold text-white">
                                   {item.title}
                                 </p>
-                                <p className="mt-1 text-sm leading-6 text-slate-300">
+                                <p className="break-safe mt-1 text-sm leading-6 text-slate-300">
                                   {item.text}
                                 </p>
                               </div>
@@ -304,17 +304,17 @@ export function HomepageHeroBridge({ locale }: { locale: Locale }) {
                         {copy.railItems.slice(0, 3).map((item, index) => (
                           <div
                             key={item.title}
-                            className="rounded-[1rem] border border-white/8 bg-[linear-gradient(90deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] px-3 py-3"
+                            className="panel-safe rounded-[1rem] border border-white/8 bg-[linear-gradient(90deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] px-3 py-3"
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="panel-safe flex items-center gap-3">
                               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-cyan-300/14 text-[0.68rem] font-semibold text-cyan-100">
                                 0{index + 1}
                               </span>
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold text-white">
+                              <div className="panel-safe">
+                                <p className="break-safe text-sm font-semibold text-white">
                                   {item.title}
                                 </p>
-                                <p className="mt-1 text-xs leading-5 text-slate-300">
+                                <p className="break-safe mt-1 text-xs leading-5 text-slate-300">
                                   {item.text}
                                 </p>
                               </div>

@@ -252,15 +252,15 @@ export function HomepageSystemShowcase({ locale }: { locale: Locale }) {
                               }
                         }
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="panel-safe flex items-start gap-3">
                           <span className="grid size-11 shrink-0 place-items-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 text-cyan-100">
                             <Icon className="size-5" />
                           </span>
-                          <div className="min-w-0">
-                            <h3 className="text-lg font-semibold text-white">
+                          <div className="panel-safe">
+                            <h3 className="break-safe text-lg font-semibold text-white">
                               {card.title}
                             </h3>
-                            <p className="mt-2 text-sm leading-7 text-slate-300">
+                            <p className="break-safe mt-2 text-sm leading-7 text-slate-300">
                               {card.description}
                             </p>
                           </div>
@@ -272,18 +272,18 @@ export function HomepageSystemShowcase({ locale }: { locale: Locale }) {
 
                 <div className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 md:flex">
                   <div className="rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(8,15,28,0.94),rgba(10,18,34,0.82))] px-5 py-4 text-center shadow-[0_22px_60px_rgba(5,7,13,0.24)] backdrop-blur-xl">
-                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-cyan-200">
+                    <p className="break-safe text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-cyan-200">
                       teChia
                     </p>
-                    <p className="mt-1 text-sm font-medium text-white">
+                    <p className="break-safe mt-1 text-sm font-medium text-white">
                       {copy.orbitLabel}
                     </p>
                   </div>
                 </div>
 
-                <div className="absolute bottom-4 left-4 hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3 py-2 text-xs font-medium text-slate-200 backdrop-blur md:inline-flex">
+                <div className="absolute bottom-4 left-4 hidden max-w-[calc(100%-2rem)] items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3 py-2 text-xs font-medium text-slate-200 backdrop-blur md:inline-flex">
                   <ShieldCheck className="size-3.5 text-cyan-300" />
-                  {copy.footerLabel}
+                  <span className="break-safe">{copy.footerLabel}</span>
                 </div>
               </div>
             </div>

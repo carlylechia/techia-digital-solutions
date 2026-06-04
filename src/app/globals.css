@@ -396,6 +396,8 @@ textarea {
   .elevated-panel,
   .nexus-card {
     position: relative;
+    min-width: 0;
+    max-width: 100%;
     overflow: hidden;
     border: 1px solid color-mix(in srgb, var(--accent-2) 10%, var(--border));
     border-radius: 1.5rem;
@@ -441,6 +443,8 @@ textarea {
 
   .gradient-border {
     position: relative;
+    min-width: 0;
+    max-width: 100%;
     border-radius: 1.5rem;
   }
 
@@ -499,6 +503,7 @@ textarea {
   .trust-pill {
     display: inline-flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.45rem;
     justify-content: flex-start;
     max-width: 100%;
@@ -528,8 +533,23 @@ textarea {
   .subtle-tile-strong,
   .icon-chip,
   .status-pill {
+    min-width: 0;
+    max-width: 100%;
     border-radius: 1rem;
     border: 1px solid var(--border);
+  }
+
+  .panel-safe {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .break-safe {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-wrap: pretty;
+    white-space: normal;
   }
 
   .subtle-tile {
@@ -547,6 +567,9 @@ textarea {
   }
 
   .status-pill {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
     background: color-mix(in srgb, var(--surface-strong) 92%, transparent);
     color: var(--muted);
   }
@@ -2001,6 +2024,13 @@ textarea {
 
   .marquee-item {
     flex: 0 0 auto;
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    max-width: min(22rem, 72vw);
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
   }
 
   .footer-stage {
