@@ -97,8 +97,8 @@ export function FounderHero({
       : "Visit Chia Carlyle's GitHub profile";
   const resumeAriaLabel =
     locale === "fr"
-      ? "Télécharger le profil fondateur de Chia Carlyle au format PDF"
-      : "Download Chia Carlyle's founder profile as a PDF";
+      ? "Prévisualiser et télécharger le CV fondateur de Chia Carlyle"
+      : "Preview and download Chia Carlyle's founder CV";
   const trustSignals = content.hero.trustHighlights
     .slice(0, 4)
     .map((title, index) => {
@@ -199,8 +199,8 @@ export function FounderHero({
                 <p className="founder-cta-label">{content.hero.downloadCta}</p>
                 <p className="founder-cta-copy">
                   {locale === "fr"
-                    ? "Téléchargement PDF direct pour partenariats, évaluation et opportunités techniques."
-                    : "Direct PDF download for partnerships, technical opportunities, and project review."}
+                    ? "Prévisualisez le CV de Chia dans votre navigateur et téléchargez-le depuis l'aperçu."
+                    : "Preview Chia's CV in your browser — and download directly from the preview."}
                 </p>
               </FounderTrackedLink>
 
@@ -880,8 +880,8 @@ export function FounderDownload({
 }) {
   const resumeAriaLabel =
     locale === "fr"
-      ? "Télécharger le profil fondateur de Chia Carlyle au format PDF"
-      : "Download Chia Carlyle's founder profile as a PDF";
+      ? "Prévisualiser et télécharger le CV fondateur de Chia Carlyle"
+      : "Preview and download Chia Carlyle's founder CV";
 
   return (
     <section
@@ -890,7 +890,7 @@ export function FounderDownload({
     >
       <FounderReveal variant="jump">
         <div className="gradient-border rounded-[2rem]">
-          <div className="premium-card overflow-hidden rounded-[2rem] p-6 sm:p-8 md:p-10">
+          <div className="premium-card founder-hover-card overflow-hidden rounded-[2rem] p-6 sm:p-8 md:p-10">
             <div className="grid gap-6 lg:grid-cols-[1.08fr_.92fr]">
               <div>
                 <h2

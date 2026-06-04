@@ -12,7 +12,7 @@ export const founderLinks = {
   linkedin: "https://www.linkedin.com/in/chia-carlyle/",
   github: "https://github.com/carlylechia",
   resumeDownload:
-    "https://docs.google.com/document/d/1oKVlbCdhWY4toOKj8ToqdXYnvrPUU2THrkt75XKzO-0/export?format=pdf",
+    "https://drive.google.com/file/d/1jrIl1RMYnLdme0AWgDJBsf28MryFwXXw/view",
 } as const;
 
 export const GITHUB_URL = founderLinks.github;
@@ -169,7 +169,7 @@ const founderContent = {
         "Technical execution, product thinking, and business clarity in one delivery partner.",
       primaryCta: "View My Work",
       secondaryCta: "Work With teChia",
-      downloadCta: "Download Founder Profile",
+      downloadCta: "Preview & Download Founder CV",
       linkedinCta: "Connect on LinkedIn",
       githubCta: "View GitHub",
       trustHighlights: [
@@ -666,11 +666,10 @@ const founderContent = {
         "Client and collaborator testimonials will be added here as teChia continues to grow its project portfolio.",
     },
     download: {
-      title: "Download Founder Profile",
-      body: "For partnerships, collaborations, technical opportunities, or project evaluation, you can download a concise founder profile summarizing Chia’s technical background, project focus, and teChia’s digital transformation mission.",
-      cta: "Download Profile",
-      placeholderNote:
-        "The final PDF is not attached yet. The button currently routes to contact so you can request the profile directly.",
+      title: "Preview & Download Founder CV",
+      body: "For partnerships, collaborations, technical opportunities, or project evaluation, preview Chia’s CV directly in your browser — covering his technical background, project focus, and teChia’s digital transformation mission. Download it directly from the preview.",
+      cta: "Preview CV",
+      placeholderNote: "",
     },
     finalCta: {
       eyebrow: "Build with teChia",
@@ -701,7 +700,7 @@ const founderContent = {
         "Exécution technique, vision produit et clarté business réunies dans un seul partenaire de livraison.",
       primaryCta: "Voir Mes Projets",
       secondaryCta: "Travailler avec teChia",
-      downloadCta: "Télécharger le Profil Fondateur",
+      downloadCta: "Aperçu & Téléchargement du CV Fondateur",
       linkedinCta: "Me Contacter sur LinkedIn",
       githubCta: "Voir GitHub",
       trustHighlights: [
@@ -1199,11 +1198,10 @@ const founderContent = {
         "Les témoignages de clients et collaborateurs seront ajoutés ici au fur et à mesure que teChia développe son portfolio de projets.",
     },
     download: {
-      title: "Télécharger le Profil Fondateur",
-      body: "Pour les partenariats, collaborations, opportunités techniques ou évaluations de projet, vous pouvez télécharger un profil fondateur concis présentant le parcours technique de Chia, ses domaines de travail et la mission de transformation numérique de teChia.",
-      cta: "Télécharger le Profil",
-      placeholderNote:
-        "Le PDF final n’est pas encore attaché. Le bouton redirige actuellement vers la page contact pour demander le profil.",
+      title: "Aperçu & Téléchargement du CV Fondateur",
+      body: "Pour les partenariats, collaborations, opportunités techniques ou évaluations de projet, prévisualisez le CV de Chia directement dans votre navigateur — couvrant son parcours technique, ses domaines de travail et la mission de transformation numérique de teChia. Téléchargez-le directement depuis l'aperçu.",
+      cta: "Aperçu du CV",
+      placeholderNote: "",
     },
     finalCta: {
       eyebrow: "Construire avec teChia",
@@ -1237,7 +1235,7 @@ export function getFounderLinks(locale: Locale) {
     linkedinHref: founderLinks.linkedin,
     githubHref: GITHUB_URL || siteConfig.socials.github,
     downloadHref: founderLinks.resumeDownload,
-    hasDirectCvDownload: true,
+    hasDirectCvDownload: false,
     usesCompanyGithubFallback: false,
   };
 }
