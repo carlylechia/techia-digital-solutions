@@ -217,7 +217,7 @@ export function HomepageSystemShowcase({ locale }: { locale: Locale }) {
                       <motion.article
                         key={card.title}
                         className={cn(
-                          "rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,rgba(10,18,34,0.84),rgba(10,18,34,0.62))] p-5 text-left shadow-[0_28px_70px_rgba(5,7,13,0.22)] backdrop-blur-xl",
+                          "min-w-0 rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,rgba(10,18,34,0.84),rgba(10,18,34,0.62))] p-4 text-left shadow-[0_28px_70px_rgba(5,7,13,0.22)] backdrop-blur-xl sm:p-5",
                           !reduceMotion &&
                             "motion-safe:animate-[float-drift_7s_ease-in-out_infinite]",
                           "md:absolute",
@@ -256,7 +256,7 @@ export function HomepageSystemShowcase({ locale }: { locale: Locale }) {
                           <span className="grid size-11 shrink-0 place-items-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 text-cyan-100">
                             <Icon className="size-5" />
                           </span>
-                          <div>
+                          <div className="min-w-0">
                             <h3 className="text-lg font-semibold text-white">
                               {card.title}
                             </h3>

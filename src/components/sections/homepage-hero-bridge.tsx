@@ -149,11 +149,11 @@ export function HomepageHeroBridge({ locale }: { locale: Locale }) {
           <div className="relative z-10 grid gap-8 xl:grid-cols-[0.82fr_1.18fr] xl:items-start">
             <div className="max-w-[38rem]">
               <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/18 bg-cyan-300/10 px-3.5 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-cyan-100">
+                <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full border border-cyan-300/18 bg-cyan-300/10 px-3.5 py-2 text-center text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-cyan-100 sm:text-[0.68rem] sm:tracking-[0.28em]">
                   <Activity className="size-3.5" />
                   {copy.eyebrow}
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3.5 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-200">
+                <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3.5 py-2 text-center text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-slate-200 sm:text-[0.68rem] sm:tracking-[0.28em]">
                   <ShieldCheck className="size-3.5 text-cyan-300" />
                   {copy.footerLabel}
                 </span>
@@ -192,7 +192,7 @@ export function HomepageHeroBridge({ locale }: { locale: Locale }) {
                     }
                     className="rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] px-4 py-4 backdrop-blur-xl"
                   >
-                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-cyan-200">
+                    <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-cyan-200 sm:text-[0.68rem] sm:tracking-[0.28em]">
                       {item.label}
                     </p>
                     <p className="mt-2 text-sm leading-7 text-slate-200">
@@ -206,25 +206,25 @@ export function HomepageHeroBridge({ locale }: { locale: Locale }) {
             <div className="relative overflow-hidden rounded-[2rem] border border-cyan-300/12 bg-[linear-gradient(180deg,rgba(8,16,30,0.96),rgba(7,14,26,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_90px_rgba(2,6,23,0.34)] md:p-6">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_center,rgba(34,211,238,0.12),transparent_24%),radial-gradient(circle_at_80%_18%,rgba(59,130,246,0.08),transparent_20%)]" />
               <div className="relative z-10">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-col items-start justify-between gap-3 min-[480px]:flex-row">
                   <div>
-                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-cyan-200">
+                    <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-cyan-200 sm:text-[0.68rem] sm:tracking-[0.28em]">
                       {copy.boardLabel}
                     </p>
                     <h3 className="mt-2 text-2xl font-semibold text-white md:text-3xl">
                       {copy.boardTitle}
                     </h3>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid w-full grid-cols-2 gap-2 min-[480px]:w-auto min-[480px]:grid-cols-3">
                     {copy.stats.map((stat) => (
                       <div
                         key={stat.label}
-                        className="rounded-[1rem] border border-white/10 bg-white/[0.05] px-3 py-2 text-center"
+                        className="min-w-0 rounded-[1rem] border border-white/10 bg-white/[0.05] px-3 py-2 text-center"
                       >
-                        <p className="text-[0.6rem] font-semibold uppercase tracking-[0.24em] text-cyan-200">
+                        <p className="text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-cyan-200 sm:text-[0.6rem] sm:tracking-[0.24em]">
                           {stat.label}
                         </p>
-                        <p className="mt-1 text-sm font-semibold text-white">
+                        <p className="mt-1 text-xs leading-5 font-semibold text-white sm:text-sm">
                           {stat.value}
                         </p>
                       </div>
@@ -238,7 +238,7 @@ export function HomepageHeroBridge({ locale }: { locale: Locale }) {
 
                 <div className="mt-6 grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
                   <div className="rounded-[1.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4">
-                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-cyan-200">
+                    <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-cyan-200 sm:text-[0.68rem] sm:tracking-[0.28em]">
                       {copy.railTitle}
                     </p>
                     <div className="mt-4 grid gap-3">
@@ -274,7 +274,7 @@ export function HomepageHeroBridge({ locale }: { locale: Locale }) {
                               <span className="grid size-10 shrink-0 place-items-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 text-cyan-100">
                                 <Icon className="size-[18px]" />
                               </span>
-                              <div>
+                              <div className="min-w-0">
                                 <p className="text-sm font-semibold text-white">
                                   {item.title}
                                 </p>
@@ -291,11 +291,11 @@ export function HomepageHeroBridge({ locale }: { locale: Locale }) {
 
                   <div className="rounded-[1.5rem] border border-cyan-300/12 bg-[linear-gradient(180deg,rgba(10,22,40,0.96),rgba(8,15,28,0.96))] p-4">
                     <div className="rounded-[1.25rem] border border-white/10 bg-[#07111F] p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-cyan-200">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-cyan-200 sm:text-[0.68rem] sm:tracking-[0.28em]">
                           {copy.liveMapLabel}
                         </p>
-                        <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-cyan-100">
+                        <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-cyan-100 sm:text-[0.65rem] sm:tracking-[0.22em]">
                           {copy.activeLabel}
                         </span>
                       </div>
@@ -324,10 +324,10 @@ export function HomepageHeroBridge({ locale }: { locale: Locale }) {
                       </div>
 
                       <div className="mt-5 rounded-[1rem] border border-dashed border-cyan-300/18 bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.12),transparent_58%)] px-4 py-5 text-center">
-                        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.32em] text-cyan-200">
+                        <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-cyan-200 sm:text-[0.68rem] sm:tracking-[0.32em]">
                           {copy.coreLabel}
                         </p>
-                        <p className="mt-2 text-sm leading-6 text-slate-200">
+                        <p className="mt-2 text-sm leading-6 text-slate-200 text-balance">
                           {copy.coreBody}
                         </p>
                       </div>

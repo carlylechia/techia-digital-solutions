@@ -192,7 +192,7 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
         >
           <motion.div
             variants={reduceMotion ? undefined : fadeUpVariants}
-            className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.08] px-4 py-2 text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-[#CFFAFE] shadow-[0_18px_50px_rgba(5,7,13,0.18)] backdrop-blur-xl"
+            className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full border border-white/12 bg-white/[0.08] px-3 py-2 text-center text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#CFFAFE] shadow-[0_18px_50px_rgba(5,7,13,0.18)] backdrop-blur-xl sm:px-4 sm:text-[0.72rem] sm:tracking-[0.26em] lg:justify-start"
           >
             <span
               aria-hidden="true"
@@ -274,13 +274,13 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
 
           <motion.div
             variants={reduceMotion ? undefined : fadeUpVariants}
-            className="mt-5 flex items-center justify-center gap-3 text-left text-sm leading-6 text-[#CBD5E1] lg:justify-start"
+            className="mx-auto mt-5 flex max-w-[42rem] items-start justify-center gap-3 text-left text-sm leading-6 text-[#CBD5E1] sm:items-center lg:mx-0 lg:justify-start"
           >
             <Globe2
               aria-hidden="true"
               className="size-4 shrink-0 text-[#2DD4BF]"
             />
-            <p className="m-0 max-w-[42rem]">{heroSupportLine[locale]}</p>
+            <p className="m-0 min-w-0 text-balance">{heroSupportLine[locale]}</p>
           </motion.div>
 
           <motion.ul
@@ -291,7 +291,7 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
             {serviceBadges.map((badge) => (
               <li
                 key={badge}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3.5 py-2.5 text-sm font-medium text-[#E2E8F0] shadow-[0_18px_34px_rgba(5,7,13,0.12)] backdrop-blur-xl"
+                className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3.5 py-2.5 text-left text-xs font-medium text-[#E2E8F0] shadow-[0_18px_34px_rgba(5,7,13,0.12)] backdrop-blur-xl sm:text-sm"
               >
                 <span
                   aria-hidden="true"
@@ -361,7 +361,7 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
         </div>
 
         <motion.div
-          className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2"
+          className="absolute bottom-6 left-1/2 z-10 hidden -translate-x-1/2 sm:block"
           initial={reduceMotion ? undefined : { opacity: 0, y: 10 }}
           animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
           transition={

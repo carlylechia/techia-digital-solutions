@@ -55,6 +55,21 @@ function mapApiIssues(issues: Array<{ path: string[]; message: string }>): Field
   return e;
 }
 
+function FieldError({
+  field,
+  fieldErrors,
+}: {
+  field: string;
+  fieldErrors: FieldErrors;
+}) {
+  return fieldErrors[field] ? (
+    <p className="mt-1 flex items-center gap-1 text-xs text-red-400">
+      <X className="size-3 shrink-0" />
+      {fieldErrors[field]}
+    </p>
+  ) : null;
+}
+
 export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: DemoRequestFormProps) {
   const ui = demoLabUi[locale];
   const [state, setState] = useState<FormState>("idle");
@@ -190,14 +205,6 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
   const labelCls = "form-label";
   const selectCls = "form-input rounded-lg text-sm";
 
-  function FieldErr({ field }: { field: string }) {
-    return fieldErrors[field] ? (
-      <p className="mt-1 flex items-center gap-1 text-xs text-red-400">
-        <X className="size-3 shrink-0" />{fieldErrors[field]}
-      </p>
-    ) : null;
-  }
-
   return (
     <form onSubmit={handleSubmit} noValidate className="grid gap-4">
       {/* Honeypot */}
@@ -227,7 +234,7 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
             aria-invalid={!!fieldErrors.name}
             onChange={() => clearFieldError("name")}
           />
-          <FieldErr field="name" />
+          <FieldError field="name" fieldErrors={fieldErrors} />
         </div>
         <div className="grid gap-1.5">
           <label htmlFor="rlf-email" className={labelCls}>
@@ -243,7 +250,7 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
             aria-invalid={!!fieldErrors.email}
             onChange={() => clearFieldError("email")}
           />
-          <FieldErr field="email" />
+          <FieldError field="email" fieldErrors={fieldErrors} />
         </div>
       </div>
 
@@ -332,7 +339,7 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
           aria-invalid={!!fieldErrors.projectNeed}
           onChange={() => clearFieldError("projectNeed")}
         />
-        <FieldErr field="projectNeed" />
+        <FieldError field="projectNeed" fieldErrors={fieldErrors} />
       </div>
 
       {/* Budget + Timeline */}
@@ -369,7 +376,7 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
           />
           <span>{ui.fields.consent}</span>
         </label>
-        <FieldErr field="consent" />
+        <FieldError field="consent" fieldErrors={fieldErrors} />
       </div>
 
       {/* Global error */}
