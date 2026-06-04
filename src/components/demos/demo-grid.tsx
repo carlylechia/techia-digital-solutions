@@ -58,6 +58,23 @@ export function DemoGrid({ locale }: { locale: Locale }) {
           exploreLab: "Explore the full Demo Lab",
           moreDemos: "More demos, variants, and interactions are available inside the full lab."
         };
+  const statCards = [
+    {
+      icon: Workflow,
+      label: copy.moduleCount,
+      value: activeDemo.modules[locale].length
+    },
+    {
+      icon: Sparkles,
+      label: copy.valueCount,
+      value: activeDemo.businessValue[locale].length
+    },
+    {
+      icon: BriefcaseBusiness,
+      label: ui.businessTypes,
+      value: activeDemo.businessTypes[locale].length
+    }
+  ];
 
   function handleSelect(demoSlug: DemoSlug) {
     trackEvent("homepage_demo_preview_select", { demo: demoSlug, locale });
@@ -183,28 +200,31 @@ export function DemoGrid({ locale }: { locale: Locale }) {
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-                <div className="min-w-0 overflow-hidden rounded-[1.5rem] border border-border bg-background p-4">
-                  <div className="flex min-w-0 items-start gap-2 text-xs uppercase tracking-[0.12em] text-muted">
-                    <Workflow className="size-3.5" />
-                    <span className="min-w-0 break-words leading-4">{copy.moduleCount}</span>
-                  </div>
-                  <p className="mt-3 break-words text-2xl font-semibold text-primary sm:text-3xl">{activeDemo.modules[locale].length}</p>
-                </div>
-                <div className="min-w-0 overflow-hidden rounded-[1.5rem] border border-border bg-background p-4">
-                  <div className="flex min-w-0 items-start gap-2 text-xs uppercase tracking-[0.12em] text-muted">
-                    <Sparkles className="size-3.5" />
-                    <span className="min-w-0 break-words leading-4">{copy.valueCount}</span>
-                  </div>
-                  <p className="mt-3 break-words text-2xl font-semibold text-primary sm:text-3xl">{activeDemo.businessValue[locale].length}</p>
-                </div>
-                <div className="min-w-0 overflow-hidden rounded-[1.5rem] border border-border bg-background p-4">
-                  <div className="flex min-w-0 items-start gap-2 text-xs uppercase tracking-[0.12em] text-muted">
-                    <BriefcaseBusiness className="size-3.5" />
-                    <span className="min-w-0 break-words leading-4">{ui.businessTypes}</span>
-                  </div>
-                  <p className="mt-3 break-words text-2xl font-semibold text-primary sm:text-3xl">{activeDemo.businessTypes[locale].length}</p>
-                </div>
+              <div className="grid grid-cols-3 gap-3 auto-rows-fr">
+                {statCards.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <div
+                      key={item.label}
+                      className="min-w-0 overflow-hidden rounded-[1.5rem] border border-border bg-background p-4"
+                    >
+                      <div className="flex h-full min-h-[8.75rem] flex-col items-center justify-between text-center">
+                        <div className="flex min-w-0 flex-col items-center gap-2">
+                          <span className="grid size-9 place-items-center rounded-2xl bg-accent/10 text-accent">
+                            <Icon className="size-4" />
+                          </span>
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                            {item.label}
+                          </span>
+                        </div>
+                        <p className="break-words text-3xl font-semibold text-primary sm:text-[2rem]">
+                          {item.value}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

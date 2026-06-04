@@ -71,11 +71,6 @@ const heroScrollLabel = {
   fr: "Défiler",
 } as const satisfies Record<Locale, string>;
 
-const heroScriptTagline = {
-  en: "where elegance meets execution",
-  fr: "l’élégance au service de l’exécution",
-} as const satisfies Record<Locale, string>;
-
 const heroLines = {
   en: {
     first: "Digital homes for",
@@ -187,24 +182,17 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
       <div
-        className="container relative flex items-center py-14 sm:py-20"
+        className="container relative flex items-center py-14 sm:py-[4.5rem]"
         style={{ minHeight: HERO_MIN_HEIGHT }}
       >
         <motion.div
-          className="w-full max-w-[46rem] text-center lg:max-w-[45rem] lg:text-left"
+          className="w-full max-w-[46rem] text-center sm:-mt-4 lg:max-w-[45rem] lg:-mt-10 lg:text-left"
           variants={reduceMotion ? undefined : contentVariants}
           {...motionState}
         >
-          <motion.p
-            variants={reduceMotion ? undefined : fadeUpVariants}
-            className="font-script text-[clamp(2.4rem,4vw,3.8rem)] text-[#FDBA74]"
-          >
-            {heroScriptTagline[locale]}
-          </motion.p>
-
           <motion.div
             variants={reduceMotion ? undefined : fadeUpVariants}
-            className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.08] px-4 py-2 text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-[#CFFAFE] shadow-[0_18px_50px_rgba(5,7,13,0.18)] backdrop-blur-xl"
+            className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.08] px-4 py-2 text-[0.72rem] font-semibold uppercase tracking-[0.26em] text-[#CFFAFE] shadow-[0_18px_50px_rgba(5,7,13,0.18)] backdrop-blur-xl"
           >
             <span
               aria-hidden="true"
@@ -215,7 +203,7 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
 
           <motion.h1
             id="homepage-hero-heading"
-            className="mx-auto mt-6 max-w-[12ch] text-[clamp(3.25rem,8vw,6.4rem)] font-semibold leading-[0.92] tracking-[-0.06em] text-white sm:max-w-[13ch] md:max-w-none lg:mx-0"
+            className="mx-auto mt-5 max-w-[12ch] text-[clamp(3.25rem,8vw,6.4rem)] font-semibold leading-[0.92] tracking-[-0.06em] text-white sm:max-w-[13ch] md:max-w-none lg:mx-0"
             variants={reduceMotion ? undefined : headingVariants}
           >
             <motion.span

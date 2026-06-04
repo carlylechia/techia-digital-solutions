@@ -34,6 +34,7 @@ const STATUS_COLORS: Record<string, string> = {
   CONTACTED: "bg-green-500/10 text-green-400 border-green-500/20",
   QUALIFIED: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   CLOSED: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+  CONVERTED: "bg-blue-500/10 text-blue-400 border-blue-500/20",
 };
 
 export default async function AILeadsPage({
@@ -101,6 +102,20 @@ export default async function AILeadsPage({
           orderBy: { createdAt: "desc" },
           skip: (page - 1) * pageSize,
           take: pageSize,
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            companyName: true,
+            industry: true,
+            serviceInterest: true,
+            budgetRange: true,
+            timeline: true,
+            leadScore: true,
+            status: true,
+            createdAt: true,
+          },
         }),
         prisma.aILead.count({ where }),
       ]);
@@ -154,20 +169,38 @@ export default async function AILeadsPage({
           </div>
           {/* Filters */}
           <div className="flex flex-wrap gap-2">
-            {["", "HOT", "WARM", "COLD"].map((s) => (
-              <a
-                key={s || "all-score"}
-                href={`${baseHref}?score=${s}&status=${statusFilter}&page=1`}
-                className={[
-                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                  scoreFilter === s
-                    ? "bg-accent text-white border-accent"
-                    : "border-border text-muted hover:border-accent hover:text-accent",
-                ].join(" ")}
-              >
-                {s || "All scores"}
-              </a>
-            ))}
+            <div className="flex flex-wrap gap-2">
+              {["", "HOT", "WARM", "COLD"].map((s) => (
+                <a
+                  key={s || "all-score"}
+                  href={`${baseHref}?score=${s}&status=${statusFilter}&page=1`}
+                  className={[
+                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                    scoreFilter === s
+                      ? "bg-accent text-white border-accent"
+                      : "border-border text-muted hover:border-accent hover:text-accent",
+                  ].join(" ")}
+                >
+                  {s || "All scores"}
+                </a>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {["", "NEW", "CONTACTED", "QUALIFIED", "CLOSED", "CONVERTED"].map((s) => (
+                <a
+                  key={s || "all-status"}
+                  href={`${baseHref}?score=${scoreFilter}&status=${s}&page=1`}
+                  className={[
+                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                    statusFilter === s
+                      ? "bg-accent text-white border-accent"
+                      : "border-border text-muted hover:border-accent hover:text-accent",
+                  ].join(" ")}
+                >
+                  {s || "All statuses"}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -177,9 +210,10 @@ export default async function AILeadsPage({
             <thead>
               <tr className="border-b border-border text-left">
                 <th className="px-4 py-3 font-medium text-muted">Name</th>
-                <th className="px-4 py-3 font-medium text-muted">Email</th>
-                <th className="px-4 py-3 font-medium text-muted">Company</th>
+                <th className="px-4 py-3 font-medium text-muted">Email / Phone</th>
+                <th className="px-4 py-3 font-medium text-muted">Company · Industry</th>
                 <th className="px-4 py-3 font-medium text-muted">Service</th>
+                <th className="px-4 py-3 font-medium text-muted">Budget · Timeline</th>
                 <th className="px-4 py-3 font-medium text-muted">Score</th>
                 <th className="px-4 py-3 font-medium text-muted">Status</th>
                 <th className="px-4 py-3 font-medium text-muted">Created</th>
@@ -188,25 +222,46 @@ export default async function AILeadsPage({
             <tbody>
               {leads.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted">
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted">
                     No AI leads found.
                   </td>
                 </tr>
               )}
               {leads.map((lead) => (
                 <tr key={lead.id} className="border-b border-border/50 last:border-0 hover:bg-surface/50">
-                  <td className="px-4 py-3 font-medium text-primary">{lead.name || "—"}</td>
-                  <td className="px-4 py-3 text-muted">
-                    {lead.email ? (
-                      <a href={`mailto:${lead.email}`} className="hover:text-accent transition-colors">
-                        {lead.email}
-                      </a>
-                    ) : (
-                      "—"
-                    )}
+                  <td className="px-4 py-3">
+                    <a
+                      href={`${baseHref}/${lead.id}`}
+                      className="font-medium text-primary hover:text-accent transition-colors"
+                    >
+                      {lead.name || "—"}
+                    </a>
                   </td>
-                  <td className="px-4 py-3 text-muted">{lead.companyName || "—"}</td>
-                  <td className="px-4 py-3 text-primary">{lead.serviceInterest}</td>
+                  <td className="px-4 py-3 text-muted">
+                    <div className="flex flex-col gap-0.5">
+                      {lead.email ? (
+                        <a href={`mailto:${lead.email}`} className="hover:text-accent transition-colors text-xs">
+                          {lead.email}
+                        </a>
+                      ) : (
+                        <span className="text-xs">—</span>
+                      )}
+                      {lead.phone && <span className="text-xs">{lead.phone}</span>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-muted">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-xs">{lead.companyName || "—"}</span>
+                      {lead.industry && <span className="text-[11px] text-muted/70">{lead.industry}</span>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-primary text-xs">{lead.serviceInterest}</td>
+                  <td className="px-4 py-3 text-muted">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-xs">{lead.budgetRange || "—"}</span>
+                      {lead.timeline && <span className="text-[11px] text-muted/70">{lead.timeline}</span>}
+                    </div>
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={[

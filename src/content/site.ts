@@ -1,10 +1,39 @@
 export const locales = ["en", "fr"] as const;
 export type Locale = (typeof locales)[number];
 
+function normalizeSiteUrl(value?: string) {
+  const fallback = "https://techiadigital.com";
+  const rawValue = value?.trim() || fallback;
+
+  try {
+    const preparedValue = /^https?:\/\//i.test(rawValue)
+      ? rawValue
+      : `https://${rawValue}`;
+    const url = new URL(preparedValue);
+    const isLocalHost = /^(localhost|127\.0\.0\.1)$/i.test(url.hostname);
+
+    if (!isLocalHost) {
+      url.protocol = "https:";
+    }
+
+    if (url.hostname === "www.techiadigital.com") {
+      url.hostname = "techiadigital.com";
+    }
+
+    url.pathname = "";
+    url.search = "";
+    url.hash = "";
+
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return fallback;
+  }
+}
+
 export const siteConfig = {
   name: "teChia Digital Solutions",
   shortName: "teChia",
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://techiadigital.com",
+  url: normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL),
   email: process.env.NEXT_PUBLIC_OFFICIAL_EMAIL || process.env.OFFICIAL_EMAIL || "",
   whatsapp: process.env.NEXT_PUBLIC_OFFICIAL_WHATSAPP || process.env.OFFICIAL_WHATSAPP || "",
   phone: process.env.NEXT_PUBLIC_OFFICIAL_CALL || process.env.OFFICIAL_CALL || "",
@@ -570,7 +599,7 @@ export const dictionaries = {
     meta: {
       title: "teChia Digital Solutions — Digital Homes for Modern Businesses",
       description:
-        "Premium websites, business systems, automation tools, and AI-powered platforms for local businesses, African SMEs, and international clients.",
+        "Premium websites, client portals, business systems, automation workflows, and AI-powered tools for local businesses, African SMEs, and international-facing teams.",
     },
     common: {
       startProject: "Start a Project",
@@ -586,15 +615,15 @@ export const dictionaries = {
       eyebrow: "Digital transformation studio for ambitious businesses",
       title: "Digital Homes for Modern Businesses",
       description:
-        "teChia Digital Solutions builds premium websites, custom business systems, automation tools, and AI-powered digital platforms that help businesses attract clients, organize operations, and grow with confidence.",
+        "teChia Digital Solutions builds premium websites, client portals, business systems, automation workflows, and AI-powered tools that help serious businesses win trust, run cleaner operations, and scale with less friction.",
       trust: [
         "Premium Websites",
+        "Client Portals",
         "Business Systems",
-        "Automation",
+        "Automation Workflows",
         "AI Tools",
         "SEO-Ready",
-        "European Client Ready",
-        "Local Business Friendly",
+        "International-Ready",
       ],
     },
     home: {
@@ -604,32 +633,33 @@ export const dictionaries = {
         "When your website, customer communication, documents, quotes, and follow-ups live in different places, growth becomes harder than it should be. We design the digital layer that makes the business easier to understand and easier to run.",
       digitalHomeTitle: "A digital home is more than a website.",
       digitalHomeBody:
-        "It is your public brand, your lead engine, your client portal, your dashboard, your automation layer, and your data foundation working together.",
+        "Your public website, lead flow, client experience, reporting, and internal processes should reinforce each other instead of living in separate tools.",
       europeTitle: "Built for local trust and international credibility.",
       europeBody:
         "Whether a client finds you from Douala, Lagos, Paris, Berlin, London, or a Google Ads campaign, your digital presence should feel serious, clear, and safe.",
       finalCtaTitle: "Ready to digitalize your business properly?",
       finalCtaBody:
-        "Tell us what you are building. We will recommend the cleanest path from website to system to automation.",
+        "Tell us whether you need a website, portal, dashboard, automation workflow, or AI tool, and teChia will recommend the right starting scope.",
     },
     pages: {
       home: {
         realityEyebrow: "Reality check",
-        servicesTitle: "From website to operating system",
+        servicesTitle:
+          "Websites, systems, automation, and AI tools built by teChia",
         servicesDescription:
-          "Start with the digital presence you need now, then expand into dashboards, automation, portals, and growth support.",
-        demoTitle: "See how teChia systems work",
+          "Explore the core services teChia delivers for companies that need stronger online credibility, cleaner operations, and better customer follow-up.",
+        demoTitle: "Interactive examples of the solutions teChia can build",
         demoDescription:
-          "Interactive demos show how digital workflows turn inquiries, operations, and follow-up into a clearer customer experience.",
-        caseTitle: "Proof through projects, products, and systems",
+          "Browse hands-on examples of portals, dashboards, quote tools, booking flows, and AI experiences built around real business use cases.",
+        caseTitle: "Selected work",
         caseDescription:
-          "Selected work showing how teChia connects business value, user experience, and operational clarity.",
-        methodTitle: "A clear path from idea to delivery.",
-        stackTitle: "Modern stack. Practical engineering.",
-        securityTitle: "Built with trust signals from day one.",
-        pricingTitle: "Start focused. Grow intelligently.",
+          "Selected projects show how teChia turns business requirements into polished websites, practical tools, and stronger customer journeys.",
+        methodTitle: "How teChia takes a project from idea to launch.",
+        stackTitle: "Modern stack. Calm engineering.",
+        securityTitle: "Trust signals built in from day one.",
+        pricingTitle: "Choose an entry point, not a rigid package.",
         pricingDescription:
-          "Flexible packages make it easy to begin with a strong digital presence and expand into systems, automation, and growth support.",
+          "Use pricing to frame the right starting scope, then tailor the stack, automation, and rollout around the business.",
         faqTitle: "Questions before we start",
         finalCtaEyebrow: "Next step",
       },
@@ -1189,7 +1219,7 @@ export const dictionaries = {
       title:
         "teChia Digital Solutions — Maisons digitales pour entreprises modernes",
       description:
-        "Sites web premium, systèmes de gestion, automatisation et plateformes IA pour entreprises locales, PME africaines et clients internationaux.",
+        "Sites web premium, portails clients, systèmes métiers, automatisations et outils IA pour entreprises locales, PME africaines et équipes tournées vers l’international.",
     },
     common: {
       startProject: "Démarrer un projet",
@@ -1205,15 +1235,15 @@ export const dictionaries = {
       eyebrow: "Studio de transformation digitale pour entreprises ambitieuses",
       title: "Maisons digitales pour entreprises modernes",
       description:
-        "teChia Digital Solutions crée des sites premium, systèmes métiers, automatisations et plateformes digitales alimentées par l’IA pour aider les entreprises à attirer des clients, organiser leurs opérations et grandir avec confiance.",
+        "teChia Digital Solutions conçoit des sites premium, portails clients, systèmes métiers, automatisations et outils IA qui aident les entreprises sérieuses à inspirer confiance, mieux organiser leurs opérations et grandir avec moins de friction.",
       trust: [
         "Sites premium",
+        "Portails clients",
         "Systèmes métiers",
-        "Automatisation",
+        "Automatisations",
         "Outils IA",
         "Optimisé SEO",
-        "Crédibilité européenne",
-        "Adapté aux entreprises locales",
+        "Prêt pour l’international",
       ],
     },
     home: {
@@ -1223,33 +1253,34 @@ export const dictionaries = {
         "Quand votre site, vos messages clients, documents, devis et relances sont dispersés, la croissance devient inutilement difficile. Nous concevons la couche digitale qui rend l’entreprise plus claire et plus facile à gérer.",
       digitalHomeTitle: "Une maison digitale est plus qu’un site web.",
       digitalHomeBody:
-        "C’est votre marque publique, votre moteur de prospects, votre portail client, votre tableau de bord, votre automatisation et votre base de données qui travaillent ensemble.",
+        "Votre site public, votre acquisition, votre expérience client, vos reportings et vos processus internes doivent se renforcer au lieu de vivre dans des outils séparés.",
       europeTitle:
         "Conçu pour la confiance locale et la crédibilité internationale.",
       europeBody:
         "Qu’un client vous trouve depuis Douala, Lagos, Paris, Berlin, Londres ou une campagne Google Ads, votre présence digitale doit paraître sérieuse, claire et fiable.",
       finalCtaTitle: "Prêt à digitaliser votre entreprise sérieusement ?",
       finalCtaBody:
-        "Expliquez votre projet. Nous recommanderons le parcours le plus clair du site web au système métier, puis à l’automatisation.",
+        "Dites-nous si vous avez besoin d’un site web, d’un portail, d’un dashboard, d’une automatisation ou d’un outil IA, et teChia recommandera le bon périmètre de départ.",
     },
     pages: {
       home: {
         realityEyebrow: "Point de réalité",
-        servicesTitle: "Du site web au système métier",
+        servicesTitle:
+          "Sites web, systèmes, automatisations et outils IA conçus par teChia",
         servicesDescription:
-          "Commencez par la présence digitale dont vous avez besoin maintenant, puis évoluez vers les tableaux de bord, l’automatisation, les portails et l’accompagnement croissance.",
-        demoTitle: "Découvrez le fonctionnement des systèmes teChia",
+          "Découvrez les services clés que teChia livre pour les entreprises qui veulent plus de crédibilité en ligne, des opérations plus nettes et un meilleur suivi client.",
+        demoTitle: "Exemples interactifs des solutions que teChia peut créer",
         demoDescription:
-          "Les démos interactives montrent comment les processus digitaux transforment les demandes, les opérations et le suivi en une expérience client plus claire.",
-        caseTitle: "Des preuves à travers projets, produits et systèmes",
+          "Parcourez des exemples concrets de portails, dashboards, outils de devis, parcours de réservation et expériences IA pensés pour de vrais besoins métier.",
+        caseTitle: "Réalisations sélectionnées",
         caseDescription:
-          "Une sélection de réalisations qui montre comment teChia relie valeur métier, expérience utilisateur et clarté opérationnelle.",
-        methodTitle: "Un parcours clair de l’idée à la livraison.",
-        stackTitle: "Stack moderne. Ingénierie pratique.",
-        securityTitle: "Conçu avec des signaux de confiance dès le départ.",
-        pricingTitle: "Commencer avec précision. Grandir intelligemment.",
+          "Des projets choisis qui montrent comment teChia transforme un besoin métier en site premium, outil concret et meilleur parcours client.",
+        methodTitle: "Comment teChia mène un projet de l’idée jusqu’au lancement.",
+        stackTitle: "Stack moderne. Ingénierie sereine.",
+        securityTitle: "Des signaux de confiance intégrés dès le départ.",
+        pricingTitle: "Choisissez un point de départ, pas un forfait rigide.",
         pricingDescription:
-          "Des offres flexibles permettent de démarrer avec une présence digitale solide, puis d’évoluer vers les systèmes, l’automatisation et l’accompagnement croissance.",
+          "Utilisez les offres pour cadrer le bon périmètre de départ, puis adaptez la stack, l’automatisation et le déploiement au contexte métier.",
         faqTitle: "Questions avant de commencer",
         finalCtaEyebrow: "Prochaine étape",
       },

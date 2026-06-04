@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
-import { BadgeCheck, BriefcaseBusiness, Globe2, Sparkles, Workflow } from "lucide-react";
+import { BadgeCheck, Globe2, Sparkles, Workflow } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { FOUNDER_NAME } from "@/content/founder";
 import type { Locale } from "@/content/site";
@@ -27,6 +27,9 @@ const floatingCards = [
     className: "right-4 bottom-28 sm:right-6 sm:bottom-30"
   }
 ] as const;
+
+const positioningCardClassName =
+  "relative overflow-hidden rounded-[1.18rem] border border-white/16 bg-[linear-gradient(180deg,rgba(255,255,255,0.18),rgba(255,255,255,0.07))] px-3.5 py-2.5 text-sm text-white shadow-[0_24px_65px_rgba(2,8,20,0.34)] ring-1 ring-white/8 backdrop-blur-2xl supports-[backdrop-filter]:bg-white/[0.08]";
 
 export function FounderHeroPortrait({ locale }: { locale: Locale }) {
   const reducedMotion = useReducedMotion();
@@ -70,17 +73,102 @@ export function FounderHeroPortrait({ locale }: { locale: Locale }) {
 
           <div className="absolute inset-x-4 bottom-4 sm:inset-x-5 sm:bottom-5">
             <div className="rounded-[1.6rem] border border-white/12 bg-black/18 p-4 text-white shadow-2xl backdrop-blur-lg sm:p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
+              <div className="relative min-h-[4.6rem]">
+                <div className="sm:max-w-[calc(100%-14rem)]">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-300/85">
                     {locale === "fr" ? "Fondateur" : "Founder"}
                   </p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">{FOUNDER_NAME}</h2>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">{FOUNDER_NAME}</h2>
+                    <span
+                      className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(180deg,#38BDF8_0%,#2563EB_100%)] shadow-[0_10px_24px_rgba(37,99,235,0.38)] ring-1 ring-white/18"
+                      aria-label={locale === "fr" ? "Compte vérifié" : "Verified account"}
+                      title={locale === "fr" ? "Compte vérifié" : "Verified account"}
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="size-3.5"
+                        aria-hidden="true"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M7 12.5L10.2 15.7L17 8.9"
+                          stroke="white"
+                          strokeWidth="2.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                  </div>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/8 p-3 text-cyan-300">
+
+                <div
+                  className="absolute right-0 top-0 rounded-2xl border border-white/10 bg-white/8 p-3 text-cyan-300 opacity-45"
+                  aria-hidden="true"
+                >
                   <Sparkles className="size-5" />
                 </div>
+
+                <motion.div
+                  className="absolute right-0 top-0 z-10 hidden sm:block"
+                  animate={
+                    reducedMotion
+                      ? undefined
+                      : {
+                          y: [0, -7, 0],
+                          rotate: [0, -0.6, 0],
+                        }
+                  }
+                  transition={
+                    reducedMotion
+                      ? undefined
+                      : {
+                          duration: 5.6,
+                          repeat: Number.POSITIVE_INFINITY,
+                          ease: "easeInOut",
+                        }
+                  }
+                >
+                  <div className={positioningCardClassName}>
+                    <div
+                      className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.28),transparent_38%),radial-gradient(circle_at_85%_18%,rgba(34,211,238,0.16),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.08),transparent_55%)]"
+                      aria-hidden="true"
+                    />
+                    <div className="relative">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-200/95">
+                        {locale === "fr" ? "Positionnement" : "Positioning"}
+                      </p>
+                      <p className="mt-1 text-sm font-medium leading-5 text-white/92">
+                        {locale === "fr"
+                          ? "Développeur, stratège produit, fondateur"
+                          : "Developer, product strategist, founder"}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
               </div>
+
+              <div className="mt-4 sm:hidden">
+                <div className={`inline-flex max-w-full ${positioningCardClassName}`}>
+                  <div
+                    className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.28),transparent_38%),radial-gradient(circle_at_85%_18%,rgba(34,211,238,0.16),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.08),transparent_55%)]"
+                    aria-hidden="true"
+                  />
+                  <div className="relative">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-200/95">
+                      {locale === "fr" ? "Positionnement" : "Positioning"}
+                    </p>
+                    <p className="mt-1 text-sm font-medium leading-5 text-white/92">
+                      {locale === "fr"
+                        ? "Développeur, stratège produit, fondateur"
+                        : "Developer, product strategist, founder"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <p className="mt-4 max-w-xl text-sm leading-6 text-white/78 sm:text-base">
                 {locale === "fr"
                   ? "Ingénierie premium, systèmes métier et réflexion produit réunis dans une seule exécution."
@@ -125,22 +213,6 @@ export function FounderHeroPortrait({ locale }: { locale: Locale }) {
           </motion.div>
         );
       })}
-
-      <div className="pointer-events-none absolute -left-4 bottom-14 hidden rounded-[1.5rem] border border-white/8 bg-white/[0.025] px-4 py-3 text-sm text-white/82 shadow-2xl backdrop-blur-md lg:block">
-        <div className="flex items-center gap-3">
-          <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-2 text-cyan-300">
-            <BriefcaseBusiness className="size-4" />
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300/85">
-              {locale === "fr" ? "Positionnement" : "Positioning"}
-            </p>
-            <p className="mt-1 text-sm font-medium text-white/88">
-              {locale === "fr" ? "Développeur, stratège produit, fondateur" : "Developer, product strategist, founder"}
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

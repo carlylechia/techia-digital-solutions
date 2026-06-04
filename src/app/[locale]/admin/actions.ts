@@ -2686,3 +2686,152 @@ export async function sendPortalInviteEmailAction(_prevState: unknown, formData:
   }
   return { success: true };
 }
+
+// ── AI Lead Actions ───────────────────────────────────────────────────────────
+
+const updateAILeadStatusSchema = z.object({
+  locale: localeSchema,
+  id: z.string().min(1),
+  status: z.enum(["NEW", "CONTACTED", "QUALIFIED", "CLOSED", "CONVERTED"]),
+});
+
+export async function updateAILeadStatusAction(
+  _prevState: unknown,
+  formData: FormData
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const actor = await requireAdmin("requests.manage");
+    const prisma = requireDatabase();
+    const data = updateAILeadStatusSchema.parse(formEntries(formData));
+    await prisma.aILead.update({ where: { id: data.id }, data: { status: data.status } });
+    await writeAuditLog({ actorId: actor.id, action: "ai_lead.status_updated", entityType: "AILead", entityId: data.id, metadata: { status: data.status } });
+    revalidatePath(`/${data.locale}/admin/ai-leads`);
+    revalidatePath(`/${data.locale}/admin/ai-leads/${data.id}`);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Failed to update status." };
+  }
+}
+
+const sendAILeadEmailSchema = z.object({
+  locale: localeSchema,
+  leadId: z.string().min(1),
+  to: z.string().trim().toLowerCase().email().max(180),
+  subject: shortText,
+  body: z.string().trim().min(1).max(10_000),
+});
+
+export async function sendAILeadEmailAction(
+  _prevState: unknown,
+  formData: FormData
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const actor = await requireAdmin("requests.manage");
+    const prisma = requireDatabase();
+    const data = sendAILeadEmailSchema.parse(formEntries(formData));
+
+    const { sendOutboundEmail } = await import("@/lib/email");
+    const rawFrom = process.env.RESEND_FROM_EMAIL || "noreply@techiadigital.com";
+    const fromEmail = rawFrom.trim().replace(/^["']|["']$/g, "").trim();
+    const rawReplyTo = process.env.RESEND_REPLY_TO || process.env.OFFICIAL_EMAIL || process.env.CONTACT_TO_EMAIL || "";
+    const replyTo = rawReplyTo.trim().replace(/^["']|["']$/g, "").trim() || undefined;
+
+    await sendOutboundEmail({
+      to: data.to,
+      from: fromEmail,
+      replyTo,
+      subject: sanitizeText(data.subject),
+      body: data.body.replace(/javascript:/gi, ""),
+    });
+
+    // Auto-advance status from NEW → CONTACTED when first email is sent
+    const lead = await prisma.aILead.findUnique({ where: { id: data.leadId }, select: { status: true } });
+    if (lead?.status === "NEW") {
+      await prisma.aILead.update({ where: { id: data.leadId }, data: { status: "CONTACTED" } });
+    }
+
+    await writeAuditLog({ actorId: actor.id, action: "ai_lead.email_sent", entityType: "AILead", entityId: data.leadId, metadata: { to: data.to, subject: data.subject } });
+    revalidatePath(`/${data.locale}/admin/ai-leads`);
+    revalidatePath(`/${data.locale}/admin/ai-leads/${data.leadId}`);
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to send email.";
+    console.error("[admin] sendAILeadEmailAction failed", message);
+    return { success: false, error: message };
+  }
+}
+
+const convertAILeadToClientSchema = z.object({
+  locale: localeSchema,
+  leadId: z.string().min(1),
+  name: shortText,
+  email: optionalEmail,
+  phone: optionalText,
+  whatsapp: optionalText,
+  company: optionalText,
+  country: optionalText,
+  notes: optionalText,
+});
+
+export async function convertAILeadToClientAction(
+  _prevState: unknown,
+  formData: FormData
+): Promise<{ success: boolean; error?: string; clientId?: string }> {
+  try {
+    const actor = await requireAdmin("clients.manage");
+    const prisma = requireDatabase();
+    const data = convertAILeadToClientSchema.parse(formEntries(formData));
+
+    const lead = await prisma.aILead.findUnique({ where: { id: data.leadId } });
+    if (!lead) return { success: false, error: "AI Lead not found." };
+
+    const duplicate = await findDuplicateClient(prisma, data.name, data.email || null);
+    if (duplicate) {
+      return { success: false, error: `A client named "${duplicate.name}" already exists. Link it manually instead.` };
+    }
+
+    const slug = await uniqueClientSlug(prisma, data.name);
+    const client = await prisma.client.create({
+      data: {
+        name: sanitizeText(data.name),
+        slug,
+        industry: nullable(lead.industry),
+        status: "ONBOARDING",
+        priority: "MEDIUM",
+        contactName: sanitizeText(data.name),
+        email: data.email || null,
+        phone: nullable(data.phone),
+        whatsapp: nullable(data.whatsapp),
+        country: nullable(data.country),
+        notes: nullable(data.notes),
+        source: "ai_lead",
+        sourceRequestId: data.leadId,
+        sourceRequestType: "ai_lead",
+        ownerId: actor.id,
+      },
+    });
+
+    if (data.name || data.email || data.phone) {
+      await prisma.clientContact.create({
+        data: {
+          clientId: client.id,
+          name: sanitizeText(data.name),
+          email: data.email || null,
+          phone: nullable(data.phone),
+          isPrimary: true,
+        },
+      });
+    }
+
+    await prisma.aILead.update({ where: { id: data.leadId }, data: { status: "CONVERTED" } });
+
+    await writeAuditLog({ actorId: actor.id, action: "ai_lead.converted_to_client", entityType: "AILead", entityId: data.leadId, metadata: { clientId: client.id } });
+    revalidatePath(`/${data.locale}/admin/ai-leads`);
+    revalidatePath(`/${data.locale}/admin/ai-leads/${data.leadId}`);
+    revalidateAdmin(data.locale);
+    return { success: true, clientId: client.id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to convert lead to client.";
+    return { success: false, error: message };
+  }
+}
