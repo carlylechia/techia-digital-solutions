@@ -206,8 +206,8 @@ export function HomepageHeroBridge({ locale }: { locale: Locale }) {
             <div className="relative overflow-hidden rounded-[2rem] border border-cyan-300/12 bg-[linear-gradient(180deg,rgba(8,16,30,0.96),rgba(7,14,26,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_90px_rgba(2,6,23,0.34)] md:p-6">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_center,rgba(34,211,238,0.12),transparent_24%),radial-gradient(circle_at_80%_18%,rgba(59,130,246,0.08),transparent_20%)]" />
               <div className="relative z-10">
-                <div className="flex flex-col items-start justify-between gap-3 min-[480px]:flex-row">
-                  <div>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
                     <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-cyan-200 sm:text-[0.68rem] sm:tracking-[0.28em]">
                       {copy.boardLabel}
                     </p>
@@ -215,16 +215,16 @@ export function HomepageHeroBridge({ locale }: { locale: Locale }) {
                       {copy.boardTitle}
                     </h3>
                   </div>
-                  <div className="grid w-full grid-cols-2 gap-2 min-[480px]:w-auto min-[480px]:grid-cols-3">
+                  <div className="grid w-full grid-cols-2 gap-2 min-[480px]:ml-auto min-[480px]:w-[min(100%,25rem)] min-[480px]:grid-cols-3">
                     {copy.stats.map((stat) => (
                       <div
                         key={stat.label}
                         className="min-w-0 rounded-[1rem] border border-white/10 bg-white/[0.05] px-3 py-2 text-center"
                       >
-                        <p className="text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-cyan-200 sm:text-[0.6rem] sm:tracking-[0.24em]">
+                        <p className="break-safe text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-cyan-200 sm:text-[0.6rem] sm:tracking-[0.24em]">
                           {stat.label}
                         </p>
-                        <p className="mt-1 text-xs leading-5 font-semibold text-white sm:text-sm">
+                        <p className="break-safe mt-1 text-xs leading-5 font-semibold text-white sm:text-sm">
                           {stat.value}
                         </p>
                       </div>
