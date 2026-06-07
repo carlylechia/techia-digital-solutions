@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MessageCircleMore } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { buttonVariants } from "@/components/site/button";
+import { openAIChatWidget } from "@/lib/ai/open-chat";
 import { getLocalizedHref, type Locale } from "@/content/site";
 import { cn } from "@/lib/utils";
 
@@ -21,68 +22,93 @@ type HeroCopy = {
   primaryLabel: string;
   secondaryLabel: string;
   supportLine: string;
+  helperLead: string;
+  helperLinkLabel: string;
   badges: string[];
 };
 
 const heroContent = {
   en: {
-    eyebrow: "Premium Digital Solutions for Growing Businesses",
-    headingLead: "Your business deserves ",
-    headingHighlight: "more than just a website",
+    eyebrow: "Websites and Digital Systems for Small Businesses Ready to Grow",
+    headingLead: "Your business should ",
+    headingHighlight: "not be limited to one physical location",
     headingEnd: ".",
     description:
-      "We help businesses turn their online presence, daily operations, and customer inquiries into simple, smart digital systems that win trust and save time.",
+      "If your business still depends on walk-ins, referrals, or scattered messages, teChia helps you get online first with a professional website and simple digital systems, then turn that foundation into steady inquiries, smoother operations, and growth far beyond your local area.",
     primaryLabel: "Start a Project",
-    secondaryLabel: "Book a Consultation",
+    secondaryLabel: "Chat with the AI Consultant",
     supportLine:
-      "Websites • Automation • Dashboards • AI Tools • Business Systems",
+      "Get online • Build trust • Organize operations • Grow beyond your location",
+    helperLead: "Prefer a human conversation after the AI consultation?",
+    helperLinkLabel: "Contact us",
     badges: [
       "Websites",
+      "Business Systems",
       "Automation",
       "Dashboards",
-      "AI Tools",
-      "Business Systems",
+      "AI Guidance",
     ],
   },
   fr: {
-    eyebrow: "Solutions Digitales Premium pour Entreprises en Croissance",
-    headingLead: "Votre entreprise mérite ",
-    headingHighlight: "plus qu’un simple site web",
+    eyebrow:
+      "Sites web et systèmes digitaux pour petites entreprises prêtes à grandir",
+    headingLead: "Votre entreprise ne devrait ",
+    headingHighlight: "pas être limitée à un seul lieu physique",
     headingEnd: ".",
     description:
-      "Nous aidons les entreprises à transformer leur présence en ligne, leurs opérations quotidiennes et leurs demandes clients en systèmes digitaux simples et intelligents qui inspirent confiance et font gagner du temps.",
+      "Si votre activité dépend encore surtout du passage en boutique, du bouche-à-oreille ou de messages dispersés, teChia vous aide d’abord à vous mettre en ligne avec un site professionnel et des systèmes digitaux simples, puis à transformer cette base en demandes régulières, opérations plus fluides et croissance bien au-delà de votre zone locale.",
     primaryLabel: "Démarrer un projet",
-    secondaryLabel: "Réserver une consultation",
+    secondaryLabel: "Discuter avec l’agent IA",
     supportLine:
-      "Sites web • Automatisation • Tableaux de bord • Outils IA • Systèmes métier",
+      "Passez en ligne • Inspirez confiance • Organisez mieux • Grandissez au-delà de votre zone",
+    helperLead: "Besoin d’un échange humain après la consultation IA ?",
+    helperLinkLabel: "Contactez-nous",
     badges: [
       "Sites web",
+      "Systèmes métier",
       "Automatisation",
       "Tableaux de bord",
-      "Outils IA",
-      "Systèmes métier",
+      "Conseil IA",
     ],
   },
 } as const satisfies Record<Locale, HeroCopy>;
 
 const heroSlides = [
   {
-    src: "/images/homepage/01-hero-graphics/hero-slide-global-digital-command-center.png",
-    objectPosition: "center center",
+    src: "/images/homepage/01-hero-graphics/hero-slide-starting-small-story.webp",
+    objectPosition: "72% center",
     quality: 90,
-    extraScrim: false,
+    imageClassName:
+      "object-cover brightness-[1.08] saturate-[1.04] contrast-[1.04]",
+    scrimClassName:
+      "bg-[linear-gradient(180deg,rgba(4,8,18,0.22)_0%,rgba(4,8,18,0.02)_34%,rgba(4,8,18,0.12)_100%),linear-gradient(90deg,rgba(4,8,18,0.48)_0%,rgba(4,8,18,0.28)_28%,rgba(4,8,18,0.08)_56%,rgba(4,8,18,0.02)_100%)] md:bg-[linear-gradient(180deg,rgba(4,8,18,0.16)_0%,rgba(4,8,18,0)_34%,rgba(4,8,18,0.06)_100%),linear-gradient(90deg,rgba(4,8,18,0.4)_0%,rgba(4,8,18,0.22)_26%,rgba(4,8,18,0.06)_54%,rgba(4,8,18,0.01)_100%)]",
   },
   {
-    src: "/images/homepage/01-hero-graphics/hero-slide-digital-home.svg",
+    src: "/images/homepage/01-hero-graphics/hero-slide-going-digital-story.webp",
     objectPosition: "74% center",
-    quality: undefined,
-    extraScrim: true,
+    quality: 90,
+    imageClassName:
+      "object-cover brightness-[1.08] saturate-[1.08] contrast-[1.04]",
+    scrimClassName:
+      "bg-[linear-gradient(180deg,rgba(4,8,18,0.2)_0%,rgba(4,8,18,0.03)_34%,rgba(4,8,18,0.08)_100%),linear-gradient(90deg,rgba(4,8,18,0.44)_0%,rgba(4,8,18,0.24)_26%,rgba(4,8,18,0.08)_56%,rgba(4,8,18,0.02)_100%)] md:bg-[linear-gradient(180deg,rgba(4,8,18,0.14)_0%,rgba(4,8,18,0)_34%,rgba(4,8,18,0.04)_100%),linear-gradient(90deg,rgba(4,8,18,0.36)_0%,rgba(4,8,18,0.18)_24%,rgba(4,8,18,0.04)_52%,rgba(4,8,18,0.01)_100%)]",
   },
   {
-    src: "/images/homepage/01-hero-graphics/hero-slide-automation-flow.svg",
-    objectPosition: "70% center",
-    quality: undefined,
-    extraScrim: true,
+    src: "/images/homepage/01-hero-graphics/hero-slide-growing-global-story.webp",
+    objectPosition: "72% center",
+    quality: 90,
+    imageClassName:
+      "object-cover brightness-[1.1] saturate-[1.1] contrast-[1.04]",
+    scrimClassName:
+      "bg-[linear-gradient(180deg,rgba(4,8,18,0.2)_0%,rgba(4,8,18,0.02)_30%,rgba(4,8,18,0.06)_100%),linear-gradient(90deg,rgba(4,8,18,0.42)_0%,rgba(4,8,18,0.22)_24%,rgba(4,8,18,0.06)_54%,rgba(4,8,18,0.01)_100%)] md:bg-[linear-gradient(180deg,rgba(4,8,18,0.14)_0%,rgba(4,8,18,0)_30%,rgba(4,8,18,0.03)_100%),linear-gradient(90deg,rgba(4,8,18,0.34)_0%,rgba(4,8,18,0.16)_22%,rgba(4,8,18,0.03)_50%,rgba(4,8,18,0.01)_100%)]",
+  },
+  {
+    src: "/images/homepage/01-hero-graphics/hero-slide-leading-team-story.webp",
+    objectPosition: "72% center",
+    quality: 90,
+    imageClassName:
+      "object-cover brightness-[1.08] saturate-[1.08] contrast-[1.04]",
+    scrimClassName:
+      "bg-[linear-gradient(180deg,rgba(4,8,18,0.2)_0%,rgba(4,8,18,0.02)_30%,rgba(4,8,18,0.06)_100%),linear-gradient(90deg,rgba(4,8,18,0.44)_0%,rgba(4,8,18,0.24)_24%,rgba(4,8,18,0.06)_54%,rgba(4,8,18,0.01)_100%)] md:bg-[linear-gradient(180deg,rgba(4,8,18,0.14)_0%,rgba(4,8,18,0)_30%,rgba(4,8,18,0.03)_100%),linear-gradient(90deg,rgba(4,8,18,0.34)_0%,rgba(4,8,18,0.16)_22%,rgba(4,8,18,0.03)_50%,rgba(4,8,18,0.01)_100%)]",
   },
 ] as const;
 
@@ -132,10 +158,10 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
   return (
     <section
       aria-labelledby="homepage-hero-heading"
-      className="relative isolate overflow-hidden bg-[#040812]"
+      className="relative isolate -mt-[7.25rem] overflow-hidden bg-[#040812] pt-[7.25rem] sm:-mt-[7.5rem] sm:pt-[7.5rem]"
       style={{ minHeight: HERO_MIN_HEIGHT }}
     >
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-x-0 bottom-0 -top-8 overflow-hidden sm:-top-8">
         {heroSlides.map((slide, index) => {
           const isActive = index === visibleSlide;
 
@@ -196,35 +222,38 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
                 priority={index === 0}
                 sizes="100vw"
                 quality={slide.quality}
-                className="object-cover"
+                className={slide.imageClassName}
                 style={{ objectPosition: slide.objectPosition }}
               />
 
-              {slide.extraScrim ? (
-                <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,8,18,0.9)_0%,rgba(4,8,18,0.82)_36%,rgba(4,8,18,0.62)_62%,rgba(4,8,18,0.46)_100%)] md:bg-[linear-gradient(90deg,rgba(4,8,18,0.86)_0%,rgba(4,8,18,0.72)_38%,rgba(4,8,18,0.48)_64%,rgba(4,8,18,0.3)_100%)]" />
+              {slide.scrimClassName ? (
+                <div
+                  className={cn("absolute inset-0", slide.scrimClassName)}
+                />
               ) : null}
             </motion.div>
           );
         })}
       </div>
 
-      <div className="absolute inset-0 bg-[rgba(4,8,18,0.56)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,8,18,0.96)_0%,rgba(4,8,18,0.84)_34%,rgba(4,8,18,0.5)_62%,rgba(4,8,18,0.22)_100%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,8,18,0.94)_0%,rgba(4,8,18,0.4)_24%,rgba(4,8,18,0.38)_70%,#040812_100%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_82%_20%,rgba(251,113,133,0.14),transparent_22%),radial-gradient(circle_at_50%_100%,rgba(245,185,66,0.12),transparent_25%)]" />
-      <div className="absolute inset-0 sm:hidden bg-[linear-gradient(180deg,rgba(4,8,18,0.94)_0%,rgba(4,8,18,0.52)_34%,rgba(4,8,18,0.72)_100%),linear-gradient(90deg,rgba(4,8,18,0.96)_0%,rgba(4,8,18,0.88)_62%,rgba(4,8,18,0.44)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 -top-8 bg-[rgba(4,8,18,0.16)] md:bg-[rgba(4,8,18,0.12)]" />
+      <div className="absolute inset-x-0 bottom-0 -top-8 bg-[linear-gradient(90deg,rgba(4,8,18,0.92)_0%,rgba(4,8,18,0.74)_34%,rgba(4,8,18,0.24)_60%,rgba(4,8,18,0.04)_100%)] md:bg-[linear-gradient(90deg,rgba(4,8,18,0.9)_0%,rgba(4,8,18,0.68)_32%,rgba(4,8,18,0.16)_58%,rgba(4,8,18,0.01)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 -top-8 bg-[linear-gradient(180deg,rgba(4,8,18,0.8)_0%,rgba(4,8,18,0.14)_24%,rgba(4,8,18,0.12)_68%,#040812_100%)] md:bg-[linear-gradient(180deg,rgba(4,8,18,0.76)_0%,rgba(4,8,18,0.08)_24%,rgba(4,8,18,0.1)_70%,rgba(4,8,18,0.84)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 -top-8 bg-[radial-gradient(circle_at_18%_18%,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_82%_20%,rgba(251,113,133,0.14),transparent_22%),radial-gradient(circle_at_50%_100%,rgba(245,185,66,0.12),transparent_25%)]" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[56%] bg-[radial-gradient(circle_at_56%_48%,rgba(255,255,255,0.16),transparent_18%),radial-gradient(circle_at_56%_48%,rgba(34,211,238,0.18),transparent_34%),radial-gradient(circle_at_82%_34%,rgba(59,130,246,0.12),transparent_20%)] lg:block" />
+      <div className="absolute inset-x-0 bottom-0 -top-8 sm:hidden bg-[linear-gradient(180deg,rgba(4,8,18,0.94)_0%,rgba(4,8,18,0.52)_34%,rgba(4,8,18,0.72)_100%),linear-gradient(90deg,rgba(4,8,18,0.96)_0%,rgba(4,8,18,0.88)_62%,rgba(4,8,18,0.44)_100%)]" />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(to_right,rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.08)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]"
+        className="pointer-events-none absolute inset-x-0 bottom-0 -top-8 opacity-35 [background-image:linear-gradient(to_right,rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.08)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]"
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
       <div
-        className="container relative flex items-center py-24 sm:py-28 lg:py-32"
+        className="container relative flex items-center pb-24 pt-1 sm:pb-28 sm:pt-2 lg:pb-32 lg:pt-3"
         style={{ minHeight: HERO_MIN_HEIGHT }}
       >
         <motion.div
-          className="w-full max-w-[46rem] text-center lg:text-left"
+          className="w-full max-w-[58rem] text-center lg:text-left"
           variants={reduceMotion ? undefined : contentVariants}
           {...motionState}
         >
@@ -242,7 +271,7 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
           <motion.h1
             id="homepage-hero-heading"
             variants={reduceMotion ? undefined : fadeUpVariants}
-            className="mx-auto mt-6 max-w-[12ch] text-balance text-[clamp(3rem,9vw,6.15rem)] font-semibold leading-[0.94] tracking-[-0.06em] text-white sm:max-w-[13ch] md:max-w-[14ch] lg:mx-0 lg:max-w-[11ch]"
+            className="mx-auto mt-4 max-w-[min(92vw,16ch)] text-balance text-[clamp(3rem,9vw,6.15rem)] font-semibold leading-[0.95] tracking-[-0.055em] text-white sm:max-w-[min(84vw,17ch)] md:max-w-[min(74vw,18ch)] lg:mx-0 lg:max-w-[min(50vw,19ch)] xl:max-w-[min(46vw,20ch)]"
           >
             <span>{copy.headingLead}</span>
             <span className="headline-gradient">
@@ -284,16 +313,20 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
               </span>
             </Link>
 
-            <Link
-              href={getLocalizedHref(locale, "/contact")}
+            <button
+              type="button"
+              onClick={() =>
+                openAIChatWidget(getLocalizedHref(locale, "/ai-consultant"))
+              }
               className={cn(
                 buttonVariants({ variant: "secondary", size: "lg" }),
                 "w-full justify-center border border-white/16 bg-white/[0.08] px-6 py-4 text-[0.98rem] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md sm:w-auto",
                 "hover:border-cyan-300/50 hover:bg-white/[0.12] hover:text-white focus-visible:border-cyan-300/60 focus-visible:bg-white/[0.12]",
               )}
             >
+              <MessageCircleMore className="size-4" />
               {copy.secondaryLabel}
-            </Link>
+            </button>
           </motion.div>
 
           <motion.p
@@ -301,6 +334,19 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
             className="mx-auto mt-6 max-w-[42rem] text-balance text-sm font-medium leading-7 text-[#D7E3F1] sm:text-base lg:mx-0"
           >
             {copy.supportLine}
+          </motion.p>
+
+          <motion.p
+            variants={reduceMotion ? undefined : fadeUpVariants}
+            className="mx-auto mt-4 max-w-[38rem] text-sm leading-7 text-[#B7C6D8] lg:mx-0"
+          >
+            {copy.helperLead}{" "}
+            <Link
+              href={getLocalizedHref(locale, "/contact")}
+              className="font-semibold text-cyan-200 transition hover:text-white"
+            >
+              {copy.helperLinkLabel}
+            </Link>
           </motion.p>
 
           <motion.ul
