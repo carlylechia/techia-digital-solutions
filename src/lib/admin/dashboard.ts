@@ -132,6 +132,34 @@ async function loadAdminFeedback(prisma: NonNullable<ReturnType<typeof import("@
   }
 }
 
+async function loadAdminHomepageFaqs(
+  prisma: NonNullable<ReturnType<typeof import("@/lib/prisma").getPrisma>>,
+) {
+  try {
+    return await prisma.homepageFaq.findMany({
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+      take: 40,
+    }).then((items) =>
+      items.map((item) => ({
+        id: item.id,
+        questionEn: item.questionEn,
+        questionFr: item.questionFr,
+        answerEn: item.answerEn,
+        answerFr: item.answerFr,
+        showOnHomepage: item.showOnHomepage,
+        displayOrder: item.displayOrder,
+        createdAt: iso(item.createdAt),
+        updatedAt: iso(item.updatedAt),
+      })),
+    );
+  } catch (error) {
+    console.error("[admin-dashboard] faq query failed", {
+      message: error instanceof Error ? error.message : error,
+    });
+    return [];
+  }
+}
+
 export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<typeof import("@/lib/prisma").getPrisma>>) {
   await ensureDefaultAdminRoles(prisma);
 
@@ -164,7 +192,8 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
     conversations,
     boards,
     auditLogs,
-    navItems
+    navItems,
+    faqs
   ] = await Promise.all([
     prisma.lead.count(),
     prisma.contactMessage.count(),
@@ -323,7 +352,8 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
       take: 18,
       include: { actor: { select: { name: true, email: true } } }
     }),
-    prisma.navMenuItem.findMany({ orderBy: [{ position: "asc" }, { createdAt: "asc" }] })
+    prisma.navMenuItem.findMany({ orderBy: [{ position: "asc" }, { createdAt: "asc" }] }),
+    loadAdminHomepageFaqs(prisma)
   ]);
 
   const toCounts = (items: { status: LeadStatus; _count: { status: number } }[]) => {
@@ -690,7 +720,8 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
         sentBy: msg.sentBy
       }))
     })),
-    feedback: await loadAdminFeedback(prisma)
+    feedback: await loadAdminFeedback(prisma),
+    faqs
   };
 }
 

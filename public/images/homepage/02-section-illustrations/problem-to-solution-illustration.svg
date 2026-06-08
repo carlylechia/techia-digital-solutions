@@ -1,0 +1,45 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+<title id="title">teChia Problem to Solution Illustration</title>
+<rect width="1600" height="900" fill="#05070D"/>
+<defs>
+  <radialGradient id="g1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(380 260) rotate(45) scale(700)">
+    <stop stop-color="#22D3EE" stop-opacity="0.35"/>
+    <stop offset="1" stop-color="#05070D" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="g2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1180 410) rotate(45) scale(620)">
+    <stop stop-color="#8B5CF6" stop-opacity="0.28"/>
+    <stop offset="1" stop-color="#05070D" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="line" x1="220" y1="150" x2="1400" y2="760" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#2563EB"/>
+    <stop offset="0.5" stop-color="#22D3EE"/>
+    <stop offset="1" stop-color="#8B5CF6"/>
+  </linearGradient>
+  <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="8" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+<rect width="1600" height="900" fill="url(#g1)"/>
+<rect width="1600" height="900" fill="url(#g2)"/>
+
+<g>
+  <rect x="135" y="180" width="500" height="540" rx="42" fill="#07111F" stroke="#CBD5E1" stroke-opacity="0.16"/>
+  <text x="205" y="265" fill="#F8FAFC" font-family="Inter, Arial" font-size="34" font-weight="700">Before teChia</text>
+  <text x="205" y="325" fill="#CBD5E1" font-family="Inter, Arial" font-size="24">Manual work</text>
+  <text x="205" y="380" fill="#CBD5E1" font-family="Inter, Arial" font-size="24">Missed leads</text>
+  <text x="205" y="435" fill="#CBD5E1" font-family="Inter, Arial" font-size="24">Weak online trust</text>
+  <text x="205" y="490" fill="#CBD5E1" font-family="Inter, Arial" font-size="24">Scattered tools</text>
+</g>
+<path d="M700 450 H900" stroke="url(#line)" stroke-width="12" stroke-linecap="round"/>
+<path d="M855 390 L915 450 L855 510" stroke="url(#line)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<g>
+  <rect x="965" y="180" width="500" height="540" rx="42" fill="#07111F" stroke="#22D3EE" stroke-opacity="0.46"/>
+  <text x="1035" y="265" fill="#F8FAFC" font-family="Inter, Arial" font-size="34" font-weight="700">After teChia</text>
+  <text x="1035" y="325" fill="#22D3EE" font-family="Inter, Arial" font-size="24">Smart website</text>
+  <text x="1035" y="380" fill="#22D3EE" font-family="Inter, Arial" font-size="24">Better inquiries</text>
+  <text x="1035" y="435" fill="#22D3EE" font-family="Inter, Arial" font-size="24">Automated workflows</text>
+  <text x="1035" y="490" fill="#22D3EE" font-family="Inter, Arial" font-size="24">Clear dashboards</text>
+</g>
+
+</svg>

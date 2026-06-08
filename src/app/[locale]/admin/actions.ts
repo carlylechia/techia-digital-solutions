@@ -193,6 +193,27 @@ const updateFeedbackSchema = z.object({
   internalNotes: optionalText
 });
 
+const createHomepageFaqSchema = z.object({
+  locale: localeSchema,
+  questionEn: shortText,
+  questionFr: shortText,
+  answerEn: z.string().trim().min(20).max(5000),
+  answerFr: z.string().trim().min(20).max(5000),
+  showOnHomepage: z.preprocess((value) => value === true || value === "true" || value === "on", z.boolean()),
+  displayOrder: optionalOrder,
+});
+
+const updateHomepageFaqSchema = z.object({
+  locale: localeSchema,
+  id: z.string().min(1),
+  questionEn: shortText,
+  questionFr: shortText,
+  answerEn: z.string().trim().min(20).max(5000),
+  answerFr: z.string().trim().min(20).max(5000),
+  showOnHomepage: z.preprocess((value) => value === true || value === "true" || value === "on", z.boolean()),
+  displayOrder: optionalOrder,
+});
+
 const createContentPageSchema = z.object({
   locale: localeSchema,
   slug: z.string().trim().min(2).max(120).optional().or(z.literal("")),
@@ -2004,6 +2025,103 @@ export async function deleteCustomerFeedbackAction(
     return { success: true };
   } catch (err) {
     console.error("[actions] deleteCustomerFeedbackAction failed", { message: err instanceof Error ? err.message : err, stack: err instanceof Error ? err.stack : undefined });
+    return { success: false, error: err instanceof Error ? err.message : "Delete failed." };
+  }
+}
+
+export async function createHomepageFaqAction(formData: FormData) {
+  const actor = await requireAdmin("content.manage");
+  const prisma = requireDatabase();
+  const data = createHomepageFaqSchema.parse(formEntries(formData));
+
+  const faq = await prisma.homepageFaq.create({
+    data: {
+      questionEn: sanitizeText(data.questionEn),
+      questionFr: sanitizeText(data.questionFr),
+      answerEn: cleanLong(data.answerEn),
+      answerFr: cleanLong(data.answerFr),
+      showOnHomepage: data.showOnHomepage,
+      displayOrder: data.displayOrder,
+    },
+  });
+
+  await writeAuditLog({
+    actorId: actor.id,
+    action: "homepage_faq.created",
+    entityType: "HomepageFaq",
+    entityId: faq.id,
+    metadata: { showOnHomepage: data.showOnHomepage, displayOrder: data.displayOrder },
+  });
+  revalidateAdmin(data.locale);
+  revalidatePublicShowcase();
+}
+
+export async function updateHomepageFaqAction(
+  _prevState: unknown,
+  formData: FormData,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const actor = await requireAdmin("content.manage");
+    const prisma = requireDatabase();
+    const data = updateHomepageFaqSchema.parse(formEntries(formData));
+
+    const faq = await prisma.homepageFaq.update({
+      where: { id: data.id },
+      data: {
+        questionEn: sanitizeText(data.questionEn),
+        questionFr: sanitizeText(data.questionFr),
+        answerEn: cleanLong(data.answerEn),
+        answerFr: cleanLong(data.answerFr),
+        showOnHomepage: data.showOnHomepage,
+        displayOrder: data.displayOrder,
+      },
+    });
+
+    await writeAuditLog({
+      actorId: actor.id,
+      action: "homepage_faq.updated",
+      entityType: "HomepageFaq",
+      entityId: faq.id,
+      metadata: { showOnHomepage: data.showOnHomepage, displayOrder: data.displayOrder },
+    });
+    revalidateAdmin(data.locale);
+    revalidatePublicShowcase();
+    return { success: true };
+  } catch (err) {
+    console.error("[actions] updateHomepageFaqAction failed", {
+      message: err instanceof Error ? err.message : err,
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+    return { success: false, error: err instanceof Error ? err.message : "Update failed." };
+  }
+}
+
+export async function deleteHomepageFaqAction(
+  _prevState: unknown,
+  formData: FormData,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const actor = await requireAdmin("content.manage");
+    const prisma = requireDatabase();
+    const id = z.string().min(1).parse(formData.get("id"));
+    const locale = localeSchema.parse(formData.get("locale"));
+
+    await prisma.homepageFaq.delete({ where: { id } });
+
+    await writeAuditLog({
+      actorId: actor.id,
+      action: "homepage_faq.deleted",
+      entityType: "HomepageFaq",
+      entityId: id,
+    });
+    revalidateAdmin(locale);
+    revalidatePublicShowcase();
+    return { success: true };
+  } catch (err) {
+    console.error("[actions] deleteHomepageFaqAction failed", {
+      message: err instanceof Error ? err.message : err,
+      stack: err instanceof Error ? err.stack : undefined,
+    });
     return { success: false, error: err instanceof Error ? err.message : "Delete failed." };
   }
 }

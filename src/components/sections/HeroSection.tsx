@@ -30,11 +30,11 @@ type HeroCopy = {
 const heroContent = {
   en: {
     eyebrow: "Websites and Digital Systems for Small Businesses Ready to Grow",
-    headingLead: "Your business should ",
-    headingHighlight: "not be limited to one physical location",
+    headingLead: "Your business deserves to be ",
+    headingHighlight: "seen, trusted, and chosen online",
     headingEnd: ".",
     description:
-      "If your business still depends on walk-ins, referrals, or scattered messages, teChia helps you get online first with a professional website and simple digital systems, then turn that foundation into steady inquiries, smoother operations, and growth far beyond your local area.",
+      "If your business is still missing visibility, trust, or structure online, teChia helps you build a stronger digital presence with a premium website and simple systems that open the door to more inquiries, better follow-up, and bigger opportunities.",
     primaryLabel: "Start a Project",
     secondaryLabel: "Chat with the AI Consultant",
     supportLine:
@@ -52,11 +52,11 @@ const heroContent = {
   fr: {
     eyebrow:
       "Sites web et systèmes digitaux pour petites entreprises prêtes à grandir",
-    headingLead: "Votre entreprise ne devrait ",
-    headingHighlight: "pas être limitée à un seul lieu physique",
+    headingLead: "Votre entreprise mérite d'être ",
+    headingHighlight: "vue, d'inspirer confiance et d'être choisie en ligne",
     headingEnd: ".",
     description:
-      "Si votre activité dépend encore surtout du passage en boutique, du bouche-à-oreille ou de messages dispersés, teChia vous aide d’abord à vous mettre en ligne avec un site professionnel et des systèmes digitaux simples, puis à transformer cette base en demandes régulières, opérations plus fluides et croissance bien au-delà de votre zone locale.",
+      "Si votre entreprise manque encore de visibilité, de crédibilité ou de structure en ligne, teChia vous aide à bâtir une présence digitale plus forte avec un site premium et des systèmes simples qui ouvrent la voie à plus de demandes, un meilleur suivi et de plus grandes opportunités.",
     primaryLabel: "Démarrer un projet",
     secondaryLabel: "Discuter avec l’agent IA",
     supportLine:
