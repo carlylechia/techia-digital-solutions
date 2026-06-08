@@ -1,6 +1,15 @@
 "use client";
 
-import { Children, useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import {
+  Children,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent,
+  type ReactNode,
+  type TransitionEvent,
+} from "react";
+import { useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export function SwipeDotsCarousel({
@@ -13,7 +22,9 @@ export function SwipeDotsCarousel({
   dotsClassName,
   autoplayMs = 0,
   pauseOnHover = true,
-  dotLabels
+  dotLabels,
+  loop = false,
+  respectReducedMotion = false,
 }: {
   children: ReactNode;
   ariaLabel: string;
@@ -25,8 +36,17 @@ export function SwipeDotsCarousel({
   autoplayMs?: number;
   pauseOnHover?: boolean;
   dotLabels?: string[];
+  loop?: boolean;
+  respectReducedMotion?: boolean;
 }) {
+  const reduceMotion = useReducedMotion();
   const slides = Children.toArray(children);
+  const loopEnabled = loop && slides.length > 1;
+  const effectiveAutoplayMs =
+    respectReducedMotion && reduceMotion ? 0 : autoplayMs;
+  const renderedSlides = loopEnabled
+    ? [slides[slides.length - 1], ...slides, slides[0]]
+    : slides;
   const viewportRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<Array<HTMLDivElement | null>>([]);
   const pointerIdRef = useRef<number | null>(null);
@@ -35,7 +55,7 @@ export function SwipeDotsCarousel({
   const resumeTimeoutRef = useRef<number | null>(null);
   const suppressClickRef = useRef(false);
   const transitionResetRef = useRef<number | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(loopEnabled ? 1 : 0);
   const [viewportWidth, setViewportWidth] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -58,6 +78,19 @@ export function SwipeDotsCarousel({
     return Math.max(0, Math.min(index, slides.length - 1));
   };
 
+  const normalizeLoopIndex = (index: number) => {
+    if (slides.length === 0) return 0;
+    return ((index % slides.length) + slides.length) % slides.length;
+  };
+
+  const renderIndexFromLogical = (index: number) =>
+    loopEnabled ? normalizeLoopIndex(index) + 1 : clampIndex(index);
+
+  const logicalIndexFromRender = (index: number) => {
+    if (!loopEnabled) return clampIndex(index);
+    return normalizeLoopIndex(index - 1);
+  };
+
   const getSlideCenter = (index: number) => {
     const slide = slideRefs.current[index];
     if (!slide) return null;
@@ -76,7 +109,7 @@ export function SwipeDotsCarousel({
   };
 
   const goToIndex = (index: number, options?: { instant?: boolean }) => {
-    const nextIndex = clampIndex(index);
+    const nextIndex = loopEnabled ? index : clampIndex(index);
     const instant = options?.instant ?? false;
 
     if (instant) {
@@ -92,9 +125,12 @@ export function SwipeDotsCarousel({
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCurrentIndex((previous) => clampIndex(previous));
+    setCurrentIndex((previous) => {
+      if (slides.length === 0) return 0;
+      return renderIndexFromLogical(logicalIndexFromRender(previous));
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slides.length]);
+  }, [slides.length, loopEnabled]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -134,18 +170,23 @@ export function SwipeDotsCarousel({
   }, []);
 
   useEffect(() => {
-    if (slides.length <= 1 || autoplayMs <= 0) return;
+    if (slides.length <= 1 || effectiveAutoplayMs <= 0) return;
     if ((pauseOnHover && isHovered) || isDragging || isInteracting) return;
 
     const intervalId = window.setInterval(() => {
+      if (loopEnabled) {
+        goToIndex(currentIndex + 1);
+        return;
+      }
+
       const wraps = currentIndex >= slides.length - 1;
       goToIndex(wraps ? 0 : currentIndex + 1, { instant: wraps });
-    }, autoplayMs);
+    }, effectiveAutoplayMs);
 
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [autoplayMs, currentIndex, isDragging, isHovered, isInteracting, pauseOnHover, slides.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentIndex, effectiveAutoplayMs, isDragging, isHovered, isInteracting, loopEnabled, pauseOnHover, slides.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pauseForInteraction = () => {
     if (resumeTimeoutRef.current) {
@@ -231,12 +272,26 @@ export function SwipeDotsCarousel({
     finishDrag(event, false);
   };
 
+  const handleTrackTransitionEnd = (event: TransitionEvent<HTMLDivElement>) => {
+    if (!loopEnabled || event.propertyName !== "transform" || isDragging) return;
+
+    if (currentIndex === 0) {
+      goToIndex(slides.length, { instant: true });
+      return;
+    }
+
+    if (currentIndex === renderedSlides.length - 1) {
+      goToIndex(1, { instant: true });
+    }
+  };
+
   // eslint-disable-next-line react-hooks/refs
   const activeSlideCenter = getSlideCenter(currentIndex);
   const baseTranslate =
     activeSlideCenter !== null && viewportWidth
       ? viewportWidth / 2 - activeSlideCenter
       : 0;
+  const activeDotIndex = logicalIndexFromRender(currentIndex);
 
   return (
     <div
@@ -270,24 +325,26 @@ export function SwipeDotsCarousel({
       >
         <div
           className={cn("swipe-dots-track", trackClassName)}
+          onTransitionEnd={handleTrackTransitionEnd}
           style={{
             transform: `translate3d(${baseTranslate + dragOffset}px, 0, 0)`,
             transitionDuration: isDragging || !animateTrack ? "0ms" : "520ms"
           }}
         >
-          {slides.map((slide, index) => {
+          {renderedSlides.map((slide, index) => {
             const distance = Math.abs(index - currentIndex);
             const direction = index === currentIndex ? 0 : index < currentIndex ? -1 : 1;
+            const isActive = currentIndex === index;
 
             return (
               <div
-                key={index}
+                key={loopEnabled ? `rendered-slide-${index}` : index}
                 ref={(node) => {
                   slideRefs.current[index] = node;
                 }}
                 className={cn("swipe-dots-slide", slideClassName)}
-                aria-hidden={currentIndex !== index}
-                data-active={currentIndex === index ? "true" : "false"}
+                aria-hidden={!isActive}
+                data-active={isActive ? "true" : "false"}
                 data-neighbor={distance === 1 ? "true" : "false"}
                 data-distance={String(Math.min(distance, 3))}
                 data-direction={String(direction)}
@@ -306,12 +363,35 @@ export function SwipeDotsCarousel({
               key={index}
               type="button"
               className="swipe-dots-dot"
-              data-active={currentIndex === index}
+              data-active={activeDotIndex === index}
               aria-label={dotLabels?.[index] ?? `Go to slide ${index + 1}`}
-              aria-pressed={currentIndex === index}
+              aria-pressed={activeDotIndex === index}
               onClick={() => {
                 pauseForInteraction();
-                goToIndex(index, { instant: Math.abs(index - currentIndex) > 1 });
+                if (!loopEnabled) {
+                  goToIndex(index, {
+                    instant: Math.abs(index - currentIndex) > 1,
+                  });
+                  resumeAfterInteraction();
+                  return;
+                }
+
+                const forwardSteps =
+                  (index - activeDotIndex + slides.length) % slides.length;
+                const backwardSteps =
+                  (activeDotIndex - index + slides.length) % slides.length;
+
+                if (forwardSteps === 0) {
+                  resumeAfterInteraction();
+                  return;
+                }
+
+                if (forwardSteps <= backwardSteps) {
+                  goToIndex(currentIndex + forwardSteps);
+                } else {
+                  goToIndex(currentIndex - backwardSteps);
+                }
+
                 resumeAfterInteraction();
               }}
             >

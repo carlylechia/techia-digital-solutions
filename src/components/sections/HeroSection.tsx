@@ -39,8 +39,8 @@ const heroContent = {
     secondaryLabel: "Chat with the AI Consultant",
     supportLine:
       "Get online • Build trust • Organize operations • Grow beyond your location",
-    helperLead: "Prefer a human conversation after the AI consultation?",
-    helperLinkLabel: "Contact us",
+    helperLead: "Prefer to speak with a human after the AI consultation?",
+    helperLinkLabel: "Book a Consultation",
     badges: [
       "Websites",
       "Business Systems",
@@ -61,8 +61,8 @@ const heroContent = {
     secondaryLabel: "Discuter avec l’agent IA",
     supportLine:
       "Passez en ligne • Inspirez confiance • Organisez mieux • Grandissez au-delà de votre zone",
-    helperLead: "Besoin d’un échange humain après la consultation IA ?",
-    helperLinkLabel: "Contactez-nous",
+    helperLead: "Vous préférez parler à un humain après la consultation IA ?",
+    helperLinkLabel: "Réserver une consultation",
     badges: [
       "Sites web",
       "Systèmes métier",
@@ -76,8 +76,8 @@ const heroContent = {
 const heroSlides = [
   {
     src: "/images/homepage/01-hero-graphics/hero-slide-starting-small-story.webp",
-    objectPosition: "72% center",
-    quality: 90,
+    imagePositionClassName: "object-[70%_center] md:object-[74%_center]",
+    quality: 84,
     imageClassName:
       "object-cover brightness-[1.08] saturate-[1.04] contrast-[1.04]",
     scrimClassName:
@@ -85,8 +85,8 @@ const heroSlides = [
   },
   {
     src: "/images/homepage/01-hero-graphics/hero-slide-going-digital-story.webp",
-    objectPosition: "74% center",
-    quality: 90,
+    imagePositionClassName: "object-[72%_center] md:object-[76%_center]",
+    quality: 84,
     imageClassName:
       "object-cover brightness-[1.08] saturate-[1.08] contrast-[1.04]",
     scrimClassName:
@@ -94,8 +94,8 @@ const heroSlides = [
   },
   {
     src: "/images/homepage/01-hero-graphics/hero-slide-growing-global-story.webp",
-    objectPosition: "72% center",
-    quality: 90,
+    imagePositionClassName: "object-[68%_center] md:object-[72%_center]",
+    quality: 84,
     imageClassName:
       "object-cover brightness-[1.1] saturate-[1.1] contrast-[1.04]",
     scrimClassName:
@@ -103,8 +103,8 @@ const heroSlides = [
   },
   {
     src: "/images/homepage/01-hero-graphics/hero-slide-leading-team-story.webp",
-    objectPosition: "72% center",
-    quality: 90,
+    imagePositionClassName: "object-[68%_center] md:object-[73%_center]",
+    quality: 84,
     imageClassName:
       "object-cover brightness-[1.08] saturate-[1.08] contrast-[1.04]",
     scrimClassName:
@@ -141,7 +141,7 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
   const visibleSlide = reduceMotion ? 0 : activeSlide;
   const motionState = reduceMotion
     ? { initial: false }
-    : { initial: "hidden" as const, animate: "show" as const };
+    : { initial: false, animate: "show" as const };
 
   useEffect(() => {
     if (reduceMotion) return;
@@ -222,8 +222,7 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
                 priority={index === 0}
                 sizes="100vw"
                 quality={slide.quality}
-                className={slide.imageClassName}
-                style={{ objectPosition: slide.objectPosition }}
+                className={cn(slide.imageClassName, slide.imagePositionClassName)}
               />
 
               {slide.scrimClassName ? (
@@ -236,11 +235,11 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
         })}
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 -top-8 bg-[rgba(4,8,18,0.16)] md:bg-[rgba(4,8,18,0.12)]" />
-      <div className="absolute inset-x-0 bottom-0 -top-8 bg-[linear-gradient(90deg,rgba(4,8,18,0.92)_0%,rgba(4,8,18,0.74)_34%,rgba(4,8,18,0.24)_60%,rgba(4,8,18,0.04)_100%)] md:bg-[linear-gradient(90deg,rgba(4,8,18,0.9)_0%,rgba(4,8,18,0.68)_32%,rgba(4,8,18,0.16)_58%,rgba(4,8,18,0.01)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 -top-8 bg-[linear-gradient(180deg,rgba(4,8,18,0.8)_0%,rgba(4,8,18,0.14)_24%,rgba(4,8,18,0.12)_68%,#040812_100%)] md:bg-[linear-gradient(180deg,rgba(4,8,18,0.76)_0%,rgba(4,8,18,0.08)_24%,rgba(4,8,18,0.1)_70%,rgba(4,8,18,0.84)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 -top-8 bg-[radial-gradient(circle_at_18%_18%,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_82%_20%,rgba(251,113,133,0.14),transparent_22%),radial-gradient(circle_at_50%_100%,rgba(245,185,66,0.12),transparent_25%)]" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[56%] bg-[radial-gradient(circle_at_56%_48%,rgba(255,255,255,0.16),transparent_18%),radial-gradient(circle_at_56%_48%,rgba(34,211,238,0.18),transparent_34%),radial-gradient(circle_at_82%_34%,rgba(59,130,246,0.12),transparent_20%)] lg:block" />
+      <div className="absolute inset-x-0 bottom-0 -top-8 bg-[rgba(4,8,18,0.18)] md:bg-[rgba(4,8,18,0.1)]" />
+      <div className="absolute inset-x-0 bottom-0 -top-8 bg-[linear-gradient(90deg,rgba(4,8,18,0.95)_0%,rgba(4,8,18,0.8)_30%,rgba(4,8,18,0.28)_58%,rgba(4,8,18,0.05)_100%)] md:bg-[linear-gradient(90deg,rgba(4,8,18,0.92)_0%,rgba(4,8,18,0.68)_32%,rgba(4,8,18,0.16)_58%,rgba(4,8,18,0.01)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 -top-8 bg-[linear-gradient(180deg,rgba(4,8,18,0.9)_0%,rgba(4,8,18,0.24)_22%,rgba(4,8,18,0.1)_66%,#040812_100%)] md:bg-[linear-gradient(180deg,rgba(4,8,18,0.78)_0%,rgba(4,8,18,0.06)_26%,rgba(4,8,18,0.08)_72%,rgba(4,8,18,0.88)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 -top-8 bg-[radial-gradient(circle_at_16%_18%,rgba(34,211,238,0.14),transparent_26%),radial-gradient(circle_at_82%_20%,rgba(251,113,133,0.1),transparent_22%),radial-gradient(circle_at_52%_100%,rgba(245,185,66,0.1),transparent_23%)]" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[54%] bg-[radial-gradient(circle_at_58%_48%,rgba(255,255,255,0.14),transparent_16%),radial-gradient(circle_at_58%_48%,rgba(34,211,238,0.14),transparent_32%),radial-gradient(circle_at_82%_34%,rgba(59,130,246,0.09),transparent_20%)] lg:block" />
       <div className="absolute inset-x-0 bottom-0 -top-8 sm:hidden bg-[linear-gradient(180deg,rgba(4,8,18,0.94)_0%,rgba(4,8,18,0.52)_34%,rgba(4,8,18,0.72)_100%),linear-gradient(90deg,rgba(4,8,18,0.96)_0%,rgba(4,8,18,0.88)_62%,rgba(4,8,18,0.44)_100%)]" />
       <div
         aria-hidden="true"
@@ -249,17 +248,21 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
       <div
-        className="container relative flex items-center pb-24 pt-1 sm:pb-28 sm:pt-2 lg:pb-32 lg:pt-3"
+        className="container relative flex items-center pb-20 pt-2 sm:pb-24 sm:pt-3 lg:pb-28 lg:pt-5 xl:pb-32"
         style={{ minHeight: HERO_MIN_HEIGHT }}
       >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 top-6 z-0 h-[calc(100%-4rem)] w-full max-w-[48rem] rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(4,8,18,0.62),rgba(4,8,18,0.24))] shadow-[0_40px_120px_rgba(4,8,18,0.28)] backdrop-blur-[3px] sm:top-8 sm:max-w-[50rem] sm:rounded-[2.35rem] lg:top-10 lg:max-w-[52rem] lg:bg-[linear-gradient(180deg,rgba(4,8,18,0.42),rgba(4,8,18,0.06))]"
+        />
         <motion.div
-          className="w-full max-w-[58rem] text-center lg:text-left"
+          className="relative z-[1] w-full max-w-[58rem] text-center md:text-left"
           variants={reduceMotion ? undefined : contentVariants}
           {...motionState}
         >
           <motion.div
             variants={reduceMotion ? undefined : fadeUpVariants}
-            className="inline-flex max-w-full items-center justify-center gap-2 rounded-full border border-white/12 bg-white/[0.08] px-3 py-2 text-center text-[0.64rem] font-semibold uppercase tracking-[0.22em] text-[#CFFAFE] shadow-[0_18px_50px_rgba(5,7,13,0.18)] backdrop-blur-xl sm:px-4 sm:text-[0.72rem] lg:justify-start"
+            className="inline-flex max-w-full items-center justify-center gap-2 rounded-full border border-white/12 bg-white/[0.09] px-3 py-2 text-center text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-[#CFFAFE] shadow-[0_18px_50px_rgba(5,7,13,0.18)] backdrop-blur-xl sm:px-4 sm:text-[0.69rem] md:justify-start"
           >
             <span
               aria-hidden="true"
@@ -271,7 +274,7 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
           <motion.h1
             id="homepage-hero-heading"
             variants={reduceMotion ? undefined : fadeUpVariants}
-            className="mx-auto mt-4 max-w-[min(92vw,16ch)] text-balance text-[clamp(3rem,9vw,6.15rem)] font-semibold leading-[0.95] tracking-[-0.055em] text-white sm:max-w-[min(84vw,17ch)] md:max-w-[min(74vw,18ch)] lg:mx-0 lg:max-w-[min(50vw,19ch)] xl:max-w-[min(46vw,20ch)]"
+            className="mx-auto mt-4 max-w-[min(92vw,15ch)] text-balance text-[clamp(2.72rem,9vw,5.95rem)] font-semibold leading-[0.95] tracking-[-0.048em] text-white sm:max-w-[min(84vw,16ch)] md:mx-0 md:max-w-[min(70vw,15ch)] lg:max-w-[min(46vw,14ch)] xl:max-w-[min(43vw,15ch)]"
           >
             <span>{copy.headingLead}</span>
             <span className="headline-gradient">
@@ -288,14 +291,14 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
 
           <motion.p
             variants={reduceMotion ? undefined : fadeUpVariants}
-            className="mx-auto mt-6 max-w-[40rem] text-pretty text-base leading-8 text-[#D7E3F1] sm:text-lg md:text-xl lg:mx-0"
+            className="mx-auto mt-5 max-w-[37rem] text-pretty text-[0.98rem] leading-7 text-[#D7E3F1] sm:text-[1.02rem] sm:leading-8 md:mx-0 md:max-w-[39rem] md:text-[1.06rem] lg:text-[1.09rem]"
           >
             {copy.description}
           </motion.p>
 
           <motion.div
             variants={reduceMotion ? undefined : fadeUpVariants}
-            className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap lg:justify-start"
+            className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap md:justify-start"
           >
             <Link
               href={getLocalizedHref(locale, "/start-project")}
@@ -331,19 +334,19 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
 
           <motion.p
             variants={reduceMotion ? undefined : fadeUpVariants}
-            className="mx-auto mt-6 max-w-[42rem] text-balance text-sm font-medium leading-7 text-[#D7E3F1] sm:text-base lg:mx-0"
+            className="mx-auto mt-5 max-w-[38rem] text-balance text-[0.92rem] font-medium leading-7 text-[#D7E3F1] sm:text-[0.96rem] md:mx-0"
           >
             {copy.supportLine}
           </motion.p>
 
           <motion.p
             variants={reduceMotion ? undefined : fadeUpVariants}
-            className="mx-auto mt-4 max-w-[38rem] text-sm leading-7 text-[#B7C6D8] lg:mx-0"
+            className="mx-auto mt-3.5 max-w-[35rem] text-[0.92rem] leading-7 text-[#B7C6D8] md:mx-0"
           >
             {copy.helperLead}{" "}
             <Link
               href={getLocalizedHref(locale, "/contact")}
-              className="font-semibold text-cyan-200 transition hover:text-white"
+              className="font-semibold text-cyan-200 underline decoration-cyan-300/45 underline-offset-4 transition hover:text-white hover:decoration-white"
             >
               {copy.helperLinkLabel}
             </Link>
@@ -351,7 +354,7 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
 
           <motion.ul
             variants={reduceMotion ? undefined : fadeUpVariants}
-            className="mt-6 flex flex-wrap justify-center gap-2.5 lg:justify-start"
+            className="mt-5 flex flex-wrap justify-center gap-2.5 md:justify-start"
             aria-label={locale === "fr" ? "Capacités teChia" : "teChia capabilities"}
           >
             {copy.badges.map((badge) => (
