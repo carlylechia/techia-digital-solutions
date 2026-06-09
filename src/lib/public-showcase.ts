@@ -12,6 +12,12 @@ type PublicFeedbackItem = {
   source: string;
 };
 
+export type PublicFaqItem = {
+  id: string;
+  question: string;
+  answer: string;
+};
+
 type LocalizedFeedbackRow = {
   id: string;
   quote: string;
@@ -51,6 +57,14 @@ function homepageFallback(locale: Locale): PublicFeedbackItem[] {
     company: null,
     rating: 5,
     source: "seed_homepage_fallback"
+  }));
+}
+
+function homepageFaqFallback(locale: Locale): PublicFaqItem[] {
+  return getDictionary(locale).faqs.map((item, index) => ({
+    id: `homepage-faq-fallback-${index}`,
+    question: item.question,
+    answer: item.answer,
   }));
 }
 
@@ -243,6 +257,39 @@ export async function loadFounderProjects(locale: Locale): Promise<FounderProjec
 export async function loadHomepageFeedback(locale: Locale): Promise<PublicFeedbackItem[]> {
   const feedback = await loadLocalizedFeedback(locale, "showOnHomepage", 8);
   return feedback ?? homepageFallback(locale);
+}
+
+export async function loadHomepageFaqs(locale: Locale): Promise<PublicFaqItem[]> {
+  const prisma = getPrisma();
+  if (!prisma) return homepageFaqFallback(locale);
+
+  try {
+    const faqs = await prisma.homepageFaq.findMany({
+      where: { showOnHomepage: true },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+      take: 12,
+      select: {
+        id: true,
+        questionEn: true,
+        questionFr: true,
+        answerEn: true,
+        answerFr: true,
+      },
+    });
+
+    if (!faqs.length) return homepageFaqFallback(locale);
+
+    return faqs.map((item) => ({
+      id: item.id,
+      question: fromLocale(locale, item.questionEn, item.questionFr) || item.questionEn,
+      answer: fromLocale(locale, item.answerEn, item.answerFr) || item.answerEn,
+    }));
+  } catch (error) {
+    console.error("[public-showcase] homepage faq query failed", {
+      message: error instanceof Error ? error.message : error,
+    });
+    return homepageFaqFallback(locale);
+  }
 }
 
 export async function loadFounderFeedback(locale: Locale): Promise<PublicFeedbackItem[]> {

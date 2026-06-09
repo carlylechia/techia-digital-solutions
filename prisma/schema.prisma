@@ -424,6 +424,20 @@ model CustomerFeedback {
   @@index([showOnPortfolio, displayOrder])
 }
 
+model HomepageFaq {
+  id             String   @id @default(cuid())
+  questionEn     String
+  questionFr     String
+  answerEn       String
+  answerFr       String
+  showOnHomepage Boolean  @default(true)
+  displayOrder   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([showOnHomepage, displayOrder])
+}
+
 model ContentPage {
   id             String               @id @default(cuid())
   slug           String               @unique

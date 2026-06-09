@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
-import { ShieldCheck, Sparkles, Workflow } from "lucide-react";
 import { notFound } from "next/navigation";
-import { AIConsultationSection } from "@/components/site/ai-consultation-section";
+import { CustomFitWorkflowSection } from "@/components/sections/custom-fit-workflow-section";
 import { Reveal } from "@/components/site/reveal";
 import { PremiumPageCta } from "@/components/ui/premium-page-cta";
 import { PremiumPageHero } from "@/components/ui/premium-page-hero";
 import { SectionHeading } from "@/components/ui/section-heading";
 import {
   getDictionary,
-  getLocalizedSectionHref,
   getSolutionSectionId,
   isLocale,
   mergedPageAnchors,
@@ -86,21 +84,6 @@ export default async function ServicesPage({
       tags: dict.pages.industries.detailPillars,
     },
   ];
-  const deliveryColumns = [
-    {
-      icon: Workflow,
-      eyebrow: dict.sections.method,
-      title: dict.pages.home.methodTitle,
-      items: dict.method,
-    },
-    {
-      icon: ShieldCheck,
-      eyebrow: dict.sections.security,
-      title: dict.pages.home.securityTitle,
-      items: dict.securityPromise,
-    },
-  ];
-
   return (
     <main>
       <PremiumPageHero
@@ -116,7 +99,11 @@ export default async function ServicesPage({
         ]}
         actions={[
           { href: "/start-project", label: dict.common.requestQuote },
-          { href: "/contact", label: dict.nav.contact, variant: "secondary" },
+          {
+            href: "/ai-consultant",
+            label: dict.nav.aiConsultant,
+            variant: "secondary",
+          },
         ]}
         aside={
           <div
@@ -183,6 +170,8 @@ export default async function ServicesPage({
           ))}
         </div>
       </section>
+
+      <CustomFitWorkflowSection locale={locale} className="py-8 md:py-12" />
 
       <section
         id={mergedPageAnchors.services.catalog}
@@ -265,97 +254,6 @@ export default async function ServicesPage({
           ))}
         </div>
       </section>
-
-      <section
-        id={mergedPageAnchors.services.method}
-        className="container scroll-mt-28 py-8 md:py-12"
-      >
-        <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
-          <Reveal>
-            <div className="gradient-border rounded-[2rem]">
-              <div className="elevated-panel h-full p-6 md:p-8">
-                <p className="font-script text-3xl text-accent-3 md:text-4xl">
-                  {locale === "fr"
-                    ? "une logique claire du haut vers le bas"
-                    : "one clear logic from top to bottom"}
-                </p>
-                <p className="eyebrow mt-3">
-                  {locale === "fr" ? "Cadre de livraison" : "Delivery frame"}
-                </p>
-                <h2 className="mt-4 max-w-3xl text-balance text-3xl font-semibold text-foreground md:text-5xl">
-                  <span className="headline-gradient">
-                    {locale === "fr"
-                      ? "La même rigueur s’applique au conseil, à l’interface, à l’ingénierie et à la mise en ligne."
-                      : "The same rigor carries through strategy, interface design, engineering, and launch quality."}
-                  </span>
-                </h2>
-                <div className="headline-underline mt-5" aria-hidden="true" />
-                <p className="mt-6 text-base leading-8 text-muted md:text-lg">
-                  {locale === "fr"
-                    ? "Cette structure fusionnée aide les visiteurs à comprendre la progression logique: ce que teChia fait, sous quelle forme cela peut être livré, puis comment cela s’adapte à un secteur concret."
-                    : "This merged structure helps visitors understand the logical progression: what teChia does, the forms it can take, and how that maps into a concrete industry context."}
-                </p>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  <span className="trust-pill">
-                    <Sparkles className="size-3.5" />
-                    {locale === "fr"
-                      ? "Présence, système, secteur"
-                      : "Capability, system, industry"}
-                  </span>
-                  <span className="trust-pill">
-                    {locale === "fr"
-                      ? "Une seule lecture cohérente"
-                      : "One coherent reading path"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </Reveal>
-
-          <div className="grid gap-5">
-            {deliveryColumns.map((column, index) => {
-              const Icon = column.icon;
-              return (
-                <Reveal key={column.title} delay={index * 0.05}>
-                  <div className="gradient-border rounded-[1.7rem]">
-                    <div className="surface-panel h-full p-6">
-                      <span className="icon-chip inline-flex rounded-2xl p-3">
-                        <Icon className="size-5" />
-                      </span>
-                      <p className="eyebrow mt-5">{column.eyebrow}</p>
-                      <h3 className="mt-4 text-2xl font-semibold text-foreground">
-                        {column.title}
-                      </h3>
-                      <div className="mt-5 grid gap-3">
-                        {column.items.map((item) => (
-                          <div
-                            key={item}
-                            className="subtle-tile rounded-[1.2rem] p-4 text-sm leading-7 text-muted"
-                          >
-                            {item}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </Reveal>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <AIConsultationSection
-        locale={locale}
-        secondaryAction={{
-          href: getLocalizedSectionHref(
-            locale,
-            "/services",
-            mergedPageAnchors.services.catalog,
-          ),
-          label: dict.nav.services,
-        }}
-      />
 
       <PremiumPageCta
         locale={locale}

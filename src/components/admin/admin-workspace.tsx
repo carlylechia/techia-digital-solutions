@@ -53,6 +53,7 @@ import {
   createContentPageAction,
   createConversationAction,
   createNavItemAction,
+  createHomepageFaqAction,
   createProjectWithTaskAction,
   createRoleAction,
   createTaskAction,
@@ -62,6 +63,7 @@ import {
   deleteBoardAction,
   deleteContentPageAction,
   deleteNavItemAction,
+  deleteHomepageFaqAction,
   deleteRoleAction,
   getWhatsappLinkAction,
   reorderNavItemsAction,
@@ -71,6 +73,7 @@ import {
   updateBoardAction,
   updateInquiryNotesAction,
   updateNavItemAction,
+  updateHomepageFaqAction,
   updatePageSectionsAction,
   updatePageStatusAction,
   updateRequestStatusAction,
@@ -3952,6 +3955,61 @@ function Content({ data, locale }: { data: AdminDashboardData; locale: Locale })
         </div>
       </Panel>
 
+      <Panel title="Homepage FAQs" eyebrow="Bilingual content">
+        <div className="grid gap-5 xl:grid-cols-[24rem_1fr]">
+          <div>
+            <ActionForm
+              action={createHomepageFaqAction}
+              className="grid gap-3"
+              successMessage="FAQ created"
+            >
+              <input type="hidden" name="locale" value={locale} />
+              <Field label="Question (EN)">
+                <Input name="questionEn" required maxLength={180} />
+              </Field>
+              <Field label="Question (FR)">
+                <Input name="questionFr" required maxLength={180} />
+              </Field>
+              <Field label="Answer (EN)">
+                <Textarea name="answerEn" required className="min-h-24" />
+              </Field>
+              <Field label="Answer (FR)">
+                <Textarea name="answerFr" required className="min-h-24" />
+              </Field>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Display order">
+                  <Input
+                    name="displayOrder"
+                    type="number"
+                    min={0}
+                    defaultValue={data.faqs.length}
+                  />
+                </Field>
+                <label className="flex items-center gap-2 self-end rounded-lg border border-border bg-background px-3 py-3 text-sm text-primary">
+                  <input
+                    type="checkbox"
+                    name="showOnHomepage"
+                    defaultChecked
+                    className="size-4 accent-cyan-400"
+                  />
+                  Show on homepage
+                </label>
+              </div>
+              <SubmitButton>Create FAQ</SubmitButton>
+            </ActionForm>
+          </div>
+
+          <div className="grid gap-3">
+            {data.faqs.map((item) => (
+              <HomepageFaqCard key={item.id} item={item} locale={locale} />
+            ))}
+            {!data.faqs.length ? (
+              <EmptyState title="No homepage FAQs yet." />
+            ) : null}
+          </div>
+        </div>
+      </Panel>
+
       {/* Pages */}
       <div className="grid gap-5 xl:grid-cols-[25rem_1fr]">
         <Panel title="Create Page" eyebrow="Content">
@@ -4174,6 +4232,141 @@ function FeedbackModerationCard({
             </button>
             <button type="button" onClick={() => setConfirmDelete(false)} className="text-xs text-muted hover:text-primary">Cancel</button>
             {deleteState?.error ? <p className="w-full text-xs text-red-400">{deleteState.error}</p> : null}
+          </form>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function HomepageFaqCard({
+  item,
+  locale,
+}: {
+  item: AdminDashboardData["faqs"][number];
+  locale: Locale;
+}) {
+  const [updateState, updateAction, updatePending] = useActionState(
+    updateHomepageFaqAction,
+    null,
+  );
+  const [deleteState, deleteAction, deletePending] = useActionState(
+    deleteHomepageFaqAction,
+    null,
+  );
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  return (
+    <article className="rounded-lg border border-border bg-background p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-semibold text-primary">{item.questionEn}</p>
+          <p className="mt-1 text-xs text-muted">{item.questionFr}</p>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {item.showOnHomepage ? <Pill tone="good">Homepage</Pill> : null}
+          <Pill tone="quiet">Order {item.displayOrder}</Pill>
+        </div>
+      </div>
+
+      <form
+        action={updateAction}
+        className="mt-3 grid gap-3 rounded-lg border border-border bg-surface p-3"
+      >
+        <input type="hidden" name="id" value={item.id} />
+        <input type="hidden" name="locale" value={locale} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Question (EN)">
+            <Input name="questionEn" defaultValue={item.questionEn} required />
+          </Field>
+          <Field label="Question (FR)">
+            <Input name="questionFr" defaultValue={item.questionFr} required />
+          </Field>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Answer (EN)">
+            <Textarea
+              name="answerEn"
+              defaultValue={item.answerEn}
+              className="min-h-24"
+              required
+            />
+          </Field>
+          <Field label="Answer (FR)">
+            <Textarea
+              name="answerFr"
+              defaultValue={item.answerFr}
+              className="min-h-24"
+              required
+            />
+          </Field>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Display order">
+            <Input
+              name="displayOrder"
+              type="number"
+              min={0}
+              defaultValue={item.displayOrder}
+            />
+          </Field>
+          <label className="flex items-center gap-2 self-end rounded-lg border border-border bg-background px-3 py-3 text-sm text-primary">
+            <input
+              type="checkbox"
+              name="showOnHomepage"
+              defaultChecked={item.showOnHomepage}
+              className="size-4 accent-cyan-400"
+            />
+            Show on homepage
+          </label>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="submit"
+            disabled={updatePending}
+            className="rounded-lg border border-accent/30 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent disabled:opacity-60"
+          >
+            {updatePending ? "Saving..." : "Save FAQ"}
+          </button>
+          {updateState?.error ? (
+            <p className="text-xs text-red-400">{updateState.error}</p>
+          ) : null}
+          {updateState?.success ? (
+            <p className="text-xs text-emerald-400">Saved.</p>
+          ) : null}
+        </div>
+      </form>
+
+      <div className="mt-2">
+        {!confirmDelete ? (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="text-xs font-semibold text-red-400 hover:text-red-300"
+          >
+            Delete FAQ
+          </button>
+        ) : (
+          <form action={deleteAction} className="flex flex-wrap items-center gap-2">
+            <input type="hidden" name="id" value={item.id} />
+            <input type="hidden" name="locale" value={locale} />
+            <button
+              type="submit"
+              disabled={deletePending}
+              className="rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-xs font-semibold text-red-400 disabled:opacity-60"
+            >
+              {deletePending ? "Deleting..." : "Confirm delete"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="text-xs text-muted hover:text-primary"
+            >
+              Cancel
+            </button>
+            {deleteState?.error ? (
+              <p className="w-full text-xs text-red-400">{deleteState.error}</p>
+            ) : null}
           </form>
         )}
       </div>

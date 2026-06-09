@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { CustomFitWorkflowSection } from "@/components/sections/custom-fit-workflow-section";
 import { FeatureCard } from "@/components/ui/feature-card";
 import { PremiumPageCta } from "@/components/ui/premium-page-cta";
 import { PremiumPageHero } from "@/components/ui/premium-page-hero";
@@ -55,8 +56,16 @@ export default async function ServiceDetailPage({
         title={service.title}
         description={service.description}
         badges={service.features || []}
-        actions={[{ href: "/start-project", label: dict.common.requestQuote }]}
+        actions={[
+          { href: "/start-project", label: dict.common.requestQuote },
+          {
+            href: "/ai-consultant",
+            label: dict.nav.aiConsultant,
+            variant: "secondary",
+          },
+        ]}
       />
+      <CustomFitWorkflowSection locale={locale} className="py-8 md:py-12" />
       <section className="container py-6">
         <div className="grid gap-5 md:grid-cols-3">
           {dict.services

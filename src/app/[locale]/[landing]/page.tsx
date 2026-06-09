@@ -240,7 +240,7 @@ export default async function LandingPage({
                     {translation.body
                       .split("\n")
                       .filter(Boolean)
-                      .map((paragraph, idx) => (
+                      .map((paragraph: string, idx: number) => (
                         <p key={idx} className="mb-4 leading-8 text-muted">
                           {paragraph}
                         </p>

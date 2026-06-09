@@ -1,0 +1,53 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+<title id="title">teChia Digital Home Hero Graphic</title>
+<rect width="1600" height="900" fill="#05070D"/>
+<defs>
+  <radialGradient id="g1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(380 260) rotate(45) scale(700)">
+    <stop stop-color="#22D3EE" stop-opacity="0.35"/>
+    <stop offset="1" stop-color="#05070D" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="g2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1180 410) rotate(45) scale(620)">
+    <stop stop-color="#8B5CF6" stop-opacity="0.28"/>
+    <stop offset="1" stop-color="#05070D" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="line" x1="220" y1="150" x2="1400" y2="760" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#2563EB"/>
+    <stop offset="0.5" stop-color="#22D3EE"/>
+    <stop offset="1" stop-color="#8B5CF6"/>
+  </linearGradient>
+  <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="8" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+<rect width="1600" height="900" fill="url(#g1)"/>
+<rect width="1600" height="900" fill="url(#g2)"/>
+
+<g opacity="0.25">
+  <path d="M0 720 C320 610 520 720 800 610 C1080 500 1280 560 1600 430" stroke="url(#line)" stroke-width="2"/>
+  <path d="M0 760 C360 650 580 760 850 650 C1120 540 1320 600 1600 470" stroke="#22D3EE" stroke-opacity="0.25" stroke-width="1"/>
+</g>
+<g filter="url(#softGlow)">
+  <rect x="940" y="180" width="420" height="270" rx="32" fill="#07111F" fill-opacity="0.8" stroke="#22D3EE" stroke-opacity="0.45"/>
+  <rect x="990" y="240" width="150" height="18" rx="9" fill="#22D3EE"/>
+  <rect x="990" y="286" width="280" height="10" rx="5" fill="#CBD5E1" fill-opacity="0.35"/>
+  <rect x="990" y="318" width="230" height="10" rx="5" fill="#CBD5E1" fill-opacity="0.22"/>
+  <path d="M1000 390 L1060 350 L1130 370 L1210 300 L1300 330" stroke="url(#line)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g>
+  <path d="M275 595 V360 L505 205 L735 360 V595 H275Z" fill="#07111F" fill-opacity="0.82" stroke="url(#line)" stroke-width="7" stroke-linejoin="round"/>
+  <rect x="365" y="410" width="280" height="125" rx="22" fill="#05070D" stroke="#22D3EE" stroke-opacity="0.55" stroke-width="3"/>
+  <circle cx="505" cy="472" r="34" fill="#22D3EE" fill-opacity="0.2" stroke="#22D3EE" stroke-width="4"/>
+  <path d="M505 438 V506 M471 472 H539" stroke="#F8FAFC" stroke-width="8" stroke-linecap="round"/>
+</g>
+<g opacity="0.85">
+  <circle cx="805" cy="420" r="7" fill="#22D3EE"/>
+  <circle cx="890" cy="330" r="5" fill="#8B5CF6"/>
+  <circle cx="760" cy="555" r="5" fill="#2DD4BF"/>
+  <path d="M735 460 C780 440 790 430 805 420 C845 390 865 360 890 330" stroke="#22D3EE" stroke-opacity="0.45" stroke-width="2"/>
+  <path d="M735 530 C755 545 745 550 760 555" stroke="#2DD4BF" stroke-opacity="0.6" stroke-width="2"/>
+</g>
+<text x="110" y="120" fill="#F8FAFC" font-family="Inter, Arial" font-size="46" font-weight="700">Digital homes for modern businesses</text>
+<text x="112" y="172" fill="#CBD5E1" font-family="Inter, Arial" font-size="24">A visual direction for the teChia homepage hero slide.</text>
+
+</svg>

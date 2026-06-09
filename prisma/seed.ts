@@ -25,6 +25,15 @@ type SeededHomepageTestimonial = {
   quoteFr: string;
 };
 
+type SeededHomepageFaq = {
+  id: string;
+  displayOrder: number;
+  questionEn: string;
+  questionFr: string;
+  answerEn: string;
+  answerFr: string;
+};
+
 type ShowcaseProject = {
   slug: string;
   titleEn: string;
@@ -259,6 +268,19 @@ const homepageTestimonials: SeededHomepageTestimonial[] = dictionaries.en.testim
   };
 });
 
+const homepageFaqs: SeededHomepageFaq[] = dictionaries.en.faqs.map((item, index) => {
+  const french = dictionaries.fr.faqs[index];
+
+  return {
+    id: `seed-homepage-faq-0${index + 1}`,
+    displayOrder: index,
+    questionEn: item.question,
+    questionFr: french?.question || item.question,
+    answerEn: item.answer,
+    answerFr: french?.answer || item.answer,
+  };
+});
+
 async function seedShowcaseProjects(prisma: PrismaClient) {
   // Upsert the internal system client that owns all showcase/portfolio projects.
   const systemClient = await prisma.client.upsert({
@@ -409,6 +431,33 @@ async function seedHomepageTestimonials(prisma: PrismaClient) {
   console.log(`Seeded ${homepageTestimonials.length} homepage testimonials`);
 }
 
+async function seedHomepageFaqs(prisma: PrismaClient) {
+  for (const faq of homepageFaqs) {
+    await prisma.homepageFaq.upsert({
+      where: { id: faq.id },
+      update: {
+        questionEn: faq.questionEn,
+        questionFr: faq.questionFr,
+        answerEn: faq.answerEn,
+        answerFr: faq.answerFr,
+        showOnHomepage: true,
+        displayOrder: faq.displayOrder,
+      },
+      create: {
+        id: faq.id,
+        questionEn: faq.questionEn,
+        questionFr: faq.questionFr,
+        answerEn: faq.answerEn,
+        answerFr: faq.answerFr,
+        showOnHomepage: true,
+        displayOrder: faq.displayOrder,
+      },
+    });
+  }
+
+  console.log(`Seeded ${homepageFaqs.length} homepage FAQs`);
+}
+
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
@@ -509,6 +558,7 @@ async function main() {
 
   await seedShowcaseProjects(prisma);
   await seedHomepageTestimonials(prisma);
+  await seedHomepageFaqs(prisma);
 
   console.log("Seed complete");
 }
