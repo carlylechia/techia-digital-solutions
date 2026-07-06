@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Mail, MessageCircle } from "lucide-react";
 import { notFound } from "next/navigation";
+import { BonusClaimButton } from "@/components/courses/BonusClaimButton";
+import { BuyerBonusSection } from "@/components/courses/BuyerBonusSection";
 import { CourseFaq } from "@/components/courses/CourseFaq";
 import { CourseHero } from "@/components/courses/CourseHero";
 import { CoursePackCard } from "@/components/courses/CoursePackCard";
@@ -16,6 +18,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { isLocale, type Locale } from "@/content/site";
 import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
 import {
+  getCoursesBonusClaimDestination,
   getCoursesSupportEmail,
   getCoursesWhatsappUrl,
 } from "@/lib/courses/chariowLinks";
@@ -62,6 +65,7 @@ export default async function CoursesPage({
   const steps = getCourseAcademySteps(locale);
   const positioning = getCourseAcademyPositioning(locale);
   const supportEmail = getCoursesSupportEmail();
+  const bonusClaimDestination = getCoursesBonusClaimDestination(locale);
   const whatsappUrl = getCoursesWhatsappUrl(
     locale === "fr"
       ? "Bonjour teChia, je veux des conseils pour choisir un pack de cours."
@@ -115,6 +119,12 @@ export default async function CoursesPage({
           finalDescription:
             "Le pack complet reste la meilleure option si vous voulez accéder aux 16 cours au même endroit. Sinon, commencez avec le sous-pack le plus proche de votre besoin actuel.",
           browseSubpacks: "Parcourir les sous-packs",
+          buyerBonusTitle: "Official teChia Buyer Bonus",
+          buyerBonusDescription:
+            "Achetez via la page officielle teChia Digital Academy et debloquez des ressources bonus pratiques pour apprendre avec plus de direction et mieux appliquer vos competences.",
+          buyerBonusPrimary: "Obtenir le pack complet + bonus",
+          buyerBonusSecondary: "Voir tous les packs de cours",
+          buyerBonusClaim: "Reclamer le bonus acheteur",
         }
       : {
           heroTitle:
@@ -161,6 +171,12 @@ export default async function CoursesPage({
           finalDescription:
             "The full pack remains the best option if you want access to all 16 courses in one place. If not, start with the subpack that best matches your current learning need.",
           browseSubpacks: "Browse Subpacks",
+          buyerBonusTitle: "Official teChia Buyer Bonus",
+          buyerBonusDescription:
+            "Buy through the official teChia Digital Academy page and unlock practical bonus resources to help you learn with direction and apply your skills better.",
+          buyerBonusPrimary: "Get the Full Pack + Bonus",
+          buyerBonusSecondary: "View All Course Packs",
+          buyerBonusClaim: "Claim Buyer Bonus",
         };
 
   return (
@@ -305,6 +321,38 @@ export default async function CoursesPage({
       </section>
 
       <FeaturedFullPack locale={locale} pack={fullPack} />
+
+      <BuyerBonusSection
+        locale={locale}
+        title={copy.buyerBonusTitle}
+        description={copy.buyerBonusDescription}
+        sourcePage="courses_bonus_section"
+        claimHref={bonusClaimDestination?.href}
+        claimChannel={bonusClaimDestination?.channel ?? null}
+        actions={
+          <>
+            <CourseCheckoutButton
+              pack={fullPack}
+              label={copy.buyerBonusPrimary}
+              sourcePage="courses_bonus_section"
+            />
+            <a
+              href="#course-packs"
+              className="btn-secondary justify-center px-5 py-3"
+            >
+              {copy.buyerBonusSecondary}
+            </a>
+            <BonusClaimButton
+              href={bonusClaimDestination?.href}
+              channel={bonusClaimDestination?.channel ?? null}
+              label={copy.buyerBonusClaim}
+              sourcePage="courses_bonus_section"
+              eligibility="all-buyers"
+              className="w-full sm:w-auto"
+            />
+          </>
+        }
+      />
 
       <section id="course-packs" className="container py-4 sm:py-6">
         <div className="gradient-border rounded-[1.95rem]">

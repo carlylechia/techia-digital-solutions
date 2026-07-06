@@ -9,7 +9,12 @@ export type CourseEventName =
   | "chariow_checkout_click"
   | "whatsapp_course_inquiry"
   | "faq_opened"
-  | "full_pack_upsell_click"
+  | "buyer_bonus_section_view"
+  | "buyer_bonus_claim_click"
+  | "bonus_card_click"
+  | "full_pack_bonus_upsell_click"
+  | "bonus_download_click"
+  | "whatsapp_bonus_claim_click"
   | (string & {});
 
 export type CourseEventPayload = {
@@ -18,6 +23,8 @@ export type CourseEventPayload = {
   pack_title?: string;
   source_page: string;
   faq_question?: string;
+  bonus_id?: string;
+  eligibility?: string;
 };
 
 type GenericEventPayload = Record<

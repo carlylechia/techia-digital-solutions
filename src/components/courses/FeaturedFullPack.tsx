@@ -15,27 +15,27 @@ export function FeaturedFullPack({
       ? {
           eyebrow: "Offre recommandée",
           title: "Le pack complet reste l’option la plus forte.",
-          body: "Si vous voulez la bibliothèque d’apprentissage la plus complète, le pack complet vous donne accès aux 16 cours au même endroit. C’est le meilleur choix pour les étudiants, salariés, entrepreneurs, freelances, créateurs et dirigeants qui veulent une montée en compétence plus large.",
+          body: "Si vous voulez la bibliotheque d’apprentissage la plus complete, le pack complet vous donne acces aux 16 cours au meme endroit et debloque le buyer bonus complet. C’est le meilleur choix pour les etudiants, salaries, entrepreneurs, freelances, createurs et dirigeants qui veulent une montee en competence plus large.",
           viewLabel: "Voir le pack complet",
-          buyLabel: "Acheter le pack complet",
+          buyLabel: "Acheter le pack complet + bonus",
           highlights: [
             "16 cours",
             "Meilleure valeur",
-            "Bibliothèque complète",
-            "Recommandé pour un parcours large",
+            "Bibliotheque complete",
+            "Bundle bonus complet",
           ],
         }
       : {
           eyebrow: "Recommended offer",
           title: "The full pack remains the strongest option.",
-          body: "If you want the most complete learning library, the full pack gives you access to all 16 courses in one place. It is the best fit for students, workers, entrepreneurs, freelancers, creators, and business owners who want broader long-term skill growth.",
+          body: "If you want the most complete learning library, the full pack gives you access to all 16 courses in one place and unlocks the complete buyer bonus bundle. It is the best fit for students, workers, entrepreneurs, freelancers, creators, and business owners who want broader long-term skill growth.",
           viewLabel: "View Full Pack",
-          buyLabel: "Buy Full Pack",
+          buyLabel: "Buy Full Pack + Bonus",
           highlights: [
             "16 courses",
             "Best value",
             "Complete learning library",
-            "Recommended for broader growth",
+            "Complete bonus bundle",
           ],
         };
 

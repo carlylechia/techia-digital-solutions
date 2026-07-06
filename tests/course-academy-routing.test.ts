@@ -13,6 +13,12 @@ describe("course academy routing", () => {
     expect(getLocalizedAppPath("fr", "/courses")).toBe("/fr/cours");
   });
 
+  it("localizes the French buyer bonus page path", () => {
+    expect(getLocalizedAppPath("fr", "/courses/bonuses")).toBe(
+      "/fr/cours/bonus-officiels",
+    );
+  });
+
   it("localizes the French full-pack detail path", () => {
     expect(
       getLocalizedAppPath("fr", "/courses/complete-digital-skills-pack"),
@@ -23,6 +29,15 @@ describe("course academy routing", () => {
     expect(delocalizePublicPath("fr", "/cours/finance-education-marche")).toBe(
       "/courses/finance-market-education",
     );
+  });
+
+  it("maps French buyer bonus paths back to the internal bonuses route", () => {
+    expect(
+      delocalizePublicPath(
+        "fr",
+        "/cours/bonus-officiels/digital-skills-learning-roadmap/download",
+      ),
+    ).toBe("/courses/bonuses/digital-skills-learning-roadmap/download");
   });
 });
 

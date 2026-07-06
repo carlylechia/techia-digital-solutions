@@ -22,6 +22,7 @@ const legacyRouteMap: Record<string, { path: string; hash?: string }> = {
   "/portfolio": { path: "/about", hash: "portfolio-work" },
   "/demo-lab": { path: "/demo-lab" },
   "/courses": { path: "/courses" },
+  "/courses/bonuses": { path: "/courses/bonuses" },
   "/courses/complete-digital-skills-pack": {
     path: "/courses/complete-digital-skills-pack",
   },

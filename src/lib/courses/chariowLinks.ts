@@ -1,4 +1,5 @@
 import { whatsappLink } from "@/lib/email";
+import type { Locale } from "@/content/site";
 
 export const CHARIOW_CHECKOUT_ENV_KEYS = {
   fullPack: "NEXT_PUBLIC_CHARIOW_FULL_PACK_URL",
@@ -79,5 +80,44 @@ export function getCoursesSupportEmail() {
     cleanEnv(process.env.NEXT_PUBLIC_COURSES_SUPPORT_EMAIL) ||
     cleanEnv(process.env.OFFICIAL_EMAIL) ||
     cleanEnv(process.env.CONTACT_TO_EMAIL)
+  );
+}
+
+export function getCoursesBonusClaimMessage(locale: Locale) {
+  if (locale === "fr") {
+    return "Bonjour teChia, j'ai achete un pack de cours via la page officielle teChia Digital Academy et je veux reclamer mon Official Buyer Bonus. Voici ma confirmation de paiement Chariow.";
+  }
+
+  return "Hello teChia, I bought a course pack through the official teChia Digital Academy page and I want to claim my Official Buyer Bonus. Here is my Chariow payment confirmation.";
+}
+
+export function getCoursesBonusClaimUrl() {
+  return cleanEnv(process.env.NEXT_PUBLIC_COURSES_BONUS_CLAIM_URL);
+}
+
+export function getCoursesBonusClaimDestination(locale: Locale) {
+  const formUrl = getCoursesBonusClaimUrl();
+  if (formUrl) {
+    return {
+      href: formUrl,
+      channel: "form" as const,
+    };
+  }
+
+  const whatsappUrl = getCoursesWhatsappUrl(getCoursesBonusClaimMessage(locale));
+  if (whatsappUrl) {
+    return {
+      href: whatsappUrl,
+      channel: "whatsapp" as const,
+    };
+  }
+
+  return null;
+}
+
+export function publicBonusDownloadsEnabled() {
+  return (
+    cleanEnv(process.env.NEXT_PUBLIC_ENABLE_PUBLIC_BONUS_DOWNLOADS)
+      .toLowerCase() === "true"
   );
 }

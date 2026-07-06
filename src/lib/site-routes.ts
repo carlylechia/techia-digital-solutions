@@ -2,6 +2,7 @@ export type PublicLocale = "en" | "fr";
 
 const FRENCH_EXACT_PATH_ALIASES: Record<string, string> = {
   "/courses": "/cours",
+  "/courses/bonuses": "/cours/bonus-officiels",
   "/courses/digital-skills-pack": "/cours/pack-complet-competences-digitales",
   "/courses/complete-digital-skills-pack":
     "/cours/pack-complet-competences-digitales",
@@ -20,6 +21,17 @@ const FRENCH_REVERSE_PATH_ALIASES = Object.fromEntries(
     ([internalPath, publicPath]) => [publicPath, internalPath],
   ),
 ) as Record<string, string>;
+
+function findAliasMatch(
+  path: string,
+  aliases: Record<string, string>,
+): [string, string] | null {
+  const match = Object.entries(aliases)
+    .sort((a, b) => b[0].length - a[0].length)
+    .find(([alias]) => path === alias || path.startsWith(`${alias}/`));
+
+  return match || null;
+}
 
 function splitPathSuffix(path: string) {
   const match = path.match(/^([^?#]*)(.*)$/);
@@ -49,6 +61,13 @@ export function localizePublicPath(locale: PublicLocale, path = "") {
     return `${exactPath}${suffix}`;
   }
 
+  const nestedAlias = findAliasMatch(cleanPathname, FRENCH_EXACT_PATH_ALIASES);
+  if (nestedAlias) {
+    const [internalPath, publicPath] = nestedAlias;
+    const remainder = cleanPathname.slice(internalPath.length);
+    return `${publicPath}${remainder}${suffix}`;
+  }
+
   if (cleanPathname === "/courses") {
     return `/cours${suffix}`;
   }
@@ -72,6 +91,13 @@ export function delocalizePublicPath(locale: PublicLocale, path = "") {
   const internalPath = FRENCH_REVERSE_PATH_ALIASES[cleanPathname];
   if (internalPath) {
     return `${internalPath}${suffix}`;
+  }
+
+  const nestedAlias = findAliasMatch(cleanPathname, FRENCH_REVERSE_PATH_ALIASES);
+  if (nestedAlias) {
+    const [publicPath, internalBase] = nestedAlias;
+    const remainder = cleanPathname.slice(publicPath.length);
+    return `${internalBase}${remainder}${suffix}`;
   }
 
   if (cleanPathname === "/cours") {

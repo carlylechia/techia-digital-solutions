@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Mail, MessageCircle } from "lucide-react";
 import { notFound } from "next/navigation";
+import { BonusClaimButton } from "@/components/courses/BonusClaimButton";
+import { BuyerBonusSection } from "@/components/courses/BuyerBonusSection";
 import { CourseFaq } from "@/components/courses/CourseFaq";
 import { CourseHero } from "@/components/courses/CourseHero";
 import { CourseCheckoutButton } from "@/components/courses/CourseCheckoutButton";
-import { FullPackUpsell } from "@/components/courses/FullPackUpsell";
+import { FullPackBonusUpsell } from "@/components/courses/FullPackBonusUpsell";
 import { RelatedCoursePacks } from "@/components/courses/RelatedCoursePacks";
 import {
   CoursePageAnalytics,
@@ -15,6 +17,7 @@ import { JsonLd } from "@/components/ui/json-ld";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { isLocale, type Locale } from "@/content/site";
 import {
+  getCoursesBonusClaimDestination,
   getCoursesSupportEmail,
   getCoursesWhatsappUrl,
 } from "@/lib/courses/chariowLinks";
@@ -74,6 +77,7 @@ export default async function CoursePackDetailPage({
   const faqs = getCourseAcademyFaqs(locale);
   const steps = getCourseAcademySteps(locale);
   const supportEmail = getCoursesSupportEmail();
+  const bonusClaimDestination = getCoursesBonusClaimDestination(locale);
   const whatsappUrl = getCoursesWhatsappUrl(
     locale === "fr"
       ? `Bonjour teChia, je veux des informations sur le pack ${pack.title}.`
@@ -109,6 +113,14 @@ export default async function CoursePackDetailPage({
           coursePlural: "cours",
           packOverview: "Vue d’ensemble du pack",
           packLabel: "Pack teChia",
+          buyerBonusTitle: pack.recommended
+            ? "Bundle bonus exclusif du pack complet"
+            : "Votre achat inclut le Official teChia Buyer Bonus",
+          buyerBonusDescription: pack.recommended
+            ? "Achetez le pack complet 16 cours via la page officielle teChia Digital Academy et debloquez le bundle bonus complet, avec feuilles de route, templates pratiques, plan d'action 30 jours et support prioritaire pour les questions d'acces."
+            : "Quand vous achetez ce pack via la page officielle teChia Digital Academy, vous pouvez reclamer des ressources bonus comme la Digital Skills Learning Roadmap, le Skill Monetization Starter Guide et le Course Learning Tracker.",
+          buyerBonusClaim: "Reclamer le bonus acheteur",
+          buyerBonusBuyFullPack: "Acheter le pack complet + bonus",
         }
       : {
           heroDescription: pack.longDescription,
@@ -134,6 +146,14 @@ export default async function CoursePackDetailPage({
           coursePlural: "courses",
           packOverview: "Pack overview",
           packLabel: "teChia Pack",
+          buyerBonusTitle: pack.recommended
+            ? "Full Pack Exclusive Bonus Bundle"
+            : "Your purchase includes the Official teChia Buyer Bonus",
+          buyerBonusDescription: pack.recommended
+            ? "Buy the complete 16-course pack through the official teChia Digital Academy page and unlock the complete bonus bundle, including learning roadmaps, practical templates, a 30-day action plan, and priority buyer support for access-related issues."
+            : "When you buy this pack through the official teChia Digital Academy page, you can claim bonus resources such as the Digital Skills Learning Roadmap, Skill Monetization Starter Guide, and Course Learning Tracker.",
+          buyerBonusClaim: "Claim Buyer Bonus",
+          buyerBonusBuyFullPack: "Buy Full Pack + Claim Bonus",
         };
 
   return (
@@ -347,6 +367,52 @@ export default async function CoursePackDetailPage({
         </div>
       </section>
 
+      <BuyerBonusSection
+        locale={locale}
+        title={copy.buyerBonusTitle}
+        description={copy.buyerBonusDescription}
+        sourcePage="course_pack_bonus_section"
+        pack={pack}
+        claimHref={bonusClaimDestination?.href}
+        claimChannel={bonusClaimDestination?.channel ?? null}
+        actions={
+          pack.recommended ? (
+            <>
+              <CourseCheckoutButton
+                pack={pack}
+                label={copy.buyerBonusBuyFullPack}
+                sourcePage="course_pack_bonus_section"
+              />
+              <BonusClaimButton
+                href={bonusClaimDestination?.href}
+                channel={bonusClaimDestination?.channel ?? null}
+                label={copy.buyerBonusClaim}
+                sourcePage="course_pack_bonus_section"
+                packId={pack.id}
+                packSlug={pack.slug}
+                packTitle={pack.title}
+                eligibility="full-pack"
+                className="w-full sm:w-auto"
+                variant="secondary"
+              />
+            </>
+          ) : (
+            <BonusClaimButton
+              href={bonusClaimDestination?.href}
+              channel={bonusClaimDestination?.channel ?? null}
+              label={copy.buyerBonusClaim}
+              sourcePage="course_pack_bonus_section"
+              packId={pack.id}
+              packSlug={pack.slug}
+              packTitle={pack.title}
+              eligibility="all-buyers"
+              className="w-full sm:w-auto"
+              variant="secondary"
+            />
+          )
+        }
+      />
+
       <section className="container py-4 sm:py-6">
         <div className="gradient-border rounded-[1.95rem]">
           <div className="elevated-panel p-6 sm:p-7 md:p-8">
@@ -369,7 +435,7 @@ export default async function CoursePackDetailPage({
       </section>
 
       {!pack.recommended && fullPack ? (
-        <FullPackUpsell
+        <FullPackBonusUpsell
           locale={locale}
           fullPack={fullPack}
           sourcePage="course_pack_detail"
