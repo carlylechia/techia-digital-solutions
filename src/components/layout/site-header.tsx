@@ -54,14 +54,13 @@ export function SiteHeader({
   const scrollHintActionLabel =
     locale === "fr" ? "Faire défiler la navigation" : "Scroll navigation";
   const coreNavOrder = [
-    { href: getLocalizedHref(locale, "/founder"), label: dict.nav.founder },
+    { href: getLocalizedHref(locale, "/services"), label: dict.nav.services },
+    { href: getLocalizedHref(locale, "/courses"), label: dict.nav.courses },
     { href: getLocalizedHref(locale, "/demo-lab"), label: dict.nav.demoLab },
-    { href: "/client-portal", label: dict.nav.clientPortal },
     {
       href: getLocalizedHref(locale, "/ai-consultant"),
       label: dict.nav.aiConsultant,
     },
-    { href: getLocalizedHref(locale, "/services"), label: dict.nav.services },
     { href: getLocalizedHref(locale, "/about"), label: dict.nav.about },
     { href: getLocalizedHref(locale, "/contact"), label: dict.nav.contact },
   ] as const;

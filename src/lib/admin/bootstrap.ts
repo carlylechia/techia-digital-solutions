@@ -4,17 +4,12 @@ import { DEFAULT_ADMIN_ROLES } from "./permissions";
 let bootstrapped = false;
 
 const DEFAULT_NAV_ITEMS = [
-  { labelEn: "Founder", labelFr: "Fondateur", href: "/founder", position: 0 },
+  { labelEn: "Services", labelFr: "Services", href: "/services", position: 0 },
+  { labelEn: "Courses", labelFr: "Cours", href: "/courses", position: 1 },
   {
     labelEn: "Demo Lab",
     labelFr: "Espace démo",
     href: "/demo-lab",
-    position: 1,
-  },
-  {
-    labelEn: "Client Portal",
-    labelFr: "Portail client",
-    href: "/client-portal",
     position: 2,
   },
   {
@@ -23,9 +18,15 @@ const DEFAULT_NAV_ITEMS = [
     href: "/ai-consultant",
     position: 3,
   },
-  { labelEn: "Services", labelFr: "Services", href: "/services", position: 4 },
-  { labelEn: "About", labelFr: "À propos", href: "/about", position: 5 },
-  { labelEn: "Contact", labelFr: "Contact", href: "/contact", position: 6 },
+  { labelEn: "About", labelFr: "À propos", href: "/about", position: 4 },
+  { labelEn: "Contact", labelFr: "Contact", href: "/contact", position: 5 },
+  { labelEn: "Founder", labelFr: "Fondateur", href: "/founder", position: 6 },
+  {
+    labelEn: "Client Portal",
+    labelFr: "Portail client",
+    href: "/client-portal",
+    position: 7,
+  },
 ];
 
 export async function ensureDefaultAdminRoles(prisma: PrismaClient) {

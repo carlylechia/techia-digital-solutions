@@ -1,3 +1,5 @@
+import { getLocalizedAppPath } from "@/lib/site-routes";
+
 export const locales = ["en", "fr"] as const;
 export type Locale = (typeof locales)[number];
 
@@ -34,9 +36,14 @@ export const siteConfig = {
   name: "teChia Digital Solutions",
   shortName: "teChia",
   url: normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL),
-  email: process.env.NEXT_PUBLIC_OFFICIAL_EMAIL || process.env.OFFICIAL_EMAIL || "",
-  whatsapp: process.env.NEXT_PUBLIC_OFFICIAL_WHATSAPP || process.env.OFFICIAL_WHATSAPP || "",
-  phone: process.env.NEXT_PUBLIC_OFFICIAL_CALL || process.env.OFFICIAL_CALL || "",
+  email:
+    process.env.NEXT_PUBLIC_OFFICIAL_EMAIL || process.env.OFFICIAL_EMAIL || "",
+  whatsapp:
+    process.env.NEXT_PUBLIC_OFFICIAL_WHATSAPP ||
+    process.env.OFFICIAL_WHATSAPP ||
+    "",
+  phone:
+    process.env.NEXT_PUBLIC_OFFICIAL_CALL || process.env.OFFICIAL_CALL || "",
   location: "Douala, Cameroon — serving Africa and international SMEs",
   socials: {
     linkedin: "https://www.linkedin.com/company/techia-digital-solutions",
@@ -59,6 +66,7 @@ export const routeLabels = {
     industries: "Industries",
     portfolio: "Portfolio",
     demoLab: "Demo Lab",
+    courses: "Courses",
     pricing: "Pricing",
     blog: "Blog",
     contact: "Contact",
@@ -75,6 +83,7 @@ export const routeLabels = {
     industries: "Secteurs",
     portfolio: "Réalisations",
     demoLab: "Espace démo",
+    courses: "Cours",
     pricing: "Offres",
     blog: "Blog",
     contact: "Contact",
@@ -1275,7 +1284,8 @@ export const dictionaries = {
         caseTitle: "Réalisations sélectionnées",
         caseDescription:
           "Des projets choisis qui montrent comment teChia transforme un besoin métier en site premium, outil concret et meilleur parcours client.",
-        methodTitle: "Comment teChia mène un projet de l’idée jusqu’au lancement.",
+        methodTitle:
+          "Comment teChia mène un projet de l’idée jusqu’au lancement.",
         stackTitle: "Stack moderne. Ingénierie sereine.",
         securityTitle: "Des signaux de confiance intégrés dès le départ.",
         pricingTitle: "Choisissez un point de départ, pas un forfait rigide.",
@@ -1928,7 +1938,7 @@ export function getLocalizedHref(locale: Locale, path = "") {
   ) {
     return normalized;
   }
-  return `/${locale}${normalized === "/" ? "" : normalized}`;
+  return getLocalizedAppPath(locale, normalized);
 }
 
 export function getLocalizedSectionHref(
@@ -1948,5 +1958,9 @@ export function getSolutionHrefPath(slug: string) {
 }
 
 export function getLocalizedSolutionHref(locale: Locale, slug: string) {
-  return getLocalizedSectionHref(locale, "/services", getSolutionSectionId(slug));
+  return getLocalizedSectionHref(
+    locale,
+    "/services",
+    getSolutionSectionId(slug),
+  );
 }

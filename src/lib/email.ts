@@ -156,7 +156,16 @@ export async function sendDemoRequestNotification(data: {
 }
 
 export async function sendOutboundEmail(options: {
-  to: string; subject: string; body: string; from?: string; replyTo?: string;
+  to: string;
+  subject: string;
+  body: string;
+  from?: string;
+  replyTo?: string;
+  attachments?: Array<{
+    filename: string;
+    content: string | Buffer;
+    contentType?: string;
+  }>;
 }) {
   const resend = getResend();
   const info = officialInfo();
@@ -175,7 +184,12 @@ export async function sendOutboundEmail(options: {
     to: options.to,
     replyTo: options.replyTo || info.replyTo,
     subject: options.subject,
-    html
+    html,
+    attachments: options.attachments?.map((attachment) => ({
+      filename: attachment.filename,
+      content: attachment.content,
+      contentType: attachment.contentType,
+    })),
   });
 
   if (error) {
@@ -192,6 +206,43 @@ export async function sendOutboundEmail(options: {
 
   console.info("[email] sendOutboundEmail delivered", { id: data?.id, to: options.to, subject: options.subject });
   return { skipped: false, id: data?.id };
+}
+
+export async function sendCourseBonusClaimNotification(data: {
+  buyerName: string;
+  buyerEmail: string;
+  buyerWhatsapp?: string | null;
+  coursePackTitle: string;
+  orderReference: string;
+  requestedBonusTitles: string[];
+  preferredDelivery: string;
+  proofNotes?: string | null;
+  proofUrl?: string | null;
+}) {
+  const content = `
+    <p style="color:#94a3b8;font-size:14px;margin:0 0 16px;">A new course bonus claim was submitted and is ready for admin review.</p>
+    ${infoTable([
+      ["Buyer", data.buyerName],
+      ["Email", data.buyerEmail],
+      ["WhatsApp", data.buyerWhatsapp],
+      ["Pack", data.coursePackTitle],
+      ["Order ref", data.orderReference],
+      ["Delivery", data.preferredDelivery],
+    ])}
+    <div style="background:#0a0a0f;border:1px solid #1e1e2e;border-radius:12px;padding:20px;margin:16px 0;">
+      <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Requested bonus files</p>
+      <p style="margin:0;font-size:14px;color:#e2e8f0;line-height:1.7;">${data.requestedBonusTitles.join("<br />")}</p>
+    </div>
+    ${data.proofNotes ? `<div style="background:#0a0a0f;border:1px solid #1e1e2e;border-radius:12px;padding:20px;margin:16px 0;">
+      <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Proof notes</p>
+      <p style="margin:0;font-size:14px;color:#e2e8f0;white-space:pre-wrap;line-height:1.7;">${data.proofNotes}</p>
+    </div>` : ""}
+    ${data.proofUrl ? `<p style="margin:16px 0 0;"><a href="${data.proofUrl}" style="background:#06b6d4;color:#0a0a0f;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">View uploaded proof</a></p>` : ""}
+  `;
+  return sendLeadEmail(
+    `New academy bonus claim from ${data.buyerName} · teChia`,
+    baseHtml(content, `Course bonus claim: ${data.buyerName}`),
+  );
 }
 
 export function whatsappLink(number: string, message?: string) {

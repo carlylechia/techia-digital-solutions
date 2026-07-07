@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { getLocalizedAppPath } from "@/lib/site-routes";
 import {
   dictionaries,
   europeLandingPages,
@@ -13,6 +14,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/founder",
     "/services",
     "/demo-lab",
+    "/courses",
+    "/courses/bonuses",
+    "/courses/claim-bonus",
+    "/courses/complete-digital-skills-pack",
+    "/courses/digital-marketing-online-business",
+    "/courses/creative-design-content-creation",
+    "/courses/ai-tech-programming",
+    "/courses/office-business-professional-skills",
+    "/courses/finance-market-education",
     "/pricing",
     "/blog",
     "/contact",
@@ -32,7 +42,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       ...dict.blog.map((item) => `/blog/${item.slug}`),
       ...europeLandingPages.map((item) => `/${item.slug}`),
     ].map((path) => ({
-      url: `${siteConfig.url}/${locale}${path}`,
+      url: `${siteConfig.url}${getLocalizedAppPath(locale, path)}`,
       lastModified: new Date(),
       changeFrequency: "monthly" as const,
       priority: 0.7,
@@ -41,7 +51,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     ...locales.flatMap((locale) =>
       base.map((path) => ({
-        url: `${siteConfig.url}/${locale}${path}`,
+        url: `${siteConfig.url}${getLocalizedAppPath(locale, path)}`,
         lastModified: new Date(),
         changeFrequency: "weekly" as const,
         priority: path === "" ? 1 : 0.8,

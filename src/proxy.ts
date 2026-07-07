@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  delocalizePublicPath,
+  getLocalizedAppPath,
+  localizePublicPath,
+} from "@/lib/site-routes";
 
 const locales = ["en", "fr"] as const;
 type Locale = (typeof locales)[number];
@@ -16,6 +21,30 @@ const legacyRouteMap: Record<string, { path: string; hash?: string }> = {
   "/industries": { path: "/services", hash: "industry-focus" },
   "/portfolio": { path: "/about", hash: "portfolio-work" },
   "/demo-lab": { path: "/demo-lab" },
+  "/courses": { path: "/courses" },
+  "/courses/bonuses": { path: "/courses/bonuses" },
+  "/courses/claim-bonus": { path: "/courses/claim-bonus" },
+  "/courses/complete-digital-skills-pack": {
+    path: "/courses/complete-digital-skills-pack",
+  },
+  "/courses/digital-marketing-online-business": {
+    path: "/courses/digital-marketing-online-business",
+  },
+  "/courses/creative-design-content-creation": {
+    path: "/courses/creative-design-content-creation",
+  },
+  "/courses/ai-tech-programming": {
+    path: "/courses/ai-tech-programming",
+  },
+  "/courses/office-business-professional-skills": {
+    path: "/courses/office-business-professional-skills",
+  },
+  "/courses/finance-market-education": {
+    path: "/courses/finance-market-education",
+  },
+  "/courses/digital-skills-pack": {
+    path: "/courses/complete-digital-skills-pack",
+  },
   "/pricing": { path: "/pricing" },
   "/blog": { path: "/blog" },
   "/contact": { path: "/contact" },
@@ -58,6 +87,26 @@ export function proxy(request: NextRequest) {
 
   const segments = pathname.split("/").filter(Boolean);
   if (segments.length > 0 && isLocale(segments[0])) {
+    const locale = segments[0];
+    const localizedRemainder = pathname.slice(`/${locale}`.length) || "/";
+
+    if (locale === "fr") {
+      const internalPath = delocalizePublicPath(locale, localizedRemainder);
+      const canonicalPublicPath = localizePublicPath(locale, internalPath);
+
+      if (localizedRemainder !== canonicalPublicPath) {
+        const url = request.nextUrl.clone();
+        url.pathname = getLocalizedAppPath(locale, internalPath);
+        return NextResponse.redirect(url);
+      }
+
+      if (localizedRemainder !== internalPath) {
+        const url = request.nextUrl.clone();
+        url.pathname = `/${locale}${internalPath === "/" ? "" : internalPath}`;
+        return NextResponse.rewrite(url);
+      }
+    }
+
     return NextResponse.next();
   }
 

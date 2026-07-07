@@ -90,3 +90,33 @@ export const demoLabRequestSchema = z.object({
   consent: z.boolean().refine(Boolean, "Consent is required to submit this form."),
   honeypot
 });
+
+export const courseBonusClaimSchema = z
+  .object({
+    name: shortText,
+    email,
+    whatsapp: optionalPhone,
+    coursePackId: z.string().trim().min(1).max(120),
+    orderReference: z.string().trim().min(3).max(240),
+    purchaseDate: z
+      .string()
+      .trim()
+      .max(40)
+      .optional()
+      .or(z.literal("")),
+    proofNotes: z.string().trim().max(3000).optional().or(z.literal("")),
+    preferredDelivery: z.enum(["EMAIL", "WHATSAPP", "BOTH"]).default("EMAIL"),
+    requestedBonusIds: z.array(z.string().trim().min(1).max(120)).default([]),
+    sourcePage: z.string().trim().max(120).optional().or(z.literal("")),
+    locale,
+    honeypot,
+  })
+  .superRefine((data, ctx) => {
+    if ((data.preferredDelivery === "WHATSAPP" || data.preferredDelivery === "BOTH") && !data.whatsapp) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["whatsapp"],
+        message: "WhatsApp is required for WhatsApp delivery.",
+      });
+    }
+  });
