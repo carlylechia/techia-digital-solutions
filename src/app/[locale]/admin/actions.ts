@@ -5,6 +5,16 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { ADMIN_PERMISSIONS, normalizePermissions } from "@/lib/admin/permissions";
 import { requireAdmin, writeAuditLog } from "@/lib/admin/session";
+import {
+  bonusDeliveryBaseUrlIsLocal,
+  buildBonusClaimWhatsappUrl,
+  buildBonusDeliveryBundleLinks,
+  buildBonusDeliveryEmailBody,
+  buildBonusDeliveryWhatsappMessage,
+  normalizeRequestedBonusIds,
+  resolveClaimLocale,
+} from "@/lib/courses/bonusClaims";
+import { readBuyerBonusResource } from "@/lib/courses/bonusResources";
 import { getPrisma } from "@/lib/prisma";
 import { sanitizeText } from "@/lib/sanitize";
 import { hashPassword } from "@/lib/password";
@@ -18,6 +28,13 @@ const projectStatusSchema = z.enum(["PLANNED", "ACTIVE", "REVIEW", "ON_HOLD", "D
 const contentStatusSchema = z.enum(["DRAFT", "IN_REVIEW", "PUBLISHED", "ARCHIVED"]);
 const processStatusSchema = z.enum(["ACTIVE", "PAUSED", "ARCHIVED"]);
 const feedbackStatusSchema = z.enum(["PENDING", "APPROVED", "REJECTED", "ARCHIVED"]);
+const courseBonusClaimStatusSchema = z.enum([
+  "SUBMITTED",
+  "UNDER_REVIEW",
+  "VERIFIED",
+  "FULFILLED",
+  "REJECTED",
+] as const);
 
 const optionalText = z.string().trim().max(5000).optional().or(z.literal(""));
 const shortText = z.string().trim().min(2).max(180);
@@ -345,6 +362,11 @@ function revalidateAdmin(locale: "en" | "fr") {
   revalidatePath(`/${locale}/admin`);
 }
 
+function revalidateAdminBonusClaims(locale: "en" | "fr") {
+  revalidateAdmin(locale);
+  revalidatePath(`/${locale}/admin/bonus-claims`);
+}
+
 function revalidatePublicShowcase() {
   for (const locale of ["en", "fr"] as const) {
     revalidatePath(`/${locale}`);
@@ -357,6 +379,102 @@ function requireDatabase() {
   const prisma = getPrisma();
   if (!prisma) throw new Error("Database unavailable");
   return prisma;
+}
+
+const courseBonusClaimReviewSchema = z.object({
+  locale: localeSchema,
+  claimId: z.string().min(1),
+  status: courseBonusClaimStatusSchema,
+  adminNotes: optionalText,
+});
+
+const courseBonusClaimActionSchema = z.object({
+  locale: localeSchema,
+  claimId: z.string().min(1),
+});
+
+async function loadCourseBonusClaimDeliveryPayload(
+  prisma: PrismaClient,
+  claimId: string,
+) {
+  if (bonusDeliveryBaseUrlIsLocal()) {
+    throw new Error(
+      "Bonus delivery links are still using localhost. Set NEXT_PUBLIC_SITE_URL to a public domain or tunnel URL before sending to buyers.",
+    );
+  }
+
+  const claim = await prisma.courseBonusClaim.findUnique({
+    where: { id: claimId },
+    select: {
+      id: true,
+      locale: true,
+      name: true,
+      email: true,
+      whatsapp: true,
+      coursePackId: true,
+      coursePackTitle: true,
+      requestedBonusIds: true,
+      preferredDelivery: true,
+      status: true,
+      verifiedAt: true,
+      verifiedById: true,
+      fulfilledAt: true,
+      fulfilledById: true,
+    },
+  });
+
+  if (!claim) throw new Error("Bonus claim not found.");
+  if (claim.status === "REJECTED") {
+    throw new Error("Rejected bonus claims cannot be delivered.");
+  }
+
+  const locale = resolveClaimLocale(claim.locale);
+  const bonusIds = normalizeRequestedBonusIds(
+    claim.coursePackId,
+    claim.requestedBonusIds,
+  );
+  const bonusItems = buildBonusDeliveryBundleLinks(claim.id, bonusIds, locale);
+
+  if (!bonusItems.length) {
+    throw new Error("No deliverable bonus files were configured for this claim.");
+  }
+
+  const attachmentResults = await Promise.all(
+    bonusIds.map(async (bonusId) => {
+      const resource = await readBuyerBonusResource(bonusId);
+      if (!resource) return null;
+      return {
+        filename: resource.filename,
+        content: resource.content,
+        contentType: resource.contentType,
+      };
+    }),
+  );
+  const attachments = attachmentResults.filter(
+    (
+      resource,
+    ): resource is NonNullable<(typeof attachmentResults)[number]> =>
+      resource !== null,
+  );
+
+  if (!attachments.length) {
+    throw new Error("No bonus resource files were found for this claim.");
+  }
+  if (attachments.length !== bonusItems.length) {
+    throw new Error(
+      "One or more requested bonus resource files are missing from the repo.",
+    );
+  }
+
+  return {
+    claim,
+    locale,
+    bonusIds,
+    bonusItems,
+    attachments,
+    includesFullPackExtras:
+      claim.coursePackId === "complete-digital-skills-pack",
+  };
 }
 
 export async function updateRequestStatusAction(formData: FormData) {
@@ -1549,6 +1667,254 @@ export async function getWhatsappLinkAction(
   if (!/^\d{7,15}$/.test(clean)) throw new Error("Invalid phone number for WhatsApp");
   const encoded = message ? `?text=${encodeURIComponent(message)}` : "";
   return `https://wa.me/${clean}${encoded}`;
+}
+
+// ── Academy Bonus Claims ─────────────────────────────────────────────────────
+
+export async function saveCourseBonusClaimReviewAction(input: {
+  locale: "en" | "fr";
+  claimId: string;
+  status: "SUBMITTED" | "UNDER_REVIEW" | "VERIFIED" | "FULFILLED" | "REJECTED";
+  adminNotes?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const actor = await requireAdmin("requests.manage");
+    const prisma = requireDatabase();
+    const data = courseBonusClaimReviewSchema.parse(input);
+    const existing = await prisma.courseBonusClaim.findUnique({
+      where: { id: data.claimId },
+      select: {
+        id: true,
+        status: true,
+        verifiedAt: true,
+        verifiedById: true,
+        fulfilledAt: true,
+        fulfilledById: true,
+      },
+    });
+
+    if (!existing) throw new Error("Bonus claim not found.");
+
+    const now = new Date();
+    const nextStatus = data.status;
+    const nextData =
+      nextStatus === "VERIFIED"
+        ? {
+            status: nextStatus,
+            adminNotes: nullable(data.adminNotes),
+            verifiedAt: existing.verifiedAt || now,
+            verifiedById: existing.verifiedById || actor.id,
+            fulfilledAt: null,
+            fulfilledById: null,
+          }
+        : nextStatus === "FULFILLED"
+          ? {
+              status: nextStatus,
+              adminNotes: nullable(data.adminNotes),
+              verifiedAt: existing.verifiedAt || now,
+              verifiedById: existing.verifiedById || actor.id,
+              fulfilledAt: existing.fulfilledAt || now,
+              fulfilledById: existing.fulfilledById || actor.id,
+            }
+          : {
+              status: nextStatus,
+              adminNotes: nullable(data.adminNotes),
+              verifiedAt: null,
+              verifiedById: null,
+              fulfilledAt: null,
+              fulfilledById: null,
+            };
+
+    await prisma.courseBonusClaim.update({
+      where: { id: data.claimId },
+      data: nextData,
+    });
+
+    await writeAuditLog({
+      actorId: actor.id,
+      action: "course_bonus_claim.review_saved",
+      entityType: "CourseBonusClaim",
+      entityId: data.claimId,
+      metadata: { status: nextStatus },
+    });
+    revalidateAdminBonusClaims(data.locale);
+    return { success: true };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to save bonus claim review.";
+    console.error("[admin] saveCourseBonusClaimReviewAction failed", {
+      message,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return { success: false, error: message };
+  }
+}
+
+export async function verifyCourseBonusClaimAction(input: {
+  locale: "en" | "fr";
+  claimId: string;
+  adminNotes?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  return saveCourseBonusClaimReviewAction({
+    locale: input.locale,
+    claimId: input.claimId,
+    status: "VERIFIED",
+    adminNotes: input.adminNotes,
+  });
+}
+
+export async function sendCourseBonusClaimEmailAction(input: {
+  locale: "en" | "fr";
+  claimId: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const actor = await requireAdmin("requests.manage");
+    const prisma = requireDatabase();
+    const data = courseBonusClaimActionSchema.parse(input);
+    const payload = await loadCourseBonusClaimDeliveryPayload(prisma, data.claimId);
+    const subject =
+      payload.locale === "fr"
+        ? `Vos documents bonus teChia sont prets - ${payload.claim.coursePackTitle}`
+        : `Your teChia bonus files are ready - ${payload.claim.coursePackTitle}`;
+    const body = buildBonusDeliveryEmailBody({
+      locale: payload.locale,
+      buyerName: payload.claim.name,
+      coursePackTitle: payload.claim.coursePackTitle,
+      bonusItems: payload.bonusItems,
+    });
+    const { sendOutboundEmail } = await import("@/lib/email");
+
+    await sendOutboundEmail({
+      to: payload.claim.email,
+      subject,
+      body,
+      attachments: payload.attachments,
+    });
+
+    const now = new Date();
+    await prisma.$transaction([
+      prisma.courseBonusClaim.update({
+        where: { id: payload.claim.id },
+        data: {
+          status: "FULFILLED",
+          verifiedAt: payload.claim.verifiedAt || now,
+          verifiedById: payload.claim.verifiedById || actor.id,
+          fulfilledAt: now,
+          fulfilledById: actor.id,
+        },
+      }),
+      prisma.courseBonusClaimDelivery.create({
+        data: {
+          claimId: payload.claim.id,
+          channel: "EMAIL",
+          sentTo: payload.claim.email,
+          bonusIds: payload.bonusIds,
+          subject,
+          message: body,
+          sentById: actor.id,
+        },
+      }),
+    ]);
+
+    await writeAuditLog({
+      actorId: actor.id,
+      action: "course_bonus_claim.email_sent",
+      entityType: "CourseBonusClaim",
+      entityId: payload.claim.id,
+      metadata: { bonusIds: payload.bonusIds, to: payload.claim.email },
+    });
+    revalidateAdminBonusClaims(data.locale);
+    return { success: true };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to send bonus email.";
+    console.error("[admin] sendCourseBonusClaimEmailAction failed", {
+      message,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return { success: false, error: message };
+  }
+}
+
+export async function prepareCourseBonusClaimWhatsappAction(input: {
+  locale: "en" | "fr";
+  claimId: string;
+}): Promise<{ success: boolean; error?: string; url?: string }> {
+  try {
+    const actor = await requireAdmin("requests.manage");
+    const prisma = requireDatabase();
+    const data = courseBonusClaimActionSchema.parse(input);
+    const payload = await loadCourseBonusClaimDeliveryPayload(prisma, data.claimId);
+
+    if (!payload.claim.whatsapp) {
+      throw new Error("No WhatsApp number is stored for this buyer.");
+    }
+    if (!/^\d{7,15}$/.test(payload.claim.whatsapp.replace(/\D/g, ""))) {
+      throw new Error("The stored WhatsApp number is invalid.");
+    }
+
+    const message = buildBonusDeliveryWhatsappMessage({
+      locale: payload.locale,
+      buyerName: payload.claim.name,
+      coursePackTitle: payload.claim.coursePackTitle,
+      includesFullPackExtras: payload.includesFullPackExtras,
+      bonusItems: payload.bonusItems,
+    });
+    const url = buildBonusClaimWhatsappUrl({
+      locale: payload.locale,
+      toNumber: payload.claim.whatsapp,
+      buyerName: payload.claim.name,
+      coursePackTitle: payload.claim.coursePackTitle,
+      includesFullPackExtras: payload.includesFullPackExtras,
+      bonusItems: payload.bonusItems,
+    });
+
+    const now = new Date();
+    await prisma.$transaction([
+      prisma.courseBonusClaim.update({
+        where: { id: payload.claim.id },
+        data: {
+          status:
+            payload.claim.status === "FULFILLED"
+              ? "FULFILLED"
+              : "VERIFIED",
+          verifiedAt: payload.claim.verifiedAt || now,
+          verifiedById: payload.claim.verifiedById || actor.id,
+        },
+      }),
+      prisma.courseBonusClaimDelivery.create({
+        data: {
+          claimId: payload.claim.id,
+          channel: "WHATSAPP",
+          sentTo: payload.claim.whatsapp,
+          bonusIds: payload.bonusIds,
+          subject: "WhatsApp delivery draft",
+          message,
+          sentById: actor.id,
+        },
+      }),
+    ]);
+
+    await writeAuditLog({
+      actorId: actor.id,
+      action: "course_bonus_claim.whatsapp_prepared",
+      entityType: "CourseBonusClaim",
+      entityId: payload.claim.id,
+      metadata: { bonusIds: payload.bonusIds, to: payload.claim.whatsapp },
+    });
+    revalidateAdminBonusClaims(data.locale);
+    return { success: true, url };
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to prepare WhatsApp delivery.";
+    console.error("[admin] prepareCourseBonusClaimWhatsappAction failed", {
+      message,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return { success: false, error: message };
+  }
 }
 
 // ── Auto-add task to delivery board on project creation ───────────────────────

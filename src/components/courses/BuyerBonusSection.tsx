@@ -55,7 +55,7 @@ export function BuyerBonusSection({
   const bonuses = getBuyerBonusItems(locale).filter((item) =>
     shouldRenderBonusCard(item, includeFutureUpdates),
   );
-  const claimFormUrl = getCoursesBonusClaimUrl();
+  const claimFormUrl = getCoursesBonusClaimUrl(locale);
   const bonusWhatsappUrl = getCoursesWhatsappUrl(
     getCoursesBonusClaimMessage(locale),
   );

@@ -24,7 +24,7 @@ export async function GET(
   return new NextResponse(resource.content, {
     status: 200,
     headers: {
-      "content-type": "text/markdown; charset=utf-8",
+      "content-type": resource.contentType,
       "content-disposition": `attachment; filename="${resource.filename}"`,
       "cache-control": "public, max-age=3600",
     },

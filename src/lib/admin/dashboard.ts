@@ -176,6 +176,8 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
     adminCount,
     feedbackCount,
     pendingFeedbackCount,
+    bonusClaimCount,
+    pendingBonusClaimCount,
     leadStatuses,
     contactStatuses,
     demoStatuses,
@@ -207,6 +209,10 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
     prisma.adminUser.count(),
     prisma.customerFeedback.count(),
     prisma.customerFeedback.count({ where: { status: "PENDING" } }),
+    prisma.courseBonusClaim.count(),
+    prisma.courseBonusClaim.count({
+      where: { status: { in: ["SUBMITTED", "UNDER_REVIEW", "VERIFIED"] } },
+    }),
     prisma.lead.groupBy({ by: ["status"], _count: { status: true } }),
     prisma.contactMessage.groupBy({ by: ["status"], _count: { status: true } }),
     prisma.demoRequest.groupBy({ by: ["status"], _count: { status: true } }),
@@ -375,7 +381,9 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
       tasks: taskCount,
       admins: adminCount,
       feedback: feedbackCount,
-      pendingFeedback: pendingFeedbackCount
+      pendingFeedback: pendingFeedbackCount,
+      bonusClaims: bonusClaimCount,
+      pendingBonusClaims: pendingBonusClaimCount,
     },
     statusCounts: {
       lead: toCounts(leadStatuses),

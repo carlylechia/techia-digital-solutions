@@ -12,6 +12,7 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
+    "generate:bonus-pdfs": "node scripts/generate-course-bonus-pdfs.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",

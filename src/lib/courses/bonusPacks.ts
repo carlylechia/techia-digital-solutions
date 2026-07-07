@@ -41,7 +41,7 @@ const BONUS_DEFINITIONS: BonusDefinition[] = [
     id: "digital-skills-learning-roadmap",
     eligibility: "all-buyers",
     type: "guide",
-    filePath: "src/content/courses/bonuses/digital-skills-learning-roadmap.md",
+    filePath: "src/content/courses/bonuses/pdf/digital-skills-learning-roadmap.pdf",
     iconKey: "roadmap",
     copy: {
       en: {
@@ -60,7 +60,7 @@ const BONUS_DEFINITIONS: BonusDefinition[] = [
     id: "skill-monetization-starter-guide",
     eligibility: "all-buyers",
     type: "guide",
-    filePath: "src/content/courses/bonuses/skill-monetization-starter-guide.md",
+    filePath: "src/content/courses/bonuses/pdf/skill-monetization-starter-guide.pdf",
     iconKey: "monetization",
     copy: {
       en: {
@@ -79,7 +79,7 @@ const BONUS_DEFINITIONS: BonusDefinition[] = [
     id: "course-learning-tracker",
     eligibility: "all-buyers",
     type: "template",
-    filePath: "src/content/courses/bonuses/course-learning-tracker.md",
+    filePath: "src/content/courses/bonuses/pdf/course-learning-tracker.pdf",
     iconKey: "tracker",
     copy: {
       en: {
@@ -99,7 +99,7 @@ const BONUS_DEFINITIONS: BonusDefinition[] = [
     eligibility: "full-pack",
     type: "template",
     filePath:
-      "src/content/courses/bonuses/business-digital-checkup-template.md",
+      "src/content/courses/bonuses/pdf/business-digital-checkup-template.pdf",
     iconKey: "checkup",
     copy: {
       en: {
@@ -119,7 +119,7 @@ const BONUS_DEFINITIONS: BonusDefinition[] = [
     eligibility: "full-pack",
     type: "guide",
     filePath:
-      "src/content/courses/bonuses/thirty-day-digital-skills-action-plan.md",
+      "src/content/courses/bonuses/pdf/thirty-day-digital-skills-action-plan.pdf",
     iconKey: "action-plan",
     copy: {
       en: {
@@ -193,6 +193,15 @@ export function getBuyerBonusItems(locale: Locale) {
       ? getLocalizedAppPath(locale, `/courses/bonuses/${item.id}/download`)
       : undefined,
   }));
+}
+
+export function getBuyerBonusItemsByIds(locale: Locale, ids: readonly string[]) {
+  const lookup = new Set(ids);
+  return getBuyerBonusItems(locale).filter((item) => lookup.has(item.id));
+}
+
+export function getDeliverableBuyerBonusItems(locale: Locale) {
+  return getBuyerBonusItems(locale).filter((item) => Boolean(item.filePath));
 }
 
 export function getStandardBuyerBonusItems(locale: Locale) {

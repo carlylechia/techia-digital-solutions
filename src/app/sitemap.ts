@@ -16,6 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/demo-lab",
     "/courses",
     "/courses/bonuses",
+    "/courses/claim-bonus",
     "/courses/complete-digital-skills-pack",
     "/courses/digital-marketing-online-business",
     "/courses/creative-design-content-creation",

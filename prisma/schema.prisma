@@ -73,6 +73,25 @@ enum FeedbackStatus {
   ARCHIVED
 }
 
+enum CourseBonusClaimStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  VERIFIED
+  FULFILLED
+  REJECTED
+}
+
+enum BonusDeliveryChannel {
+  EMAIL
+  WHATSAPP
+}
+
+enum BonusDeliveryPreference {
+  EMAIL
+  WHATSAPP
+  BOTH
+}
+
 model Lead {
   id                String           @id @default(cuid())
   name              String
@@ -250,6 +269,9 @@ model AdminUser {
   portalReplies    PortalMessageReply[]
   portalFiles      PortalFile[]
   portalPayments   PortalPayment[]       @relation("PaymentCreatedBy")
+  verifiedBonusClaims  CourseBonusClaim[]        @relation("VerifiedBonusClaims")
+  fulfilledBonusClaims CourseBonusClaim[]        @relation("FulfilledBonusClaims")
+  courseBonusDeliveries CourseBonusClaimDelivery[] @relation("BonusDeliverySender")
   auditLogs        AuditLog[]
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
@@ -422,6 +444,61 @@ model CustomerFeedback {
   @@index([showOnHomepage, displayOrder])
   @@index([showOnFounder, displayOrder])
   @@index([showOnPortfolio, displayOrder])
+}
+
+model CourseBonusClaim {
+  id                 String                  @id @default(cuid())
+  locale             Locale?
+  name               String
+  email              String
+  whatsapp           String?
+  coursePackId       String
+  coursePackTitle    String
+  orderReference     String
+  purchaseDate       DateTime?
+  requestedBonusIds  String[]                @default([])
+  proofNotes         String?
+  proofUrl           String?
+  proofPublicId      String?
+  proofFileName      String?
+  proofFileType      String?
+  proofFileSize      Int?
+  preferredDelivery  BonusDeliveryPreference @default(EMAIL)
+  status             CourseBonusClaimStatus  @default(SUBMITTED)
+  adminNotes         String?
+  sourcePage         String?
+  verifiedAt         DateTime?
+  verifiedById       String?
+  verifiedBy         AdminUser?              @relation("VerifiedBonusClaims", fields: [verifiedById], references: [id], onDelete: SetNull)
+  fulfilledAt        DateTime?
+  fulfilledById      String?
+  fulfilledBy        AdminUser?              @relation("FulfilledBonusClaims", fields: [fulfilledById], references: [id], onDelete: SetNull)
+  deliveries         CourseBonusClaimDelivery[]
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email])
+  @@index([coursePackId])
+  @@index([verifiedById])
+  @@index([fulfilledById])
+}
+
+model CourseBonusClaimDelivery {
+  id        String               @id @default(cuid())
+  claimId   String
+  claim     CourseBonusClaim     @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  channel   BonusDeliveryChannel
+  sentTo    String
+  bonusIds  String[]             @default([])
+  subject   String?
+  message   String?
+  sentById  String?
+  sentBy    AdminUser?           @relation("BonusDeliverySender", fields: [sentById], references: [id], onDelete: SetNull)
+  sentAt    DateTime             @default(now())
+
+  @@index([claimId, sentAt])
+  @@index([sentById])
 }
 
 model HomepageFaq {

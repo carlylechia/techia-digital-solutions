@@ -39,6 +39,12 @@ describe("course academy routing", () => {
       ),
     ).toBe("/courses/bonuses/digital-skills-learning-roadmap/download");
   });
+
+  it("localizes the French buyer bonus claim form path", () => {
+    expect(getLocalizedAppPath("fr", "/courses/claim-bonus")).toBe(
+      "/fr/cours/reclamer-bonus",
+    );
+  });
 });
 
 describe("course academy data", () => {

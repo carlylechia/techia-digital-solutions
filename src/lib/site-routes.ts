@@ -3,6 +3,7 @@ export type PublicLocale = "en" | "fr";
 const FRENCH_EXACT_PATH_ALIASES: Record<string, string> = {
   "/courses": "/cours",
   "/courses/bonuses": "/cours/bonus-officiels",
+  "/courses/claim-bonus": "/cours/reclamer-bonus",
   "/courses/digital-skills-pack": "/cours/pack-complet-competences-digitales",
   "/courses/complete-digital-skills-pack":
     "/cours/pack-complet-competences-digitales",

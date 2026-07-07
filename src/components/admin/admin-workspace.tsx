@@ -653,6 +653,30 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
             );
           })}
         </div>
+        {can("requests.manage") ? (
+          <div className="mt-5 grid gap-2 border-t border-border pt-4">
+            <p className="px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
+              Academy
+            </p>
+            <a
+              href={`/${locale}/admin/bonus-claims`}
+              className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-background"
+            >
+              <span className="flex min-w-0 items-start gap-3">
+                <BookOpenText className="mt-0.5 size-4 shrink-0 text-accent" />
+                <span className="min-w-0">
+                  <span className="block break-words text-sm font-semibold text-primary">
+                    Bonus Claims
+                  </span>
+                  <span className="mt-0.5 block break-words text-xs text-muted">
+                    Verify buyer proof and send the full bonus bundle
+                  </span>
+                </span>
+              </span>
+              <Pill tone="default">{data.stats.pendingBonusClaims}</Pill>
+            </a>
+          </div>
+        ) : null}
         {can("dashboard.view") ? (
           <div className="mt-5 grid gap-2 border-t border-border pt-4">
             <p className="px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
@@ -771,12 +795,13 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
 function Overview({ data, can, locale }: { data: AdminDashboardData; can: (permission: AdminPermission) => boolean; locale: Locale }) {
   return (
     <div className="grid gap-5">
-      <div className="grid gap-4 min-[420px]:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 min-[420px]:grid-cols-2 xl:grid-cols-6">
         <MetricCard icon={Users} label="Clients" value={data.stats.clients} detail="Accounts in CRM" />
         <MetricCard icon={ClipboardList} label="Active projects" value={data.stats.activeProjects} detail="Planned, active, or review" />
         <MetricCard icon={Activity} label="Inbound" value={data.stats.leads + data.stats.contacts + data.stats.demos} detail="Leads, contacts, demos" />
         <MetricCard icon={FileText} label="Pages" value={data.stats.pages} detail="Managed content records" />
         <MetricCard icon={ShieldCheck} label="Admins" value={data.stats.admins} detail="Database-backed users" />
+        <MetricCard icon={BookOpenText} label="Bonus claims" value={data.stats.pendingBonusClaims} detail="Academy claims awaiting closure" />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
@@ -854,6 +879,32 @@ function Overview({ data, can, locale }: { data: AdminDashboardData; can: (permi
               );
             })}
           </div>
+        </Panel>
+      ) : null}
+
+      {can("requests.manage") ? (
+        <Panel title="Academy Operations" eyebrow="Courses">
+          <a
+            href={`/${locale}/admin/bonus-claims`}
+            className="group flex flex-col gap-3 rounded-lg border border-border bg-background p-4 transition hover:border-accent/40 hover:bg-surface"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="grid size-10 place-items-center rounded-lg bg-accent/10 text-accent">
+                <BookOpenText className="size-5" />
+              </div>
+              <ExternalLink className="mt-0.5 size-4 shrink-0 text-muted transition group-hover:text-accent" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-primary">Academy Bonus Claims</h3>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                Review buyer proof, verify official pack purchases, and deliver the requested bonus files from one admin queue.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Pill tone="default">{data.stats.pendingBonusClaims} open</Pill>
+              <Pill tone="quiet">{data.stats.bonusClaims} total</Pill>
+            </div>
+          </a>
         </Panel>
       ) : null}
 
@@ -3317,6 +3368,30 @@ function Requests({ data, locale }: { data: AdminDashboardData; locale: Locale }
 
   return (
     <div className="grid gap-5">
+      <Panel title="Academy Bonus Claims" eyebrow="Verification">
+        <a
+          href={`/${locale}/admin/bonus-claims`}
+          className="group flex flex-col gap-3 rounded-lg border border-border bg-background p-4 transition hover:border-accent/40 hover:bg-surface"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="grid size-10 place-items-center rounded-lg bg-accent/10 text-accent">
+              <BookOpenText className="size-5" />
+            </div>
+            <ExternalLink className="mt-0.5 size-4 shrink-0 text-muted transition group-hover:text-accent" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-primary">Open bonus claims inbox</h3>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Review buyer proof, verify official pack purchases, and deliver all requested bonus files from one screen.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Pill tone="default">{data.stats.pendingBonusClaims} open</Pill>
+            <Pill tone="quiet">{data.stats.bonusClaims} total</Pill>
+          </div>
+        </a>
+      </Panel>
+
       <Panel title="Request Pipeline" eyebrow="Inbound">
         <div className="grid gap-3 lg:grid-cols-3">
           {(["lead", "contact", "demo"] as const).map((type) => (
