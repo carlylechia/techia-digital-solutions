@@ -10,6 +10,7 @@ import {
   buildBonusDeliveryUrl,
   getEligibleDeliverableBonusIds,
 } from "../src/lib/courses/bonusClaims";
+import { getBonusResourceContentType } from "../src/lib/courses/bonusMime";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -64,9 +65,19 @@ describe("course buyer bonus data", () => {
     );
 
     expect(updates?.eligibility).toBe("full-pack");
-    expect(roadmap?.filePath).toMatch(/\.pdf$/);
+    expect(roadmap?.filePath).toMatch(/\.docx$/);
     expect(roadmap?.downloadPath).toContain(
       "/en/courses/bonuses/digital-skills-learning-roadmap/download",
+    );
+  });
+
+  it("serves docx bonus resources with the correct mime type", () => {
+    expect(
+      getBonusResourceContentType(
+        "src/content/courses/bonuses/docx/course-learning-tracker.docx",
+      ),
+    ).toBe(
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     );
   });
 

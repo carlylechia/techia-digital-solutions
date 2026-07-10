@@ -4,6 +4,8 @@ export function getBonusResourceContentType(filePath: string) {
   const extension = path.extname(filePath).toLowerCase();
 
   switch (extension) {
+    case ".docx":
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     case ".pdf":
       return "application/pdf";
     case ".md":

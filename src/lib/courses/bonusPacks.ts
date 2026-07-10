@@ -41,18 +41,19 @@ const BONUS_DEFINITIONS: BonusDefinition[] = [
     id: "digital-skills-learning-roadmap",
     eligibility: "all-buyers",
     type: "guide",
-    filePath: "src/content/courses/bonuses/pdf/digital-skills-learning-roadmap.pdf",
+    filePath:
+      "src/content/courses/bonuses/docx/digital-skills-learning-roadmap.docx",
     iconKey: "roadmap",
     copy: {
       en: {
         title: "Digital Skills Learning Roadmap",
         summary:
-          "A simple guide that helps students, job seekers, freelancers, creators, professionals, and business owners know where to start and what to focus on.",
+          "A premium editable roadmap workbook that helps buyers choose the right skill path, set priorities, and plan proof of learning.",
       },
       fr: {
         title: "Feuille de route des competences digitales",
         summary:
-          "Un guide simple pour aider les etudiants, chercheurs d'emploi, freelances, createurs, professionnels et dirigeants a savoir par ou commencer et quoi prioriser.",
+          "Un workbook premium editable pour aider les acheteurs a choisir le bon parcours, fixer les priorites et planifier des preuves d'apprentissage.",
       },
     },
   },
@@ -60,18 +61,19 @@ const BONUS_DEFINITIONS: BonusDefinition[] = [
     id: "skill-monetization-starter-guide",
     eligibility: "all-buyers",
     type: "guide",
-    filePath: "src/content/courses/bonuses/pdf/skill-monetization-starter-guide.pdf",
+    filePath:
+      "src/content/courses/bonuses/docx/skill-monetization-starter-guide.docx",
     iconKey: "monetization",
     copy: {
       en: {
         title: "Skill Monetization Starter Guide",
         summary:
-          "Practical ideas for turning digital skills into useful services, freelance offers, content, or business support.",
+          "An editable premium workbook for turning digital skills into clear starter offers, proof assets, and professional service ideas.",
       },
       fr: {
         title: "Guide de depart pour monetiser ses competences",
         summary:
-          "Des pistes pratiques pour transformer des competences digitales en services utiles, offres freelance, contenus ou appuis business.",
+          "Un workbook premium editable pour transformer des competences digitales en offres simples, preuves de valeur et services plus professionnels.",
       },
     },
   },
@@ -79,18 +81,18 @@ const BONUS_DEFINITIONS: BonusDefinition[] = [
     id: "course-learning-tracker",
     eligibility: "all-buyers",
     type: "template",
-    filePath: "src/content/courses/bonuses/pdf/course-learning-tracker.pdf",
+    filePath: "src/content/courses/bonuses/docx/course-learning-tracker.docx",
     iconKey: "tracker",
     copy: {
       en: {
         title: "Course Learning Tracker",
         summary:
-          "A simple tracker to help you organize your learning, track progress, and stay consistent.",
+          "A premium editable tracker with structured tables for weekly study plans, practice logs, proof tracking, and reflection.",
       },
       fr: {
         title: "Suivi d'apprentissage des cours",
         summary:
-          "Un tracker simple pour organiser l'apprentissage, suivre les progres et rester regulier.",
+          "Un tracker premium editable avec de vraies tables pour planifier l'etude, suivre la pratique, documenter les preuves et rester regulier.",
       },
     },
   },
@@ -99,18 +101,18 @@ const BONUS_DEFINITIONS: BonusDefinition[] = [
     eligibility: "full-pack",
     type: "template",
     filePath:
-      "src/content/courses/bonuses/pdf/business-digital-checkup-template.pdf",
+      "src/content/courses/bonuses/docx/business-digital-checkup-template.docx",
     iconKey: "checkup",
     copy: {
       en: {
         title: "Business Digital Checkup Template",
         summary:
-          "A practical checklist for business owners who want to assess their branding, online presence, customer journey, and digital systems.",
+          "A premium executive-style audit workbook with scorecards, channel reviews, and action-planning tables for business improvement.",
       },
       fr: {
         title: "Modele de diagnostic digital business",
         summary:
-          "Une checklist pratique pour aider les dirigeants a evaluer leur marque, leur presence en ligne, leur parcours client et leurs systemes digitaux.",
+          "Un workbook premium de diagnostic avec scorecards, revue des canaux et tables d'action pour aider les dirigeants a mieux prioriser.",
       },
     },
   },
@@ -119,18 +121,18 @@ const BONUS_DEFINITIONS: BonusDefinition[] = [
     eligibility: "full-pack",
     type: "guide",
     filePath:
-      "src/content/courses/bonuses/pdf/thirty-day-digital-skills-action-plan.pdf",
+      "src/content/courses/bonuses/docx/thirty-day-digital-skills-action-plan.docx",
     iconKey: "action-plan",
     copy: {
       en: {
         title: "30-Day Digital Skills Action Plan",
         summary:
-          "A focused 30-day plan to help full-pack buyers move from learning to action.",
+          "A premium editable 30-day execution workbook with a day-by-day action table, weekly reviews, and continuity planning.",
       },
       fr: {
         title: "Plan d'action competences digitales sur 30 jours",
         summary:
-          "Un plan cible sur 30 jours pour aider les acheteurs du pack complet a passer de l'apprentissage a l'action.",
+          "Un workbook premium editable sur 30 jours avec tableau quotidien, revues hebdomadaires et plan de continuite pour passer a l'action.",
       },
     },
   },
