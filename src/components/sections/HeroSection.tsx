@@ -2,11 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, MessageCircleMore } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { buttonVariants } from "@/components/site/button";
-import { openAIChatWidget } from "@/lib/ai/open-chat";
 import { getLocalizedHref, type Locale } from "@/content/site";
 import { cn } from "@/lib/utils";
 
@@ -29,46 +28,47 @@ type HeroCopy = {
 
 const heroContent = {
   en: {
-    eyebrow: "Websites and Digital Systems for Small Businesses Ready to Grow",
-    headingLead: "Your business deserves to be ",
-    headingHighlight: "seen, trusted, and chosen online",
+    eyebrow: "Digitalize. Simplify. Grow.",
+    headingLead: "Grow your business with ",
+    headingHighlight: "modern digital solutions",
     headingEnd: ".",
     description:
-      "If your business is still missing visibility, trust, or structure online, teChia helps you build a stronger digital presence with a premium website and simple systems that open the door to more inquiries, better follow-up, and bigger opportunities.",
-    primaryLabel: "Start a Project",
-    secondaryLabel: "Chat with the AI Consultant",
+      "From social media management and digital marketing to branding, AI, premium websites, automation, and business software, teChia helps ambitious companies attract customers, improve operations, and scale with confidence.",
+    primaryLabel: "Book a Free Consultation",
+    secondaryLabel: "Explore Our Services",
     supportLine:
-      "Get online • Build trust • Organize operations • Grow beyond your location",
-    helperLead: "Prefer to speak with a human after the AI consultation?",
-    helperLinkLabel: "Book a Consultation",
+      "Helping businesses grow through marketing, branding, AI and technology.",
+    helperLead: "Want a faster recommendation before we talk?",
+    helperLinkLabel: "Chat with the AI Consultant",
     badges: [
-      "Websites",
-      "Business Systems",
+      "Social Media Management",
+      "Digital Marketing",
+      "Branding",
+      "Website Design",
       "Automation",
-      "Dashboards",
-      "AI Guidance",
+      "AI Solutions",
     ],
   },
   fr: {
-    eyebrow:
-      "Sites web et systèmes digitaux pour petites entreprises prêtes à grandir",
-    headingLead: "Votre entreprise mérite d'être ",
-    headingHighlight: "vue, d'inspirer confiance et d'être choisie en ligne",
+    eyebrow: "Digitaliser. Simplifier. Grandir.",
+    headingLead: "Faites grandir votre entreprise avec des ",
+    headingHighlight: "solutions digitales modernes",
     headingEnd: ".",
     description:
-      "Si votre entreprise manque encore de visibilité, de crédibilité ou de structure en ligne, teChia vous aide à bâtir une présence digitale plus forte avec un site premium et des systèmes simples qui ouvrent la voie à plus de demandes, un meilleur suivi et de plus grandes opportunités.",
-    primaryLabel: "Démarrer un projet",
-    secondaryLabel: "Discuter avec l’agent IA",
+      "De la gestion des réseaux sociaux et du marketing digital au branding, à l’IA, aux sites premium, à l’automatisation et aux logiciels métier, teChia aide les entreprises ambitieuses à attirer des clients, mieux opérer et passer à l’échelle.",
+    primaryLabel: "Réserver une consultation gratuite",
+    secondaryLabel: "Explorer nos services",
     supportLine:
-      "Passez en ligne • Inspirez confiance • Organisez mieux • Grandissez au-delà de votre zone",
-    helperLead: "Vous préférez parler à un humain après la consultation IA ?",
-    helperLinkLabel: "Réserver une consultation",
+      "Nous aidons les entreprises à grandir grâce au marketing, au branding, à l’IA et à la technologie.",
+    helperLead: "Vous voulez une recommandation plus rapide avant d’échanger ?",
+    helperLinkLabel: "Parler à l’agent IA",
     badges: [
-      "Sites web",
-      "Systèmes métier",
+      "Réseaux sociaux",
+      "Marketing digital",
+      "Branding",
+      "Web",
       "Automatisation",
-      "Tableaux de bord",
-      "Conseil IA",
+      "Solutions IA",
     ],
   },
 } as const satisfies Record<Locale, HeroCopy>;
@@ -301,7 +301,7 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
             className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap md:justify-start"
           >
             <Link
-              href={getLocalizedHref(locale, "/start-project")}
+              href={getLocalizedHref(locale, "/contact")}
               className={cn(
                 buttonVariants({ variant: "primary", size: "lg" }),
                 "group relative w-full justify-center overflow-hidden border border-white/18 px-6 py-4 text-[0.98rem] text-white shadow-[0_24px_64px_rgba(37,99,235,0.24)] sm:w-auto",
@@ -316,20 +316,16 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
               </span>
             </Link>
 
-            <button
-              type="button"
-              onClick={() =>
-                openAIChatWidget(getLocalizedHref(locale, "/ai-consultant"))
-              }
+            <Link
+              href={getLocalizedHref(locale, "/services")}
               className={cn(
                 buttonVariants({ variant: "secondary", size: "lg" }),
                 "w-full justify-center border border-white/16 bg-white/[0.08] px-6 py-4 text-[0.98rem] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md sm:w-auto",
                 "hover:border-cyan-300/50 hover:bg-white/[0.12] hover:text-white focus-visible:border-cyan-300/60 focus-visible:bg-white/[0.12]",
               )}
             >
-              <MessageCircleMore className="size-4" />
               {copy.secondaryLabel}
-            </button>
+            </Link>
           </motion.div>
 
           <motion.p
@@ -345,7 +341,7 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
           >
             {copy.helperLead}{" "}
             <Link
-              href={getLocalizedHref(locale, "/contact")}
+              href={getLocalizedHref(locale, "/ai-consultant")}
               className="font-semibold text-cyan-200 underline decoration-cyan-300/45 underline-offset-4 transition hover:text-white hover:decoration-white"
             >
               {copy.helperLinkLabel}

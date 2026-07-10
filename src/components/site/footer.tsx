@@ -45,26 +45,26 @@ export function Footer() {
             <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
               <div>
                 <p className="font-script text-3xl text-accent-3 md:text-4xl">
-                  shape a digital flagship
+                  build the next growth layer
                 </p>
-                <p className="eyebrow mt-3">Closing scene</p>
+                <p className="eyebrow mt-3">Next step</p>
                 <h2 className="mt-4 max-w-3xl text-balance text-4xl font-semibold md:text-6xl">
                   <span className="headline-gradient">
-                    Ready for a website and system layer that feels unmistakably
-                    premium?
+                    Ready to grow your business with a more connected digital
+                    strategy?
                   </span>
                 </h2>
                 <p className="mt-5 max-w-2xl text-base leading-8 text-slate-200 md:text-lg">
-                  We combine storytelling, interface choreography, and
-                  operational thinking so the business looks sharper and runs
-                  smoother.
+                  teChia combines marketing, branding, web, automation, AI,
+                  and operational thinking so the business attracts better
+                  opportunities and runs more smoothly.
                 </p>
               </div>
               <div className="grid gap-4">
                 {[
-                  "Positioning with stronger first impressions",
+                  "Stronger visibility and clearer positioning",
                   "Systems that remove friction behind the scenes",
-                  "Launch support designed for real business momentum",
+                  "Growth support designed for real business momentum",
                 ].map((item) => (
                   <div
                     key={item}
@@ -83,9 +83,9 @@ export function Footer() {
         <div>
           <Logo variant="horizontal" size="lg" theme="dark" interactive />
           <p className="mt-5 max-w-md text-sm leading-7 text-slate-300">
-            Digital homes for modern businesses. teChia Digital Solutions builds
-            premium websites, systems, dashboards, automation tools, and
-            AI-powered solutions for serious growth.
+            teChia Digital Solutions helps businesses grow through social media
+            management, digital marketing, branding, premium websites, SEO,
+            automation, AI solutions, and custom software.
           </p>
           <div className="mt-8 rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300">
@@ -99,10 +99,10 @@ export function Footer() {
               {siteConfig.email}
             </a>
             <Link
-              href="/request-quote"
+              href="/contact"
               className={`${buttonVariants({ variant: "primary", size: "md" })} mt-5 w-full sm:w-auto`}
             >
-              Start a Project
+              Book a Free Consultation
               <ArrowRight className="size-4" />
             </Link>
           </div>
@@ -164,7 +164,7 @@ export function Footer() {
           © {new Date().getFullYear()} teChia Digital Solutions. All rights
           reserved.
         </p>
-        <p>Simple problems. Smart tech solutions.</p>
+        <p>Digitalize. Simplify. Grow.</p>
       </div>
     </footer>
   );

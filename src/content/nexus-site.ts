@@ -96,19 +96,19 @@ export const marketingNav: NavigationItem[] = [
 ];
 
 export const heroBadges = [
-  "Websites",
+  "Social Media",
+  "Digital Marketing",
+  "Branding",
   "Automation",
-  "AI Tools",
-  "Dashboards",
-  "Systems",
+  "AI Solutions",
 ];
 
 export const trustStrip = [
-  "Premium websites for global credibility",
-  "Business systems for operational clarity",
-  "Automation that removes repetitive work",
-  "AI tools built around real workflows",
-  "Dashboards and portals for modern teams",
+  "Social media management that keeps brands visible",
+  "Digital marketing that drives qualified demand",
+  "Branding that builds trust faster",
+  "Web and e-commerce experiences that convert",
+  "Automation, AI, and software for cleaner operations",
 ];
 
 export const homepageMetrics = [
@@ -128,58 +128,94 @@ export const homepageMetrics = [
 
 export const services: ServiceItem[] = [
   {
-    icon: "layout-template",
-    title: "Premium Websites",
+    icon: "sparkles",
+    title: "Social Media Management",
     description:
-      "Elegant, high-conversion websites that help businesses look credible, modern, and global.",
+      "Consistent social content and community management that keep your business visible, relevant, and easier to trust.",
     detail:
-      "Brand strategy, UX writing, SEO structure, CMS-ready builds, and polished launch support.",
-    href: "/services#premium-websites",
+      "Content planning, creative direction, publishing support, and performance review built around real business goals.",
+    href: "/services#social-media-management",
+  },
+  {
+    icon: "bar-chart-3",
+    title: "Digital Marketing",
+    description:
+      "Campaigns and funnels that turn attention into qualified leads and measurable business momentum.",
+    detail:
+      "Paid growth support, landing strategy, email journeys, conversion tracking, and demand-generation planning.",
+    href: "/services#digital-marketing",
+  },
+  {
+    icon: "layout-template",
+    title: "Branding & Graphic Design",
+    description:
+      "Sharper positioning and design that make the business look credible, memorable, and ready to scale.",
+    detail:
+      "Brand strategy, visual identity, sales assets, presentation systems, and messaging refinement.",
+    href: "/services#branding-graphic-design",
   },
   {
     icon: "building-2",
-    title: "Business Management Systems",
+    title: "Website Design & Development",
     description:
-      "Custom operating systems that centralize workflows, leads, staff activity, and reporting.",
+      "High-performance websites that explain the offer clearly, build trust, and convert visitors into customers.",
     detail:
-      "Internal tools for CRM, inventory, approvals, onboarding, project coordination, and admin control.",
-    href: "/services#business-management-systems",
+      "Conversion-focused structure, premium UX, CMS-ready builds, and launch support designed for growth.",
+    href: "/services#website-design-development",
+  },
+  {
+    icon: "shopping-bag",
+    title: "E-commerce Solutions",
+    description:
+      "Sales experiences that make it easier for customers to browse, trust, buy, and come back again.",
+    detail:
+      "Catalog structure, checkout journeys, payment integration, and order experiences built for smoother selling.",
+    href: "/services#e-commerce-solutions",
+  },
+  {
+    icon: "rocket",
+    title: "SEO",
+    description:
+      "Search optimization that helps the right customers discover your business before competitors win the click.",
+    detail:
+      "Technical SEO, search structure, content mapping, and visibility improvements that support long-term inbound growth.",
+    href: "/services#seo",
   },
   {
     icon: "workflow",
-    title: "Automation Tools",
+    title: "Business Automation",
     description:
-      "Workflow automation that removes repetitive tasks and keeps teams aligned.",
+      "Automation that removes repetitive admin, speeds up follow-up, and keeps operations cleaner.",
     detail:
-      "Lead routing, reminders, status updates, form automations, proposals, notifications, and handoffs.",
-    href: "/services#automation-tools",
+      "Lead routing, reminders, notifications, approvals, status updates, and handoffs built around your workflow.",
+    href: "/services#business-automation",
   },
   {
-    icon: "sparkles",
-    title: "AI-Powered Tools",
+    icon: "brain-circuit",
+    title: "AI Solutions",
     description:
-      "Practical AI assistants and smart interfaces designed for business use, not hype.",
+      "Practical AI tools that support guidance, faster responses, and better decision-making inside the business.",
     detail:
-      "Knowledge assistants, AI copilots, estimation tools, intake flows, and productivity layers.",
-    href: "/services#ai-powered-tools",
+      "AI assistants, knowledge tools, smart intake flows, summarization, and decision-support layers.",
+    href: "/services#ai-solutions",
   },
   {
     icon: "panel-top-open",
-    title: "Dashboards & Analytics",
+    title: "Custom Business Software",
     description:
-      "Decision-ready dashboards that turn scattered operational data into clear visibility.",
+      "Tailored software for businesses whose operations do not fit generic tools.",
     detail:
-      "KPI dashboards, client reporting, executive snapshots, and role-based data experiences.",
-    href: "/services#dashboards-analytics",
+      "Portals, dashboards, internal systems, workflow tools, and operational data layers designed around the business model.",
+    href: "/services#custom-business-software",
   },
   {
     icon: "orbit",
-    title: "Digital Transformation Consulting",
+    title: "Cloud & Digital Transformation Consulting",
     description:
-      "Strategic guidance for companies moving from fragmented tools to better digital systems.",
+      "Strategic guidance for companies connecting disconnected systems and planning the next digital growth layer.",
     detail:
-      "Technology audits, solution architecture, prioritization, rollout plans, and product advisory.",
-    href: "/services#digital-transformation-consulting",
+      "Technology audits, cloud planning, solution architecture, prioritization, rollout plans, and transformation advisory.",
+    href: "/services#cloud-digital-transformation-consulting",
   },
 ];
 
@@ -366,7 +402,7 @@ export const processDetails = [
   {
     title: "Strategy",
     description:
-      "We define the right digital path, whether that means a website, a system, a dashboard, an automation layer, or a combined rollout.",
+      "We define the right growth path, whether that means stronger marketing, branding, web, automation, AI, or a combined rollout.",
   },
   {
     title: "UX/UI Design",
@@ -402,44 +438,44 @@ export const processDetails = [
 
 export const pricingPlans: PricingPlan[] = [
   {
-    title: "Starter Digital Presence",
+    title: "Growth Launchpad",
     label: "Starting from",
     description:
-      "For businesses that need a serious, premium online presence with clear positioning and conversion flow.",
-    cta: "Start a Project",
+      "For businesses that need stronger branding, clearer visibility, and a conversion-ready digital foundation.",
+    cta: "Book a consultation",
     href: "/request-quote",
     features: [
-      "Premium marketing website",
-      "Messaging and UX guidance",
-      "Responsive optimization",
+      "Brand clarity",
+      "Social and web foundation",
       "Lead capture setup",
+      "Growth roadmap",
     ],
   },
   {
-    title: "Business Growth System",
+    title: "Visibility & Demand Engine",
     label: "Most requested",
     description:
-      "For companies that need a public website plus internal workflows, dashboards, or automation support.",
+      "For companies that need coordinated marketing, campaigns, landing pages, and SEO to generate better demand.",
     cta: "Book a consultation",
     href: "/contact",
     featured: true,
     features: [
-      "Website plus internal tools",
-      "Automation opportunities",
-      "Dashboard modules",
-      "Team process mapping",
+      "Campaign support",
+      "Landing experiences",
+      "SEO foundations",
+      "Analytics and conversion tracking",
     ],
   },
   {
-    title: "Custom Digital Transformation",
+    title: "Growth Operations System",
     label: "Custom quote",
     description:
-      "For organizations solving deeper operational problems through bespoke systems, AI tools, and product architecture.",
-    cta: "Request a custom blueprint",
+      "For organizations solving deeper operational problems through automation, AI, dashboards, and custom software.",
+    cta: "Request a custom roadmap",
     href: "/request-quote",
     features: [
-      "Custom architecture",
-      "AI and automation layers",
+      "Custom software architecture",
+      "Automation and AI layers",
       "Portal and workflow design",
       "Ongoing optimization roadmap",
     ],
@@ -528,9 +564,9 @@ export const resources: ResourceItem[] = [
 
 export const faqPreview = [
   {
-    question: "Do you only build websites?",
+    question: "Do you only help with websites?",
     answer:
-      "No. Websites are often the front layer. We also build dashboards, internal systems, portals, automation flows, and AI-supported tools.",
+      "No. Websites are only one part of the work. teChia also supports social media, digital marketing, branding, automation, AI, and custom software depending on the real growth need.",
   },
   {
     question: "Can teChia work with international clients?",
@@ -541,16 +577,16 @@ export const faqPreview = [
     question:
       "Do you help define the solution if we are not sure what we need?",
     answer:
-      "Yes. Discovery is part of the process. We help shape the right digital path before recommending a build.",
+      "Yes. Discovery is part of the process. We help shape the right growth path before recommending the right build or campaign mix.",
   },
 ];
 
 export const businessInquiryCategories = [
-  "New website project",
-  "Business system or dashboard",
-  "Automation and operations",
-  "AI-powered tool",
-  "Partnership or consulting",
+  "Social media or digital marketing",
+  "Branding or web presence",
+  "E-commerce or SEO",
+  "Automation, AI, or software",
+  "Consulting or partnership",
 ];
 
 export const quoteBudgetRanges = [
@@ -691,13 +727,13 @@ export const portalInvoices: PortalInvoice[] = [
 
 export const aboutCopy = {
   whoWeAre:
-    "teChia Digital Solutions is a technology and digital transformation company that builds premium digital products for businesses that want to look serious and operate better.",
+    "teChia Digital Solutions is a business growth partner that combines marketing, branding, web, automation, AI, and software to help companies grow with more clarity.",
   whyWeExist:
-    "teChia exists because too many businesses still struggle with disconnected tools, weak digital presence, and systems that do not match how they actually work.",
+    "teChia exists because too many businesses still struggle with weak visibility, disconnected tools, manual work, and digital systems that do not match how they actually operate.",
   philosophy:
-    "Our philosophy is simple: solve simple problems with smart technology, delivered with clarity, premium execution, and real business context.",
+    "Our philosophy is simple: start with the business goal, choose the right digital mix, and deliver it with clarity, premium execution, and real commercial context.",
   founderStory:
-    "teChia was shaped around the belief that many businesses do not need more noise or more software. They need better digital homes. That means websites that inspire trust, systems that organize work, dashboards that make decisions easier, and automation that creates momentum instead of confusion.",
+    "teChia was shaped around the belief that many businesses do not need more noise or more software. They need better growth systems. That means stronger branding, clearer marketing, web experiences that convert, systems that organize work, dashboards that guide decisions, and automation that creates momentum instead of confusion.",
 };
 
 export const legalContent = {

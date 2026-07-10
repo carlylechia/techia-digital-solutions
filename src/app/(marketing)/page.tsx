@@ -30,10 +30,9 @@ import type { Locale } from "@/content/site";
 import { createMarketingMetadata } from "@/lib/marketing-seo";
 
 export const metadata: Metadata = createMarketingMetadata({
-  title:
-    "teChia Digital Solutions | Premium Websites, Automation & Digital Systems",
+  title: "teChia Digital Solutions | Digitalize. Simplify. Grow.",
   description:
-    "teChia Digital Solutions builds premium websites, business management systems, dashboards, automation tools, and AI-powered digital solutions for modern businesses.",
+    "teChia Digital Solutions helps businesses grow through social media management, digital marketing, branding, websites, SEO, automation, AI solutions, custom software, and digital transformation consulting.",
 });
 
 export default function HomePage() {
@@ -49,7 +48,7 @@ export default function HomePage() {
     {
       title: "Services",
       description:
-        "Explore the merged service, solution, and industry flow across websites, systems, automation, AI tools, and consulting.",
+        "Explore the merged service, solution, and industry flow across marketing, branding, web, automation, AI, and consulting.",
       href: "/services",
       eyebrow: "Offers",
       tags: services.slice(0, 3).map((item) => item.title),
@@ -81,7 +80,7 @@ export default function HomePage() {
     {
       title: "Pricing",
       description:
-        "Understand the commercial pathways from focused web presence to full transformation.",
+        "Understand the commercial pathways from visibility and brand foundations to deeper transformation.",
       href: "/pricing",
       eyebrow: "Commercial",
       tags: pricingPlans.map((item) => item.title),
@@ -129,7 +128,7 @@ export default function HomePage() {
     {
       title: "AI consultant",
       description:
-        "Chat with the teChia AI Growth Agent to map the right website, system, automation, or AI direction before you commit.",
+        "Chat with the teChia AI Growth Agent to map the right marketing, web, automation, AI, or software direction before you commit.",
       href: "/ai-consultant",
       eyebrow: "AI",
       tags: ["Chat", "Brief", "Recommendation"],
@@ -163,9 +162,9 @@ export default function HomePage() {
               <AnimatedGridBackground className="opacity-60" />
               <div className="relative z-10">
                 <p className="font-script text-3xl text-accent-3 md:text-4xl">
-                  a kinetic showcase of capability
+                  a connected showcase of growth capability
                 </p>
-                <p className="eyebrow mt-3">Infinite motion</p>
+                <p className="eyebrow mt-3">Growth signals</p>
                 <div className="mt-5 space-y-4">
                   <InfiniteMarquee
                     items={[
@@ -195,29 +194,28 @@ export default function HomePage() {
           <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
             <div className="gradient-border rounded-[1.75rem]">
               <div className="elevated-panel h-full p-7 md:p-8">
-                <p className="eyebrow">Simple problems</p>
+                <p className="eyebrow">Business friction</p>
                 <h2 className="mt-4 text-balance text-3xl font-semibold text-foreground md:text-5xl">
-                  Most businesses do not need more complexity. They need better
-                  systems.
+                  Most businesses do not need more digital noise. They need a
+                  clearer growth system.
                 </h2>
                 <p className="mt-5 text-lg leading-8 text-muted">
-                  When your website, proposals, customer communication, files,
-                  and team processes live in different places, growth becomes
-                  harder than it should be.
+                  When your brand, campaigns, website, customer communication,
+                  files, and team processes live in different places, growth
+                  becomes harder than it should be.
                 </p>
               </div>
             </div>
             <div className="gradient-border rounded-[1.75rem]">
               <div className="elevated-panel h-full p-7 md:p-8">
-                <p className="eyebrow">Smart tech solutions</p>
+                <p className="eyebrow">Growth system</p>
                 <h2 className="mt-4 text-balance text-3xl font-semibold text-foreground md:text-5xl">
-                  teChia designs the digital layer that makes the business
-                  easier to understand and easier to run.
+                  teChia designs the connected digital layer that helps the
+                  business attract customers and run better.
                 </h2>
                 <p className="mt-5 text-lg leading-8 text-muted">
-                  A digital home is more than a website. It is your public
-                  brand, your lead engine, your client experience, your
-                  dashboard, and your automation foundation working together.
+                  Growth is stronger when branding, marketing, web, customer
+                  experience, dashboards, and automation work as one system.
                 </p>
               </div>
             </div>
@@ -229,8 +227,8 @@ export default function HomePage() {
         <Reveal>
           <SectionHeading
             eyebrow="Services"
-            title="Premium digital delivery for businesses that want more than a brochure website."
-            description="Every service is designed to look polished, move clearly, and support real operational outcomes."
+            title="Growth services built for businesses that want more customers, clearer branding, and better operations."
+            description="Every service is designed to support a real business outcome, not just a deliverable."
           />
         </Reveal>
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -244,7 +242,7 @@ export default function HomePage() {
 
       <AIConsultationSection
         locale={publicLocale}
-        secondaryAction={{ href: "/request-quote", label: "Request a quote" }}
+        secondaryAction={{ href: "/contact", label: "Book a consultation" }}
       />
 
       <section className="container py-16">
@@ -270,20 +268,20 @@ export default function HomePage() {
             <div className="gradient-border rounded-[2rem]">
               <div className="elevated-panel h-full p-8 md:p-10">
                 <p className="font-script text-3xl text-accent-3 md:text-4xl">
-                  systems with theatre built in
+                  strategy connected to execution
                 </p>
-                <p className="eyebrow mt-3">Experience architecture</p>
+                <p className="eyebrow mt-3">Growth architecture</p>
                 <h2 className="mt-4 text-balance text-4xl font-semibold md:text-6xl">
                   <span className="headline-gradient">
-                    Beautiful interfaces are stronger when they also organize
-                    how the business moves.
+                    Strong growth systems work best when brand, campaigns, and
+                    operations move together.
                   </span>
                 </h2>
                 <div className="headline-underline mt-6" aria-hidden="true" />
                 <p className="mt-6 text-base leading-8 text-muted md:text-lg">
-                  Our strongest work blends positioning, UX choreography, lead
-                  systems, and back-office clarity into one memorable digital
-                  layer.
+                  Our strongest work blends positioning, marketing, web
+                  experiences, lead systems, and operational clarity into one
+                  memorable digital layer.
                 </p>
               </div>
             </div>
@@ -292,7 +290,7 @@ export default function HomePage() {
                 {
                   title: "Signature presence",
                   description:
-                    "High-trust branding, landing pages, and storytelling that make the company feel established from the first visit.",
+                    "High-trust branding, campaigns, and digital storytelling that make the company feel established from the first visit.",
                   items: services.slice(0, 3).map((item) => item.title),
                 },
                 {
@@ -304,7 +302,7 @@ export default function HomePage() {
                 {
                   title: "Growth choreography",
                   description:
-                    "Conversion paths, strategic follow-up, and scalable systems designed for momentum.",
+                    "Conversion paths, strategic follow-up, and scalable systems designed to build momentum.",
                   items: pricingPlans.map((item) => item.title),
                 },
               ].map((suite) => (
@@ -338,8 +336,8 @@ export default function HomePage() {
         <PageDirectorySection
           accentScript="browse the full constellation"
           eyebrow="Full map"
-          title="The homepage now points toward every major destination in the wider teChia experience."
-          description="This gives visitors a premium orientation layer into vision, services, solutions, proof, legal trust, portal previews, resources, and conversion moments across the full site."
+          title="The homepage now points toward every major destination in the wider teChia growth experience."
+          description="This gives visitors a clear orientation layer into vision, services, solutions, proof, trust, resources, and conversion moments across the full site."
           items={pageDirectoryItems}
         />
       </Reveal>
@@ -348,8 +346,8 @@ export default function HomePage() {
         <Reveal>
           <SectionHeading
             eyebrow="Process"
-            title="A premium process that moves from business clarity to launch-ready execution."
-            description="We stay close to the business problem, reduce avoidable complexity, and build toward something that feels trustworthy on day one."
+            title="A premium process that moves from business clarity to growth-ready execution."
+            description="We stay close to the real business goal, reduce avoidable complexity, and build toward something trustworthy from day one."
           />
         </Reveal>
         <Reveal delay={0.06}>
@@ -361,8 +359,8 @@ export default function HomePage() {
         <Reveal>
           <SectionHeading
             eyebrow="Selected work"
-            title="A clearer digital presence changes how seriously a business is taken."
-            description="These concepts and case studies show how premium design, systems thinking, and product clarity come together."
+            title="A clearer growth system changes how seriously a business is taken."
+            description="These concepts and case studies show how branding, systems thinking, and product clarity come together."
           />
         </Reveal>
         <div className="grid gap-5 md:grid-cols-2">
@@ -405,15 +403,15 @@ export default function HomePage() {
               <AnimatedGridBackground />
               <div className="relative z-10 grid gap-8 lg:grid-cols-[1fr_0.8fr]">
                 <div>
-                  <p className="eyebrow">Interactive quote</p>
-                  <h2 className="mt-4 text-balance text-4xl font-semibold text-foreground md:text-5xl">
-                    Not sure whether you need a website, a system, a dashboard,
-                    or an automation layer?
-                  </h2>
-                  <p className="mt-5 max-w-2xl text-lg leading-8 text-muted">
+                <p className="eyebrow">Interactive quote</p>
+                <h2 className="mt-4 text-balance text-4xl font-semibold text-foreground md:text-5xl">
+                    Not sure whether you need marketing, branding, web,
+                    automation, or software?
+                </h2>
+                <p className="mt-5 max-w-2xl text-lg leading-8 text-muted">
                     Tell us the business context and we will recommend the
-                    smartest solution path, from discovery to launch support.
-                  </p>
+                    smartest growth path, from discovery to launch support.
+                </p>
                   <Link
                     href="/request-quote"
                     className={`${buttonVariants({ variant: "primary", size: "lg" })} mt-8 w-full sm:w-auto`}
@@ -424,7 +422,7 @@ export default function HomePage() {
                 <div className="grid gap-4">
                   {[
                     "Map the problem and current friction",
-                    "Recommend the right digital architecture",
+                    "Recommend the right marketing and digital architecture",
                     "Prioritize delivery around business impact",
                   ].map((item) => (
                     <div
@@ -445,7 +443,7 @@ export default function HomePage() {
         <Reveal>
           <SectionHeading
             eyebrow="Testimonials"
-            title="The work should feel premium, thoughtful, and easier to move forward with."
+            title="The work should feel premium, thoughtful, and easier to grow with."
             description="That is the standard teChia is designed around."
           />
         </Reveal>
@@ -502,25 +500,24 @@ export default function HomePage() {
                 Final call to action
               </p>
               <h2 className="mx-auto mt-4 max-w-4xl text-balance text-4xl font-semibold text-foreground md:text-6xl">
-                Ready to build a digital home that looks serious and works hard
-                for the business?
+                Ready to grow your business with a smarter digital strategy?
               </h2>
               <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-muted">
-                Start with a conversation. We will help shape the right solution
-                before we build anything.
+                Start with a conversation. We will help shape the right service
+                mix before we build or launch anything.
               </p>
               <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link
-                  href="/request-quote"
+                  href="/contact"
                   className={`${buttonVariants({ variant: "primary", size: "lg" })} w-full sm:w-auto`}
                 >
-                  Start a Project
+                  Book a Free Consultation
                 </Link>
                 <Link
-                  href="/contact"
+                  href="/services"
                   className={`${buttonVariants({ variant: "secondary", size: "lg" })} w-full sm:w-auto`}
                 >
-                  Contact teChia
+                  Explore Our Services
                 </Link>
               </div>
             </div>

@@ -30,7 +30,7 @@ export function PremiumPageCta({
     ? resolveHref(locale, secondaryAction.href)
     : secondaryAction?.href;
   const accentScript =
-    locale === "fr" ? "rendons-le iconique" : "let's make it iconic";
+    locale === "fr" ? "la croissance commence ici" : "growth starts here";
 
   return (
     <section className={cn("container pb-20", className)}>

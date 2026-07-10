@@ -46,7 +46,7 @@ export function SiteHeader({
   const dict = getDictionary(locale);
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const liveLabel = locale === "fr" ? "Studio actif" : "Studio Live";
+  const liveLabel = locale === "fr" ? "Partenaire croissance" : "Growth Partner";
   const mobilePrompt =
     locale === "fr" ? "naviguer dans le flagship" : "navigate the flagship";
   const launchModeLabel = locale === "fr" ? "Mode lancement" : "Launch Mode";

@@ -19,12 +19,12 @@ function getPageCopy(locale: Locale) {
     return {
       metaTitle: "Agent IA",
       metaDescription:
-        "Discutez avec l’agent IA teChia pour clarifier le bon site, système, automatisation ou parcours digital pour votre entreprise.",
+        "Discutez avec l’agent IA teChia pour clarifier le bon mix entre marketing, branding, web, automatisation, IA ou logiciel pour votre entreprise.",
       heroTitle:
-        "Un consultant IA pour transformer une idée floue en prochaine étape claire.",
+        "Un consultant IA pour transformer un objectif business flou en prochaine étape claire.",
       heroDescription:
-        "L’agent IA teChia aide les fondateurs, PME et équipes en croissance à comprendre s’il leur faut un site premium, un système métier, une automatisation, un portail ou une combinaison bien pensée.",
-      heroBadges: ["Sites web", "Systèmes", "Automatisation", "IA"],
+        "L’agent IA teChia aide les fondateurs, PME et équipes en croissance à comprendre s’il leur faut plus de visibilité, une meilleure marque, une expérience web plus performante, une automatisation, une solution IA ou un logiciel sur mesure.",
+      heroBadges: ["Marketing", "Branding", "Automatisation", "IA"],
       heroLinkLabel: "Demander un cadrage",
       asideEyebrow: "Assistant en direct",
       asideTitle: "Commencez par une conversation guidée.",
@@ -37,7 +37,7 @@ function getPageCopy(locale: Locale) {
       ],
       capabilitiesEyebrow: "Capacités",
       capabilitiesTitle:
-        "Plus qu’un chatbot, un vrai filtre stratégique avant projet.",
+        "Plus qu’un chatbot, un vrai filtre stratégique avant l’engagement.",
       capabilitiesDescription:
         "Le but n’est pas de faire durer la conversation. Le but est d’aider le visiteur à comprendre le bon besoin digital plus vite et avec plus de clarté.",
       capabilities: [
@@ -45,7 +45,7 @@ function getPageCopy(locale: Locale) {
           icon: Target,
           title: "Recommandation ciblée",
           description:
-            "L’agent identifie si votre besoin relève d’un site, d’un système, d’un portail, d’une automatisation ou d’une couche IA.",
+            "L’agent identifie si votre besoin relève surtout de la visibilité, de la marque, du web, d’un système métier, d’une automatisation ou d’une couche IA.",
         },
         {
           icon: MessageSquare,
@@ -102,7 +102,7 @@ function getPageCopy(locale: Locale) {
         "Il peut expliquer les services, comparer les options, aider à prioriser et réduire l’incertitude avant même qu’un cadrage plus complet commence.",
       audienceEyebrow: "Pour qui",
       audienceTitle:
-        "Particulièrement utile pour les équipes qui savent qu’il y a un besoin, sans encore connaître la bonne architecture.",
+        "Particulièrement utile pour les équipes qui savent qu’il y a un besoin, sans encore connaître le bon mix entre marketing et technologie.",
       audienceDescription:
         "C’est souvent le bon point de départ quand le problème est réel, mais que la forme de la solution reste encore floue.",
       audiences: [
@@ -115,8 +115,8 @@ function getPageCopy(locale: Locale) {
       ],
       outcomesEyebrow: "Résultat attendu",
       outcomes: [
-        "Mieux distinguer un besoin de site marketing d’un besoin de système métier",
-        "Comprendre quand un portail, une automatisation ou une interface IA devient pertinent",
+        "Distinguer un problème de visibilité d’un problème d’opérations ou de conversion",
+        "Comprendre quand le bon prochain mouvement relève du marketing, du branding, du web, de l’automatisation ou de l’IA",
         "Arriver au premier échange avec teChia dans un état de clarté beaucoup plus élevé",
       ],
       finalScript: "clarifions le prochain mouvement",
@@ -124,19 +124,19 @@ function getPageCopy(locale: Locale) {
       finalTitle:
         "Ouvrez la conversation ou passez directement au cadrage du projet.",
       finalDescription:
-        "Utilisez l’agent pour obtenir une recommandation immédiate, puis continuez vers un démarrage plus concret quand vous êtes prêt.",
+        "Utilisez l’agent pour obtenir une recommandation immédiate, puis continuez vers une consultation ou un cadrage plus concret quand vous êtes prêt.",
     };
   }
 
   return {
     metaTitle: "AI Consultant",
     metaDescription:
-      "Talk to the teChia AI consultant to clarify the right website, system, automation, or digital product path for your business.",
+      "Talk to the teChia AI consultant to clarify the right mix of marketing, branding, web, automation, AI, or software for your business.",
     heroTitle:
-      "An AI consultant that turns a vague idea into a clear next move.",
+      "An AI consultant that turns a vague business goal into a clear next move.",
     heroDescription:
-      "The teChia AI consultant helps founders, SMEs, and growing teams understand whether they need a premium website, business system, automation layer, portal, or a more thoughtful combination.",
-    heroBadges: ["Websites", "Systems", "Automation", "AI"],
+      "The teChia AI consultant helps founders, SMEs, and growing teams understand whether they need more visibility, stronger branding, a better web experience, automation, AI support, or custom software.",
+    heroBadges: ["Marketing", "Branding", "Automation", "AI"],
     heroLinkLabel: "Request project scoping",
     asideEyebrow: "Live assistant",
     asideTitle: "Start with a guided conversation.",
@@ -149,7 +149,7 @@ function getPageCopy(locale: Locale) {
     ],
     capabilitiesEyebrow: "Capabilities",
     capabilitiesTitle:
-      "More than a chatbot, a real strategic filter before the project begins.",
+      "More than a chatbot, a real strategic filter before the engagement begins.",
     capabilitiesDescription:
       "The goal is not to prolong the conversation. The goal is to help visitors understand the right digital need faster and with better clarity.",
     capabilities: [
@@ -157,7 +157,7 @@ function getPageCopy(locale: Locale) {
         icon: Target,
         title: "Right-fit recommendation",
         description:
-          "The agent identifies whether your need points to a website, system, portal, automation layer, or AI-supported experience.",
+          "The agent identifies whether your need points more to visibility, branding, web, a business system, automation, or an AI-supported experience.",
       },
       {
         icon: MessageSquare,
@@ -214,7 +214,7 @@ function getPageCopy(locale: Locale) {
       "It can explain the services, compare options, help with prioritization, and reduce uncertainty before a deeper scoping conversation even begins.",
     audienceEyebrow: "Best fit",
     audienceTitle:
-      "Especially useful for teams that know there is a digital need, but do not yet know the right architecture.",
+      "Especially useful for teams that know there is a digital need, but do not yet know the right mix between marketing and technology.",
     audienceDescription:
       "This is often the best starting point when the business problem is real, but the final shape of the solution is still unclear.",
     audiences: [
@@ -227,15 +227,15 @@ function getPageCopy(locale: Locale) {
     ],
     outcomesEyebrow: "Expected outcome",
     outcomes: [
-      "Separate a marketing-website need from a deeper business-system need",
-      "Understand when a portal, automation flow, or AI interface is actually the right move",
+      "Separate a visibility problem from a conversion or operations problem",
+      "Understand when the right next move is marketing, branding, web, automation, or AI",
       "Reach the first teChia conversation with much higher clarity and better internal alignment",
     ],
     finalScript: "let's clarify the next move",
     finalEyebrow: "Next step",
     finalTitle: "Open the conversation or move straight into project scoping.",
     finalDescription:
-      "Use the consultant for an immediate recommendation, then continue into a more concrete project start when you are ready.",
+      "Use the consultant for an immediate recommendation, then continue into a consultation or a more concrete project start when you are ready.",
   };
 }
 

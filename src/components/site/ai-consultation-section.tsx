@@ -25,9 +25,9 @@ export function AIConsultationSection({
           eyebrow: "Agent IA",
           title: "Discutez avec l’agent IA pour identifier le bon besoin digital pour votre entreprise.",
           description:
-            "Dites-nous ce que votre équipe essaie d’accomplir et obtenez rapidement une orientation claire vers le bon site web, système métier, automatisation ou expérience IA.",
+            "Dites-nous ce que votre équipe essaie d’accomplir et obtenez rapidement une orientation claire vers le bon mix entre marketing, branding, web, automatisation, IA ou logiciel métier.",
           points: [
-            "Recommandations rapides pour site, portail, tableau de bord ou automatisation",
+            "Recommandations rapides pour visibilité, branding, web, automatisation ou IA",
             "Aucun formulaire lourd avant d’obtenir une direction utile",
             "Une transition simple vers un devis ou un démarrage de projet",
           ],
@@ -38,9 +38,9 @@ export function AIConsultationSection({
           eyebrow: "AI consultant",
           title: "Chat with the AI agent to identify the best digital fit for your business.",
           description:
-            "Tell us what your team needs to achieve and get a clear recommendation for the right website, business system, automation layer, or AI experience.",
+            "Tell us what your team needs to achieve and get a clear recommendation for the right mix of marketing, branding, web, automation, AI, or business software.",
           points: [
-            "Fast guidance on website, portal, dashboard, or automation fit",
+            "Fast guidance on visibility, branding, web, automation, or AI fit",
             "No heavy intake before you get something genuinely useful",
             "A smooth path into a quote or project kickoff",
           ],

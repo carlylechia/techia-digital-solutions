@@ -117,7 +117,7 @@ export function AIChatWidget() {
         >
           {isOpen
             ? "Close the AI assistant."
-            : "Chat with the AI Growth Agent for quick guidance on websites, systems, automation, and AI tools."}
+            : "Chat with the AI Growth Agent for quick guidance on marketing, branding, automation, AI, and business growth priorities."}
         </span>
       </button>
     </>

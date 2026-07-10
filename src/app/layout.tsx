@@ -29,11 +29,11 @@ const greatVibes = Great_Vibes({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: "teChia Digital Solutions | Premium Websites, Automation & Digital Systems",
+    default: "teChia Digital Solutions | Digitalize. Simplify. Grow.",
     template: `%s | ${siteConfig.shortName}`
   },
   description:
-    "teChia Digital Solutions builds premium websites, business management systems, dashboards, automation tools, and AI-powered digital solutions for modern businesses.",
+    "teChia Digital Solutions helps businesses grow through social media management, digital marketing, branding, websites, SEO, automation, AI solutions, custom software, and digital transformation consulting.",
   icons: {
     icon: [
       { url: brandIconAssets.faviconIco.src },
@@ -44,9 +44,9 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.webmanifest",
   openGraph: {
-    title: "teChia Digital Solutions | Premium Websites, Automation & Digital Systems",
+    title: "teChia Digital Solutions | Digitalize. Simplify. Grow.",
     description:
-      "teChia Digital Solutions builds premium websites, business management systems, dashboards, automation tools, and AI-powered digital solutions for modern businesses.",
+      "teChia Digital Solutions helps businesses grow through social media management, digital marketing, branding, websites, SEO, automation, AI solutions, custom software, and digital transformation consulting.",
     url: siteConfig.url,
     siteName: siteConfig.name,
     type: "website",
@@ -54,9 +54,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "teChia Digital Solutions | Premium Websites, Automation & Digital Systems",
+    title: "teChia Digital Solutions | Digitalize. Simplify. Grow.",
     description:
-      "teChia Digital Solutions builds premium websites, business management systems, dashboards, automation tools, and AI-powered digital solutions for modern businesses.",
+      "teChia Digital Solutions helps businesses grow through social media management, digital marketing, branding, websites, SEO, automation, AI solutions, custom software, and digital transformation consulting.",
     images: ["/og/og-default.svg"]
   }
 };

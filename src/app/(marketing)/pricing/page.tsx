@@ -8,7 +8,7 @@ import { createMarketingMetadata } from "@/lib/marketing-seo";
 export const metadata: Metadata = createMarketingMetadata({
   title: "Pricing",
   description:
-    "Review teChia Digital Solutions pricing tiers for digital presence, business growth systems, and custom digital transformation engagements.",
+    "Review teChia Digital Solutions pricing tiers for visibility, growth systems, and custom digital transformation engagements.",
   path: "/pricing"
 });
 
@@ -21,7 +21,7 @@ export default function PricingPage() {
           align="left"
           eyebrow="Pricing"
           title="Flexible commercial paths without forcing every business into the same box."
-          description="We keep pricing clear where it should be clear, and custom where the business problem deserves a more tailored scope."
+          description="We keep pricing clear where it should be clear, and custom where the growth challenge deserves a more tailored scope."
         />
       </Reveal>
 
@@ -35,9 +35,9 @@ export default function PricingPage() {
 
       <section className="mt-16 grid gap-5 lg:grid-cols-3">
         {[
-          "Starting from pricing is useful when scope is straightforward and the business already knows what it needs.",
+          "Starting-from pricing is useful when scope is straightforward and the business already knows its next growth priority.",
           "Custom quote engagements are better for multi-stage delivery, system design, or deeper operational complexity.",
-          "Book a consultation if you want help deciding between a website-only project and a broader digital system."
+          "Book a consultation if you want help deciding between a visibility challenge, an operations problem, or a broader digital transformation need."
         ].map((item, index) => (
           <Reveal key={item} delay={index * 0.04}>
             <div className="gradient-border rounded-[1.5rem]">

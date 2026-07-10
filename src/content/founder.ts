@@ -155,7 +155,7 @@ const founderContent = {
     metadata: {
       title: "Meet the Founder | Chia Carlyle | teChia Digital Solutions",
       description:
-        "Meet Chia Carlyle, full-stack developer, digital systems builder, and founder of teChia Digital Solutions. Explore his portfolio, skills, founder story, LinkedIn recommendations, and business-focused approach to building websites, dashboards, automation tools, and digital systems.",
+        "Meet Chia Carlyle, full-stack developer, growth systems builder, and founder of teChia Digital Solutions. Explore his portfolio, skills, founder story, LinkedIn recommendations, and business-focused approach to building marketing, web, automation, AI, and digital systems.",
     },
     title:
       "Full-Stack Developer, Digital Systems Builder, and Founder of teChia Digital Solutions",
@@ -164,7 +164,7 @@ const founderContent = {
       headline:
         "Hi, I’m Chia Carlyle. I build digital systems that help businesses work smarter.",
       subtext:
-        "I am a full-stack software developer and founder of teChia Digital Solutions, focused on building premium websites, business management systems, dashboards, automation tools, and AI-powered solutions for local and international businesses.",
+        "I am a full-stack software developer and founder of teChia Digital Solutions, focused on building growth-oriented digital systems across marketing, web, automation, AI, and business software for local and international businesses.",
       positioning:
         "Technical execution, product thinking, and business clarity in one delivery partner.",
       primaryCta: "View My Work",
@@ -173,11 +173,11 @@ const founderContent = {
       linkedinCta: "Connect on LinkedIn",
       githubCta: "View GitHub",
       trustHighlights: [
-        "Premium websites",
+        "Digital growth systems",
         "Dashboards and portals",
-        "Automation-ready systems",
+        "Automation-ready operations",
         "AI-assisted tools",
-        "SEO-first implementation",
+        "SEO-aware implementation",
         "Local insight, global delivery mindset",
       ],
     },
@@ -212,9 +212,9 @@ const founderContent = {
           icon: "globe",
         },
         {
-          title: "Websites, systems, automation, AI",
+          title: "Marketing, systems, automation, AI",
           detail:
-            "A connected approach that treats digital presence, operations, and growth as one system.",
+            "A connected approach that treats visibility, operations, and growth as one system.",
           icon: "sparkles",
         },
       ],
@@ -225,7 +225,7 @@ const founderContent = {
         "A builder focused on turning scattered business processes into structured digital systems",
       body: [
         "Chia Carlyle is a full-stack software developer and digital systems builder based in Cameroon. Through teChia Digital Solutions, he helps businesses move from scattered manual processes to structured digital platforms that improve visibility, operations, customer service, and growth.",
-        "His work focuses on building practical, beautiful, and business-focused technology: premium websites, dashboards, management systems, automation workflows, AI-powered tools, and digital experiences that solve real problems.",
+        "His work focuses on building practical, business-focused technology: growth websites, dashboards, management systems, automation workflows, AI-powered tools, and digital experiences that solve real problems.",
       ],
       highlights: [
         "Based in Cameroon, building for local businesses and international clients",
@@ -248,7 +248,7 @@ const founderContent = {
       title:
         "A product-minded stack shaped around credibility, speed, and scalable delivery",
       description:
-        "These capabilities reflect the kinds of systems Chia builds most often: polished public websites, structured internal tools, operational dashboards, growth-ready landing pages, and automation layers that remove busywork.",
+        "These capabilities reflect the kinds of systems Chia builds most often: growth-ready web experiences, structured internal tools, operational dashboards, landing pages, and automation layers that remove busywork.",
       categories: [
         {
           id: "frontend",
@@ -674,7 +674,7 @@ const founderContent = {
     finalCta: {
       eyebrow: "Build with teChia",
       title: "Want to build something practical, beautiful, and useful?",
-      body: "Whether you need a premium website, a dashboard, a client portal, automation, or a complete business operating system, teChia Digital Solutions can help you turn your idea into a reliable digital product.",
+      body: "Whether you need better visibility, a stronger web experience, a dashboard, automation, AI support, or a complete business operating system, teChia Digital Solutions can help you turn the idea into a reliable growth product.",
       primaryCta: "Start a Project",
       secondaryCta: "Explore teChia Solutions",
       tertiaryCta: "Contact Chia",
@@ -686,7 +686,7 @@ const founderContent = {
       title:
         "Rencontrez le Fondateur | Chia Carlyle | teChia Digital Solutions",
       description:
-        "Découvrez Chia Carlyle, développeur full-stack, créateur de systèmes numériques et fondateur de teChia Digital Solutions. Explorez son portfolio, ses compétences, son histoire, ses recommandations LinkedIn et son approche orientée business pour créer des sites web, tableaux de bord, automatisations et systèmes numériques.",
+        "Découvrez Chia Carlyle, développeur full-stack, créateur de systèmes de croissance et fondateur de teChia Digital Solutions. Explorez son portfolio, ses compétences, son histoire, ses recommandations LinkedIn et son approche orientée business entre marketing, web, automatisation, IA et systèmes numériques.",
     },
     title:
       "Développeur Full-Stack, Créateur de Systèmes Numériques et Fondateur de teChia Digital Solutions",
@@ -695,7 +695,7 @@ const founderContent = {
       headline:
         "Bonjour, je suis Chia Carlyle. Je crée des systèmes numériques qui aident les entreprises à travailler plus intelligemment.",
       subtext:
-        "Je suis développeur full-stack et fondateur de teChia Digital Solutions. Je conçois des sites web premium, des systèmes de gestion, des tableaux de bord, des outils d’automatisation et des solutions alimentées par l’IA pour les entreprises locales et internationales.",
+        "Je suis développeur full-stack et fondateur de teChia Digital Solutions. Je conçois des systèmes digitaux orientés croissance entre marketing, web, automatisation, IA et logiciels métier pour les entreprises locales et internationales.",
       positioning:
         "Exécution technique, vision produit et clarté business réunies dans un seul partenaire de livraison.",
       primaryCta: "Voir Mes Projets",
@@ -744,9 +744,9 @@ const founderContent = {
           icon: "globe",
         },
         {
-          title: "Sites, systèmes, automatisation, IA",
+          title: "Marketing, systèmes, automatisation, IA",
           detail:
-            "Une approche connectée qui traite présence digitale, opérations et croissance comme un seul système.",
+            "Une approche connectée qui traite visibilité, opérations et croissance comme un seul système.",
           icon: "sparkles",
         },
       ],
@@ -757,7 +757,7 @@ const founderContent = {
         "Un créateur focalisé sur la transformation de processus dispersés en systèmes numériques structurés",
       body: [
         "Chia Carlyle est un développeur full-stack et créateur de systèmes numériques basé au Cameroun. À travers teChia Digital Solutions, il aide les entreprises à passer de processus manuels dispersés à des plateformes numériques structurées qui améliorent leur visibilité, leur organisation, leur service client et leur croissance.",
-        "Son travail se concentre sur des solutions technologiques pratiques, élégantes et orientées business : sites web premium, tableaux de bord, systèmes de gestion, automatisations, outils alimentés par l’IA et expériences numériques conçues pour résoudre de vrais problèmes.",
+        "Son travail se concentre sur des solutions technologiques pratiques et orientées business : expériences web prêtes pour la croissance, tableaux de bord, systèmes de gestion, automatisations, outils alimentés par l’IA et expériences numériques conçues pour résoudre de vrais problèmes.",
       ],
       highlights: [
         "Basé au Cameroun, avec une livraison pensée pour les entreprises locales et les clients internationaux",
@@ -1206,7 +1206,7 @@ const founderContent = {
     finalCta: {
       eyebrow: "Construire avec teChia",
       title: "Vous voulez créer quelque chose de pratique, beau et utile ?",
-      body: "Que vous ayez besoin d’un site web premium, d’un tableau de bord, d’un portail client, d’une automatisation ou d’un système métier complet, teChia Digital Solutions peut vous aider à transformer votre idée en produit numérique fiable.",
+      body: "Que vous ayez besoin d’une meilleure visibilité, d’une expérience web plus forte, d’un tableau de bord, d’une automatisation, d’un accompagnement IA ou d’un système métier complet, teChia Digital Solutions peut vous aider à transformer votre idée en produit de croissance fiable.",
       primaryCta: "Démarrer un Projet",
       secondaryCta: "Explorer les Solutions teChia",
       tertiaryCta: "Contacter Chia",

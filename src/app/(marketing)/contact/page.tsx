@@ -10,7 +10,7 @@ import { createMarketingMetadata } from "@/lib/marketing-seo";
 export const metadata: Metadata = createMarketingMetadata({
   title: "Contact",
   description:
-    "Contact teChia Digital Solutions for websites, dashboards, business systems, automation tools, AI-powered products, and digital transformation consulting.",
+    "Contact teChia Digital Solutions for social media management, digital marketing, branding, websites, automation, AI, software, and digital transformation consulting.",
   path: "/contact"
 });
 
@@ -22,10 +22,10 @@ export default function ContactPage() {
       <Reveal>
         <p className="eyebrow">Contact</p>
         <h1 className="mt-4 max-w-4xl text-balance text-4xl font-semibold text-foreground md:text-6xl">
-          Reach out for a digital product, a system challenge, or a serious next move.
+          Reach out for a growth challenge, a digital bottleneck, or a serious next move.
         </h1>
         <p className="mt-5 max-w-3xl text-lg leading-8 text-muted">
-          teChia works with local and international businesses that need premium execution, smart product thinking, and better operational technology.
+          teChia works with local and international businesses that need stronger visibility, sharper branding, better systems, and premium execution.
         </p>
       </Reveal>
 
@@ -58,7 +58,7 @@ export default function ContactPage() {
               <div className="surface-panel p-6">
                 <p className="eyebrow">Global service note</p>
                 <p className="mt-4 text-sm leading-7 text-muted">
-                  teChia supports clients across Africa, Europe, and remote-first teams internationally.
+                  teChia supports clients across Africa, Europe, and remote-first teams that want connected growth support.
                 </p>
                 <p className="mt-3 text-sm leading-7 text-muted">{siteConfig.location}</p>
               </div>

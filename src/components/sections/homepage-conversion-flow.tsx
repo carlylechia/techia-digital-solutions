@@ -117,9 +117,9 @@ type PageCopy = {
 const copy = {
   en: {
     journeyEyebrow: "Start from your reality",
-    journeyTitle: "Where your business is today, we help it move forward.",
+    journeyTitle: "Wherever your business is today, we help it grow from there.",
     journeyDescription:
-      "Some businesses still depend on walk-ins and saved contacts. Some post online without a real brand. Some need a stronger website and better systems. teChia helps at each stage.",
+      "Some businesses still depend on walk-ins. Some post online without a clear brand. Some need stronger campaigns, websites, or systems. teChia helps at each stage.",
     journeyStages: [
       {
         imageSrc:
@@ -129,9 +129,9 @@ const copy = {
         stageLabel: "Stage 01",
         title: "You mostly rely on walk-ins, referrals, or your phone",
         description:
-          "There is no real website or branded business presence yet, so opportunities stop where your location and saved contacts stop.",
+          "There is no real digital growth engine yet, so opportunities stop where your location, referrals, and saved contacts stop.",
         nextStep:
-          "Build a professional digital home people can find, trust, and contact easily.",
+          "Build a credible brand presence people can find, trust, and contact easily.",
       },
       {
         imageSrc:
@@ -139,11 +139,11 @@ const copy = {
         imageAlt:
           "A business owner replying to messages through WhatsApp and personal social accounts.",
         stageLabel: "Stage 02",
-        title: "Your business is online, but mostly through WhatsApp or personal socials",
+        title: "Your business is online, but growth still depends on WhatsApp or personal socials",
         description:
           "People can message you, but the business still feels tied to a personal account and the brand is hard to take seriously.",
         nextStep:
-          "Separate the brand, clarify the offer, and capture inquiries properly.",
+          "Separate the brand, clarify the offer, and turn attention into structured inquiries.",
       },
       {
         imageSrc:
@@ -151,11 +151,11 @@ const copy = {
         imageAlt:
           "A business owner with some social media presence and branding, but an inconsistent customer journey.",
         stageLabel: "Stage 03",
-        title: "People can find you, but the experience still feels inconsistent",
+        title: "People notice you, but the brand and customer journey still feel uneven",
         description:
-          "You may have a logo, a page, or some activity online, but trust, follow-up, and brand clarity still need work.",
+          "You may already have content, a logo, or some traction online, but trust, follow-up, and message clarity still need work.",
         nextStep:
-          "Strengthen the brand presence and guide visitors into a clearer client journey.",
+          "Strengthen the brand, sharpen the message, and guide prospects into a clearer client journey.",
       },
       {
         imageSrc:
@@ -163,46 +163,47 @@ const copy = {
         imageAlt:
           "A growing business owner reviewing digital systems, dashboards, and a stronger online presence with a team.",
         stageLabel: "Stage 04",
-        title: "You are ready for a better website, smarter tools, or an audit",
+        title:
+          "You are ready for stronger campaigns, smarter systems, or a full growth roadmap",
         description:
-          "If you already have traction online, teChia can build the website, systems, automation, and dashboards that support growth, or review what exists and improve it.",
+          "If you already have traction, teChia can strengthen the marketing, website, automation, and internal systems that support your next phase of growth.",
         nextStep:
-          "Turn visibility into a smoother business system that can scale confidently.",
+          "Turn visibility into a connected growth system that can scale with more confidence.",
       },
     ],
-    journeyPromptTitle: "Not sure which digital step your business needs first?",
+    journeyPromptTitle: "Not sure which digital growth step should come first?",
     journeyPromptDescription:
-      "Tell the AI consultant how you currently attract clients and manage daily work. It will point you to the smartest next move before you commit.",
+      "Tell the AI consultant how you attract customers today and what is slowing growth. It will point you to the smartest next move before you commit.",
     journeyPromptPrimary: "Talk to the AI Consultant",
-    journeyPromptSecondary: "Start a Project",
-    journeyPromptNote: "Prefer a human conversation after that?",
-    journeyPromptNoteLink: "Book a Consultation",
+    journeyPromptSecondary: "Book a Free Consultation",
+    journeyPromptNote: "Prefer to review the service catalog first?",
+    journeyPromptNoteLink: "Explore our services",
     problemEyebrow: "Why businesses feel stuck",
-    problemTitle: "From scattered work to smarter systems.",
+    problemTitle: "From scattered activity to a connected growth system.",
     problemDescription:
-      "Many businesses lose time because their website, customer inquiries, documents, and daily operations are disconnected. teChia helps you bring everything into one clearer digital flow.",
+      "Many businesses lose momentum because their brand, marketing, customer inquiries, and daily operations are disconnected. teChia helps bring them into one clearer digital flow.",
     beforeLabel: "Before",
     beforeItems: [
-      "Weak online presence",
-      "Missed inquiries",
+      "Inconsistent brand presence",
+      "Unclear lead flow",
       "Manual follow-up",
-      "Scattered tools",
+      "Disconnected tools",
     ],
     afterLabel: "After",
     afterItems: [
-      "Premium website",
-      "Clear lead capture",
-      "Smart automation",
-      "Simple dashboards",
+      "Stronger visibility",
+      "Qualified lead capture",
+      "Automated follow-up",
+      "Clearer operations",
     ],
-    servicesEyebrow: "What teChia can build",
-    servicesTitle: "Simple digital building blocks that help businesses grow.",
+    servicesEyebrow: "How teChia helps",
+    servicesTitle: "The growth building blocks your business can combine.",
     servicesDescription:
-      "We keep the digital side practical: a stronger brand, clearer inquiries, smoother follow-up, and systems that support the way your business really works.",
+      "We bring together marketing, branding, websites, commerce, SEO, and systems so growth does not depend on guesswork.",
     demoEyebrow: "See it in action",
     demoTitle: "Want to see examples before you decide?",
     demoDescription:
-      "Visit the Demo Lab for a lighter guided look at the kinds of dashboards, portals, automations, and AI experiences teChia can build.",
+      "Visit the Demo Lab to explore dashboards, portals, booking flows, automations, and AI experiences that can sit behind a stronger growth strategy.",
     demoPoints: [
       "See realistic system examples",
       "Understand what fits your business",
@@ -210,9 +211,9 @@ const copy = {
     ],
     demoCta: "Explore the Demo Lab",
     reviewsEyebrow: "Client feedback",
-    reviewsTitle: "What clients notice when the digital side starts making sense.",
+    reviewsTitle: "What clients notice when growth starts feeling more organized.",
     reviewsDescription:
-      "The goal is not just to look better online. It is to feel clearer, more credible, and easier to do business with.",
+      "The goal is not only to look better online. It is to attract better opportunities, operate with more confidence, and create a smoother customer experience.",
     faqEyebrow: "Common questions",
     faqTitle: "Questions businesses usually ask before they begin.",
     faqDescription:
@@ -220,26 +221,26 @@ const copy = {
     blogEyebrow: "Helpful reading",
     blogTitle: "A few practical reads before you decide.",
     blogDescription:
-      "Short articles for business owners who want better clarity around websites, visibility, systems, and digital growth.",
+      "Short articles for leaders who want more clarity around visibility, branding, operations, and digital growth.",
     blogCta: "Read article",
     blogMore: "Visit the blog",
     finalEyebrow: "Your next step",
-    finalTitle: "Ready to build your business's digital home?",
+    finalTitle: "Ready to grow your business with a smarter digital strategy?",
     finalDescription:
-      "Let's turn your website, operations, and customer flow into a smarter system built for growth.",
-    finalPrimaryLabel: "Start a Project",
-    finalSecondaryLabel: "Talk to the AI Consultant",
-    finalAiPrompt: "Prefer a human conversation before starting?",
-    finalAiLinkLabel: "Book a Consultation.",
+      "Let's connect your visibility, customer journey, and operations into a system built for growth.",
+    finalPrimaryLabel: "Book a Free Consultation",
+    finalSecondaryLabel: "Explore Our Services",
+    finalAiPrompt: "Prefer a tailored recommendation before that?",
+    finalAiLinkLabel: "Talk to the AI Consultant.",
     reviewSourceLabel: "Homepage review",
     nextStepLabel: "Best next step",
   },
   fr: {
     journeyEyebrow: "Partir de votre réalité",
     journeyTitle:
-      "Quel que soit le niveau actuel de votre entreprise, nous l'aidons à avancer.",
+      "Quel que soit le niveau actuel de votre entreprise, nous l’aidons à grandir à partir de là.",
     journeyDescription:
-      "Certaines entreprises dépendent encore des passages en boutique et des contacts enregistrés. D'autres publient en ligne sans vraie marque. D'autres encore ont besoin d'un meilleur site et de meilleurs systèmes. teChia vous aide à chaque étape.",
+      "Certaines entreprises dépendent encore des passages en boutique. D’autres publient en ligne sans vraie marque. D’autres ont besoin de campagnes plus fortes, d’un meilleur site ou de meilleurs systèmes. teChia vous aide à chaque étape.",
     journeyStages: [
       {
         imageSrc:
@@ -250,9 +251,9 @@ const copy = {
         title:
           "Vous dépendez surtout des passages, des recommandations ou du téléphone",
         description:
-          "Il n'y a pas encore de vrai site web ni de présence de marque structurée, donc les opportunités s'arrêtent souvent à votre emplacement et à vos contacts enregistrés.",
+          "Il n’y a pas encore de vrai moteur de croissance digital, donc les opportunités s’arrêtent souvent à votre emplacement, vos recommandations et vos contacts enregistrés.",
         nextStep:
-          "Construire une vraie maison digitale que les gens peuvent trouver, comprendre et contacter facilement.",
+          "Construire une présence de marque crédible que les gens peuvent trouver, comprendre et contacter facilement.",
       },
       {
         imageSrc:
@@ -261,11 +262,11 @@ const copy = {
           "Une propriétaire d'entreprise qui répond aux clients via WhatsApp et des comptes personnels sur les réseaux sociaux.",
         stageLabel: "Étape 02",
         title:
-          "Votre entreprise existe en ligne, mais surtout via WhatsApp ou vos réseaux personnels",
+          "Votre entreprise existe en ligne, mais la croissance dépend encore surtout de WhatsApp ou de réseaux personnels",
         description:
           "Les gens peuvent vous écrire, mais l'activité reste liée à un compte personnel et la marque est difficile à prendre au sérieux.",
         nextStep:
-          "Distinguer la marque, clarifier l'offre et mieux capter les demandes.",
+          "Séparer la marque, clarifier l’offre et transformer l’attention en demandes structurées.",
       },
       {
         imageSrc:
@@ -274,11 +275,11 @@ const copy = {
           "Une entrepreneure avec une certaine présence visuelle en ligne, mais un parcours client encore incohérent.",
         stageLabel: "Étape 03",
         title:
-          "On peut vous trouver, mais l'expérience reste encore incohérente",
+          "On vous remarque, mais la marque et le parcours client restent inégaux",
         description:
-          "Vous avez peut-être déjà un logo, une page ou une activité sur les réseaux, mais la confiance, le suivi et la clarté de marque peuvent encore être améliorés.",
+          "Vous avez peut-être déjà du contenu, un logo ou un début de traction, mais la confiance, le suivi et la clarté du message peuvent encore progresser.",
         nextStep:
-          "Renforcer la présence de marque et guider les visiteurs vers un parcours client plus clair.",
+          "Renforcer la marque, clarifier le message et guider les prospects vers un parcours plus net.",
       },
       {
         imageSrc:
@@ -287,48 +288,48 @@ const copy = {
           "Une dirigeante en croissance qui examine un site plus fort, des systèmes, des tableaux de bord et une équipe mieux organisée.",
         stageLabel: "Étape 04",
         title:
-          "Vous êtes prêt pour un meilleur site, des outils plus intelligents ou un audit",
+          "Vous êtes prêt pour de meilleures campagnes, des systèmes plus intelligents ou une vraie roadmap de croissance",
         description:
-          "Si votre activité a déjà une traction en ligne, teChia peut créer le site, les systèmes, les automatisations et les tableaux de bord qui soutiennent la croissance, ou auditer l'existant et l'améliorer.",
+          "Si votre activité a déjà une traction, teChia peut renforcer le marketing, le site, l’automatisation et les systèmes internes qui soutiennent votre prochaine phase de croissance.",
         nextStep:
-          "Transformer votre visibilité en système de travail plus fluide et plus évolutif.",
+          "Transformer la visibilité en système de croissance connecté, plus fluide et plus évolutif.",
       },
     ],
     journeyPromptTitle:
-      "Vous ne savez pas encore quelle solution digitale convient à votre entreprise ?",
+      "Vous ne savez pas encore quelle étape de croissance digitale doit venir en premier ?",
     journeyPromptDescription:
-      "Expliquez à l'agent IA comment vous attirez vos clients aujourd'hui et comment vous gérez le travail quotidien. Il vous indiquera la meilleure prochaine étape avant tout engagement.",
+      "Expliquez à l’agent IA comment vous attirez vos clients aujourd’hui et ce qui freine la croissance. Il vous indiquera la meilleure prochaine étape avant tout engagement.",
     journeyPromptPrimary: "Parler à l'agent IA",
-    journeyPromptSecondary: "Démarrer un projet",
-    journeyPromptNote: "Vous préférez un échange humain ensuite ?",
-    journeyPromptNoteLink: "Réserver une consultation",
+    journeyPromptSecondary: "Réserver une consultation gratuite",
+    journeyPromptNote: "Vous préférez d’abord parcourir les services ?",
+    journeyPromptNoteLink: "Explorer nos services",
     problemEyebrow: "Pourquoi beaucoup d'entreprises bloquent",
-    problemTitle: "D'un travail dispersé à des systèmes plus intelligents.",
+    problemTitle: "D’une activité dispersée à un système de croissance connecté.",
     problemDescription:
-      "Beaucoup d'entreprises perdent du temps parce que leur site web, leurs demandes clients, leurs documents et leurs opérations quotidiennes sont déconnectés. teChia vous aide à rassembler tout cela dans un flux digital plus clair.",
+      "Beaucoup d’entreprises perdent de l’élan parce que leur marque, leur marketing, leurs demandes clients et leurs opérations quotidiennes sont déconnectés. teChia rassemble tout cela dans un flux digital plus clair.",
     beforeLabel: "Avant",
     beforeItems: [
-      "Présence en ligne faible",
-      "Demandes manquées",
+      "Présence de marque incohérente",
+      "Flux de leads flou",
       "Suivi manuel",
-      "Outils dispersés",
+      "Outils déconnectés",
     ],
     afterLabel: "Après",
     afterItems: [
-      "Site web premium",
-      "Capture de prospects claire",
-      "Automatisation intelligente",
-      "Tableaux de bord simples",
+      "Visibilité renforcée",
+      "Capture de leads qualifiés",
+      "Suivi automatisé",
+      "Opérations plus claires",
     ],
-    servicesEyebrow: "Ce que teChia peut créer",
+    servicesEyebrow: "Comment teChia aide",
     servicesTitle:
-      "Des briques digitales simples qui aident les entreprises à grandir.",
+      "Les briques de croissance que votre entreprise peut combiner.",
     servicesDescription:
-      "Nous gardons le digital concret : une marque plus forte, des demandes plus claires, un meilleur suivi et des systèmes qui soutiennent vraiment votre façon de travailler.",
+      "Nous réunissons marketing, branding, web, commerce, SEO et systèmes pour que la croissance ne dépende plus de suppositions.",
     demoEyebrow: "Voir en pratique",
     demoTitle: "Vous voulez voir des exemples avant de vous décider ?",
     demoDescription:
-      "Visitez l'Espace Démo pour découvrir simplement les types de tableaux de bord, portails, automatisations et expériences IA que teChia peut construire.",
+      "Visitez l’Espace Démo pour explorer dashboards, portails, réservations, automatisations et expériences IA qui peuvent soutenir une stratégie de croissance plus forte.",
     demoPoints: [
       "Voir des exemples réalistes",
       "Comprendre ce qui convient à votre activité",
@@ -337,9 +338,9 @@ const copy = {
     demoCta: "Explorer l'Espace Démo",
     reviewsEyebrow: "Avis clients",
     reviewsTitle:
-      "Ce que les clients remarquent quand le digital devient plus clair.",
+      "Ce que les clients remarquent quand la croissance devient mieux organisée.",
     reviewsDescription:
-      "L'objectif n'est pas seulement d'être plus beau en ligne. Il s'agit d'être plus clair, plus crédible et plus facile à contacter.",
+      "L’objectif n’est pas seulement d’être plus beau en ligne. Il s’agit d’attirer de meilleures opportunités, d’opérer avec plus d’assurance et d’offrir une expérience plus fluide.",
     faqEyebrow: "Questions fréquentes",
     faqTitle:
       "Les questions que les entreprises posent le plus souvent avant de commencer.",
@@ -348,17 +349,18 @@ const copy = {
     blogEyebrow: "Lectures utiles",
     blogTitle: "Quelques articles pratiques avant de vous décider.",
     blogDescription:
-      "De courts articles pour les dirigeants qui veulent mieux comprendre les sites web, la visibilité, les systèmes et la croissance digitale.",
+      "De courts articles pour les dirigeants qui veulent plus de clarté sur la visibilité, la marque, les opérations et la croissance digitale.",
     blogCta: "Lire l'article",
     blogMore: "Voir le blog",
     finalEyebrow: "Votre prochaine étape",
-    finalTitle: "Prêt à construire la maison digitale de votre entreprise ?",
+    finalTitle:
+      "Prêt à faire grandir votre entreprise avec une stratégie digitale plus intelligente ?",
     finalDescription:
-      "Transformons votre site web, vos opérations et votre flux client en un système plus intelligent, pensé pour la croissance.",
-    finalPrimaryLabel: "Démarrer un projet",
-    finalSecondaryLabel: "Parler à l'agent IA",
-    finalAiPrompt: "Vous préférez un échange humain avant de commencer ?",
-    finalAiLinkLabel: "Réserver une consultation.",
+      "Connectons votre visibilité, votre parcours client et vos opérations dans un système pensé pour la croissance.",
+    finalPrimaryLabel: "Réserver une consultation gratuite",
+    finalSecondaryLabel: "Explorer nos services",
+    finalAiPrompt: "Vous préférez d’abord une recommandation plus ciblée ?",
+    finalAiLinkLabel: "Parler à l’agent IA.",
     reviewSourceLabel: "Avis homepage",
     nextStepLabel: "Meilleure prochaine étape",
   },
@@ -367,77 +369,77 @@ const copy = {
 const services = {
   en: [
     {
-      title: "Premium Websites",
+      title: "Social Media Management",
       description:
-        "Professional websites that help people take your business seriously.",
+        "Consistent content and community management that keep your business visible and relevant.",
       icon: MonitorSmartphone,
     },
     {
-      title: "Business Systems",
+      title: "Digital Marketing",
       description:
-        "Internal tools that keep work, documents, and follow-up in one place.",
+        "Campaigns and funnels that attract qualified leads and turn attention into measurable demand.",
       icon: BriefcaseBusiness,
     },
     {
-      title: "Automation",
+      title: "Branding & Graphic Design",
       description:
-        "Smart flows that reduce repetitive work and missed opportunities.",
+        "Sharper strategy and visuals that make your business look credible and memorable.",
       icon: Workflow,
     },
     {
-      title: "Dashboards",
+      title: "Website Design & Development",
       description:
-        "Clear views of your leads, activity, and performance in one place.",
+        "High-performance websites that explain the offer clearly and convert visitors into inquiries.",
       icon: LayoutDashboard,
     },
     {
-      title: "AI Tools",
+      title: "E-commerce Solutions",
       description:
-        "Helpful AI experiences for support, qualification, and speed.",
+        "Storefronts and buying journeys that make selling easier for customers and teams.",
       icon: Bot,
     },
     {
-      title: "Digital Strategy",
+      title: "SEO",
       description:
-        "Clear guidance on what your business should build first.",
+        "Search optimization that helps the right customers discover your business sooner.",
       icon: Compass,
     },
   ],
   fr: [
     {
-      title: "Sites premium",
+      title: "Gestion des réseaux sociaux",
       description:
-        "Des sites professionnels qui aident à prendre votre entreprise au sérieux.",
+        "Un contenu régulier et une gestion de communauté qui gardent votre entreprise visible et pertinente.",
       icon: MonitorSmartphone,
     },
     {
-      title: "Systèmes métier",
+      title: "Marketing digital",
       description:
-        "Des outils internes qui réunissent travail, documents et suivi au même endroit.",
+        "Des campagnes et des funnels qui attirent des leads qualifiés et transforment l’attention en demande mesurable.",
       icon: BriefcaseBusiness,
     },
     {
-      title: "Automatisation",
+      title: "Branding & design graphique",
       description:
-        "Des flux plus intelligents pour réduire les tâches répétitives et les opportunités manquées.",
+        "Une stratégie et des visuels plus solides pour rendre votre entreprise crédible et mémorable.",
       icon: Workflow,
     },
     {
-      title: "Tableaux de bord",
+      title: "Design & développement web",
       description:
-        "Une vision claire de vos prospects, activités et performances.",
+        "Des sites performants qui expliquent clairement l’offre et transforment les visiteurs en demandes.",
       icon: LayoutDashboard,
     },
     {
-      title: "Outils IA",
+      title: "Solutions e-commerce",
       description:
-        "Des expériences IA utiles pour le support, la qualification et la rapidité.",
+        "Des vitrines et parcours d’achat qui rendent la vente plus fluide pour les clients comme pour l’équipe.",
       icon: Bot,
     },
     {
-      title: "Stratégie digitale",
+      title: "SEO",
       description:
-        "Une direction claire sur ce qu'il faut construire en premier.",
+        "Une optimisation search qui aide les bons prospects à découvrir votre entreprise plus tôt.",
       icon: Compass,
     },
   ],
@@ -625,7 +627,7 @@ export function HomepageConversionFlow({
                   <p className="mt-4 text-sm leading-7 text-muted">
                     {pageCopy.journeyPromptNote}{" "}
                     <Link
-                      href={getLocalizedHref(locale, "/contact")}
+                      href={getLocalizedHref(locale, "/services")}
                       className="font-semibold text-accent underline decoration-accent/45 underline-offset-4 transition hover:text-accent-2 hover:decoration-accent-2"
                     >
                       {pageCopy.journeyPromptNoteLink}
@@ -645,7 +647,7 @@ export function HomepageConversionFlow({
                     {pageCopy.journeyPromptPrimary}
                   </Link>
                   <Link
-                    href={getLocalizedHref(locale, "/start-project")}
+                    href={getLocalizedHref(locale, "/contact")}
                     className={cn(
                       buttonVariants({ variant: "secondary", size: "lg" }),
                       "w-full justify-center sm:w-auto lg:w-full",
@@ -957,7 +959,7 @@ export function HomepageConversionFlow({
               <Reveal delay={0.16}>
                 <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                   <Link
-                    href={getLocalizedHref(locale, "/start-project")}
+                    href={getLocalizedHref(locale, "/contact")}
                     className={cn(
                       buttonVariants({ variant: "primary", size: "lg" }),
                       "w-full justify-center sm:w-auto",
@@ -966,7 +968,7 @@ export function HomepageConversionFlow({
                     {pageCopy.finalPrimaryLabel}
                   </Link>
                   <Link
-                    href={getLocalizedHref(locale, "/ai-consultant")}
+                    href={getLocalizedHref(locale, "/services")}
                     className={cn(
                       buttonVariants({ variant: "secondary", size: "lg" }),
                       "w-full justify-center sm:w-auto",
@@ -980,7 +982,7 @@ export function HomepageConversionFlow({
                 <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-muted">
                   {pageCopy.finalAiPrompt}{" "}
                   <Link
-                    href={getLocalizedHref(locale, "/contact")}
+                    href={getLocalizedHref(locale, "/ai-consultant")}
                     className="font-semibold text-accent underline decoration-accent/45 underline-offset-4 transition hover:text-accent-2 hover:decoration-accent-2"
                   >
                     {pageCopy.finalAiLinkLabel}

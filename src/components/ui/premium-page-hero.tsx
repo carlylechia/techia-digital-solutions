@@ -37,7 +37,7 @@ export function PremiumPageHero({
   className?: string;
 }) {
   const accentScript =
-    locale === "fr" ? "conçu pour demain" : "crafted for tomorrow";
+    locale === "fr" ? "pensé pour la croissance" : "built for growth";
 
   return (
     <section className={cn("container pt-6 pb-8 sm:pt-8 md:pt-12", className)}>

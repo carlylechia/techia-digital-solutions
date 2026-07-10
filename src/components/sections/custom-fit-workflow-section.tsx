@@ -50,17 +50,17 @@ type WorkflowCopy = {
 
 const workflowCopy = {
   en: {
-    eyebrow: "Custom-fit delivery",
-    title: "We shape the right digital system around your business, not around a template.",
+    eyebrow: "Custom-fit growth delivery",
+    title: "We shape the right growth system around your business, not around a template.",
     description:
-      "teChia does not push one-size-fits-all websites or systems. We study your business principles, your way of working, your brand identity, and your exact goals before we recommend what should be built.",
-    promiseTitle: "Built around your business identity",
+      "teChia does not push one-size-fits-all services. We study your goals, market position, way of working, brand identity, and operational reality before we recommend what should be built.",
+    promiseTitle: "Built around your business identity and growth goals",
     promiseDescription:
-      "Every project is tailored to your business norms, customer flow, internal needs, branding, colors, and the documents or assets your team actually uses.",
+      "Every project is tailored to your customer journey, internal needs, brand standards, market priorities, and the tools your team already depends on.",
     promisePoints: [
-      "We respect your brand identity, colors, tone, and positioning.",
-      "We adapt to your business principles, workflow, and operational reality.",
-      "We only recommend the digital layer your business actually needs right now.",
+      "We respect your brand identity, tone, positioning, and commercial reality.",
+      "We adapt to your customer flow, internal workflow, and operational constraints.",
+      "We only recommend the marketing, technology, or automation layer your business needs now.",
     ],
     visualTitle: "A clear client journey from discovery to continuity",
     visualLabels: ["Brand", "Scope", "Portal", "MVP", "Scale"],
@@ -68,83 +68,83 @@ const workflowCopy = {
       "Clear requirements, visible progress, tracked feedback, and long-term continuity.",
     stepsTitle: "How working with teChia actually flows",
     stepsDescription:
-      "The process stays clear for the client from the first conversation to delivery, review, and future growth.",
+      "The process stays clear from the first growth conversation to delivery, review, and long-term support.",
     steps: [
       {
         icon: Bot,
         step: "01",
-        title: "Identify the exact digital fit",
+        title: "Clarify the exact growth need",
         description:
-          "Start with the AI consultant or contact us directly so we can understand your business and point you to the right digital service first.",
+          "Start with the AI consultant or contact us directly so we can understand the business goal and point you to the right service mix first.",
       },
       {
         icon: Search,
         step: "02",
-        title: "Check demos that match your need",
+        title: "Review examples that match the need",
         description:
-          "Explore the Demo Lab to see whether your closest use case already exists and request it more confidently.",
+          "Explore the Demo Lab to see whether your closest use case already exists and request it with more confidence.",
       },
       {
         icon: FileText,
         step: "03",
-        title: "Submit a concise project request",
+        title: "Submit a focused growth brief",
         description:
-          "Send a focused request with the clearest version of your need. The AI consultant can also help you prepare it.",
+          "Send a focused request with the clearest version of the challenge. The AI consultant can help you prepare it.",
       },
       {
         icon: Compass,
         step: "04",
-        title: "Confirm scope, pricing, and payment rhythm",
+        title: "Confirm scope, roadmap, and investment rhythm",
         description:
-          "We turn the request into an official teChia project with clear business requirements, scope, pricing, and payment intervals.",
+          "We turn the request into an official teChia engagement with clear business requirements, scope, pricing, and delivery phases.",
       },
       {
         icon: FolderKanban,
         step: "05",
-        title: "Move everything into the client portal",
+        title: "Move the work into the client portal",
         description:
-          "You receive a portal code for payments, messages, documents, branding assets, logos, and feedback across each building phase.",
+          "You receive a portal space for payments, messages, documents, brand assets, approvals, and feedback across each phase.",
       },
       {
         icon: Rocket,
         step: "06",
-        title: "Receive and confirm the MVP",
+        title: "Review the first growth-ready version",
         description:
-          "We build and deliver the first strong version of the project, then you review it and confirm the direction with structured feedback.",
+          "We deliver the first strong version of the work, then you review it and confirm the direction with structured feedback.",
       },
       {
         icon: Workflow,
         step: "07",
-        title: "Scale and get post-build support",
+        title: "Scale with ongoing support",
         description:
           "After the first release, we continue improving, expanding, and supporting what the business needs next.",
       },
       {
         icon: Star,
         step: "08",
-        title: "Stay in continuity as a long-term client",
+        title: "Stay in continuity as a long-term partner",
         description:
-          "Clients can leave a review through the portal, request future work, and keep every project conversation and asset in one continuous relationship.",
+          "Clients can request future work, leave feedback, and keep every conversation and asset inside one continuous relationship.",
       },
     ],
     primaryAction: "Talk to the AI Consultant",
     secondaryAction: "Explore the Demo Lab",
-    contactLead: "Prefer to discover this with a human first?",
+    contactLead: "Prefer to talk through the growth strategy with a human first?",
     contactLabel: "Contact us",
     stageLabel: "Stage",
   },
   fr: {
     eyebrow: "Livraison sur mesure",
-    title: "Nous construisons le bon systeme digital autour de votre entreprise, pas autour d'un modele fixe.",
+    title: "Nous construisons le bon système de croissance autour de votre entreprise, pas autour d'un modèle fixe.",
     description:
-      "teChia ne pousse pas des sites web ou systemes generiques. Nous etudions vos principes de travail, votre fonctionnement, votre identite de marque et vos objectifs exacts avant de recommander ce qu'il faut construire.",
-    promiseTitle: "Construit autour de l'identite de votre entreprise",
+      "teChia ne pousse pas des services génériques. Nous étudions vos objectifs, votre positionnement, votre fonctionnement, votre identité de marque et votre réalité opérationnelle avant de recommander ce qu'il faut construire.",
+    promiseTitle: "Construit autour de votre identité et de vos objectifs de croissance",
     promiseDescription:
-      "Chaque projet s'adapte a vos normes metier, a votre parcours client, a vos besoins internes, a votre marque, a vos couleurs et aux documents ou ressources que votre equipe utilise vraiment.",
+      "Chaque projet s'adapte à votre parcours client, à vos besoins internes, à vos standards de marque, à vos priorités marché et aux outils que votre équipe utilise déjà.",
     promisePoints: [
-      "Nous respectons votre identite de marque, vos couleurs, votre ton et votre positionnement.",
-      "Nous nous adaptons a vos principes metier, a votre workflow et a votre realite operationnelle.",
-      "Nous recommandons seulement la couche digitale dont votre entreprise a vraiment besoin maintenant.",
+      "Nous respectons votre identité de marque, votre ton, votre positionnement et votre réalité commerciale.",
+      "Nous nous adaptons à votre parcours client, à votre workflow interne et à vos contraintes opérationnelles.",
+      "Nous recommandons seulement la couche marketing, technologique ou automatisée dont votre entreprise a besoin maintenant.",
     ],
     visualTitle: "Un parcours client clair, de la decouverte a la continuite",
     visualLabels: ["Marque", "Scope", "Portail", "MVP", "Scale"],
@@ -152,68 +152,68 @@ const workflowCopy = {
       "Des besoins clairs, un avancement visible, des retours traces et une continuite sur le long terme.",
     stepsTitle: "Comment la collaboration avec teChia se deroule concretement",
     stepsDescription:
-      "Le processus reste clair pour le client depuis la premiere discussion jusqu'a la livraison, la validation et la suite.",
+      "Le processus reste clair depuis la première discussion croissance jusqu'à la livraison, la validation et l'accompagnement dans la durée.",
     steps: [
       {
         icon: Bot,
         step: "01",
-        title: "Identifier le bon besoin digital",
+        title: "Clarifier le vrai besoin de croissance",
         description:
-          "Commencez avec l'agent IA ou contactez-nous directement afin que nous comprenions votre activite et que nous vous orientions vers le bon service.",
+          "Commencez avec l'agent IA ou contactez-nous directement afin que nous comprenions l'objectif business et que nous vous orientions vers le bon mix de services.",
       },
       {
         icon: Search,
         step: "02",
-        title: "Verifier les demos qui correspondent",
+        title: "Vérifier les exemples qui correspondent",
         description:
-          "Explorez l'Espace Demo pour voir si votre cas le plus proche existe deja et le demander avec plus de clarte.",
+          "Explorez l'Espace Démo pour voir si votre cas le plus proche existe déjà et le demander avec plus de clarté.",
       },
       {
         icon: FileText,
         step: "03",
-        title: "Envoyer une demande de projet concise",
+        title: "Envoyer un brief croissance ciblé",
         description:
-          "Soumettez une demande claire et concentree. L'agent IA peut aussi vous aider a la formuler de facon exploitable.",
+          "Soumettez une demande claire et concentrée. L'agent IA peut aussi vous aider à la formuler de façon exploitable.",
       },
       {
         icon: Compass,
         step: "04",
-        title: "Valider le scope, le prix et le rythme de paiement",
+        title: "Valider le scope, la roadmap et le rythme d'investissement",
         description:
-          "Nous transformons votre demande en projet teChia officiel avec des exigences metier claires, un scope defini, un prix et des intervalles de paiement.",
+          "Nous transformons votre demande en engagement teChia officiel avec des exigences métier claires, un scope défini, un prix et des phases de livraison.",
       },
       {
         icon: FolderKanban,
         step: "05",
-        title: "Centraliser le projet dans le portail client",
+        title: "Centraliser le travail dans le portail client",
         description:
-          "Vous recevez un code portail pour les paiements, messages, documents, logos, elements de marque et retours pendant chaque phase de construction.",
+          "Vous recevez un espace portail pour les paiements, messages, documents, éléments de marque, validations et retours pendant chaque phase.",
       },
       {
         icon: Rocket,
         step: "06",
-        title: "Recevoir et confirmer le MVP",
+        title: "Revoir la première version prête pour la croissance",
         description:
-          "Nous construisons et livrons une premiere version solide du projet, puis vous validez la direction avec un retour structure.",
+          "Nous construisons et livrons une première version solide du travail, puis vous validez la direction avec un retour structuré.",
       },
       {
         icon: Workflow,
         step: "07",
-        title: "Passer a l'echelle et beneficier du support",
+        title: "Passer à l'échelle avec support continu",
         description:
-          "Apres la premiere livraison, nous continuons a ameliorer, etendre et soutenir ce dont l'entreprise a besoin ensuite.",
+          "Après la première livraison, nous continuons à améliorer, étendre et soutenir ce dont l'entreprise a besoin ensuite.",
       },
       {
         icon: Star,
         step: "08",
-        title: "Rester dans une relation de continuite",
+        title: "Rester dans une relation de partenariat continue",
         description:
-          "Les clients peuvent laisser un avis depuis le portail, demander de nouveaux projets et garder toutes les echanges et ressources dans une relation continue.",
+          "Les clients peuvent demander de nouveaux projets, laisser un avis et garder tous les échanges et ressources dans une relation continue.",
       },
     ],
     primaryAction: "Parler a l'agent IA",
     secondaryAction: "Explorer l'Espace Demo",
-    contactLead: "Vous preferez decouvrir cela avec un humain d'abord ?",
+    contactLead: "Vous préférez parler d'abord de la stratégie de croissance avec un humain ?",
     contactLabel: "Contactez-nous",
     stageLabel: "Etape",
   },

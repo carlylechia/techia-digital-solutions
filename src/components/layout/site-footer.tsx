@@ -14,20 +14,21 @@ export function SiteFooter({ locale }: { locale: Locale }) {
   const dict = getDictionary(locale);
   const accentScript =
     locale === "fr"
-      ? "composer un flagship digital"
-      : "compose a digital flagship";
+      ? "construire la prochaine couche de croissance"
+      : "build the next growth layer";
   const footerCallout =
     locale === "fr"
       ? {
-          eyebrow: "Après le lancement",
+          eyebrow: "Prêt pour la prochaine étape ?",
           title:
-            "Faites évoluer votre présence digitale sans repartir de zéro.",
-          body: "Quand le business est prêt pour l’étape suivante, teChia peut prolonger le site avec du SEO, des landing pages, des automatisations, des portails et des optimisations de performance.",
+            "Faites grandir votre entreprise avec une stratégie digitale plus connectée.",
+          body: "Quand les priorités deviennent plus claires, teChia peut prolonger la croissance avec campagnes, SEO, e-commerce, automatisation, IA et logiciels métier sans repartir de zéro.",
         }
       : {
-          eyebrow: "After launch",
-          title: "Evolve the digital layer without starting over.",
-          body: "When the business is ready for the next layer, teChia can extend the website with SEO, landing pages, automation, portals, and ongoing performance refinement.",
+          eyebrow: "Ready for the next step?",
+          title:
+            "Grow your business with a more connected digital strategy.",
+          body: "When the priorities become clearer, teChia can extend growth with campaigns, SEO, e-commerce, automation, AI, and business software without forcing a restart.",
         };
   const groups = [
     {

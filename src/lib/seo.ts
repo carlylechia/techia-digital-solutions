@@ -82,8 +82,8 @@ export function organizationJsonLd(locale: Locale) {
     inLanguage: locale,
     description:
       locale === "fr"
-        ? "Studio de transformation digitale créant des sites premium, systèmes métiers, automatisations et outils IA."
-        : "Digital transformation studio building premium websites, business systems, automation, dashboards, and AI-powered tools.",
+        ? "Partenaire de croissance digitale aidant les entreprises via les réseaux sociaux, le marketing digital, le branding, le web, l’automatisation, l’IA et les logiciels métier."
+        : "Digital growth partner helping businesses through social media management, digital marketing, branding, websites, automation, AI, and business software.",
   };
 }
 

@@ -20,14 +20,14 @@ function getMergedServicesMeta(locale: Locale) {
     return {
       title: "Services, solutions et secteurs — teChia Digital Solutions",
       description:
-        "Un parcours structuré réunissant services, modules de solution et applications sectorielles premium pour aider les entreprises à choisir le bon système digital.",
+        "Un parcours structuré réunissant services de croissance, modules de solution et applications sectorielles pour aider les entreprises à choisir le bon système digital.",
     };
   }
 
   return {
     title: "Services, Solutions, and Industries — teChia Digital Solutions",
     description:
-      "A structured teChia page combining premium services, solution modules, and industry applications so businesses can choose the right digital system with clarity.",
+      "A structured teChia page combining growth services, solution modules, and industry applications so businesses can choose the right digital system with clarity.",
   };
 }
 
@@ -59,8 +59,8 @@ export default async function ServicesPage({
   const dict = getDictionary(locale);
   const combinedDescription =
     locale === "fr"
-      ? "Cette page regroupe l’offre teChia, les modules de solution et les applications sectorielles dans un seul flux clair, pour aider une entreprise à passer de l’idée au bon système digital sans dispersion."
-      : "This page brings teChia services, solution modules, and industry applications into one clear flow, so a business can move from idea to the right digital system without scattered decision-making.";
+      ? "Cette page regroupe les services de croissance teChia, les modules de solution et les applications sectorielles dans un seul flux clair, pour aider une entreprise à passer de l’objectif business au bon système digital sans dispersion."
+      : "This page brings teChia growth services, solution modules, and industry applications into one clear flow, so a business can move from its goal to the right digital system without scattered decision-making.";
   const overviewCards = [
     {
       id: mergedPageAnchors.services.catalog,
@@ -115,13 +115,13 @@ export default async function ServicesPage({
             </p>
             <h2 className="mt-4 text-balance text-2xl font-semibold text-foreground md:text-3xl">
               {locale === "fr"
-                ? "Commencez par la bonne couche digitale, pas par un simple mot-clé."
-                : "Start with the right digital layer, not just a category label."}
+                ? "Commencez par le bon objectif business, puis choisissez la bonne couche digitale."
+                : "Start with the right business goal, then choose the right digital layer."}
             </h2>
             <p className="mt-4 text-sm leading-7 text-muted">
               {locale === "fr"
-                ? "Les services expliquent la capacité. Les solutions montrent la forme du système. Les secteurs montrent comment cette logique s’adapte au métier."
-                : "Services explain the capability. Solutions show the system shape. Industries show how that logic adapts to a business context."}
+                ? "Les services expliquent la capacité. Les solutions montrent la forme du système. Les secteurs montrent comment cette logique de croissance s’adapte au métier."
+                : "Services explain the capability. Solutions show the system shape. Industries show how that growth logic adapts to a business context."}
             </p>
             <div className="mt-6 grid gap-3">
               {overviewCards.map((item) => (

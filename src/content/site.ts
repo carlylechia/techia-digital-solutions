@@ -105,188 +105,246 @@ export type CardItem = {
 
 const sharedServicesEn: CardItem[] = [
   {
+    slug: "social-media-management",
+    title: "Social Media Management",
+    description:
+      "If your brand posts inconsistently or gets ignored online, we plan and manage content that builds attention, trust, and steady customer conversations.",
+    features: [
+      "Content planning",
+      "Creative direction",
+      "Community management",
+      "Performance reporting",
+    ],
+  },
+  {
+    slug: "digital-marketing",
+    title: "Digital Marketing",
+    description:
+      "When leads are unpredictable and campaigns feel scattered, we build digital marketing systems that generate qualified demand and measurable business growth.",
+    features: [
+      "Campaign strategy",
+      "Paid media support",
+      "Email funnels",
+      "Growth analytics",
+    ],
+  },
+  {
+    slug: "branding-graphic-design",
+    title: "Branding & Graphic Design",
+    description:
+      "When the business looks unclear or forgettable, we sharpen positioning and design so customers recognize the value, trust the offer, and remember the brand.",
+    features: [
+      "Brand strategy",
+      "Visual identity",
+      "Sales collateral",
+      "Message refinement",
+    ],
+  },
+  {
     slug: "website-design-development",
     title: "Website Design & Development",
     description:
-      "Premium, SEO-ready websites that make your business look credible, fast, and international from the first click.",
+      "When visitors hesitate to trust or contact you, we design high-performance websites that clarify your offer, capture leads, and turn attention into opportunity.",
     features: [
       "Marketing websites",
-      "Landing pages",
-      "Conversion copy",
+      "Conversion pages",
+      "UX copywriting",
       "CMS-ready structure",
     ],
   },
   {
-    slug: "business-management-systems",
-    title: "Business Management Systems",
+    slug: "e-commerce-solutions",
+    title: "E-commerce Solutions",
     description:
-      "Custom internal systems that organize leads, staff, workflows, documents, inventory, quotes, and customer requests.",
+      "When sales depend on manual chats and fragmented payments, we build e-commerce experiences that streamline buying, increase order confidence, and make revenue easier to scale.",
     features: [
-      "Admin dashboards",
-      "Role-based flows",
-      "Data management",
-      "Operational reporting",
+      "Product catalogs",
+      "Checkout flows",
+      "Payment integration",
+      "Order journeys",
     ],
   },
   {
-    slug: "custom-web-applications",
-    title: "Custom Web Applications",
+    slug: "seo",
+    title: "SEO",
     description:
-      "Modern web applications built around your business model instead of forcing your business to fit generic tools.",
+      "If customers cannot find you on Google, we improve technical SEO, content structure, and search intent alignment so your business earns visibility and long-term inbound leads.",
     features: [
-      "Client portals",
-      "Booking systems",
-      "Quote systems",
-      "Marketplaces",
+      "Technical SEO",
+      "On-page optimization",
+      "Content mapping",
+      "Search reporting",
     ],
   },
   {
-    slug: "automation-workflow-systems",
-    title: "Automation & Workflow Systems",
+    slug: "business-automation",
+    title: "Business Automation",
     description:
-      "Automation that removes repetitive work and keeps customers, teams, and managers moving in the same direction.",
+      "When repetitive admin slows the team down, we automate follow-up, approvals, notifications, and workflows so operations become faster, cleaner, and less manual.",
     features: [
-      "Email workflows",
-      "WhatsApp-ready flows",
+      "Workflow automation",
+      "Follow-up sequences",
       "Notifications",
-      "Follow-up systems",
+      "Process optimization",
     ],
   },
   {
-    slug: "ai-powered-business-tools",
-    title: "AI-Powered Business Tools",
+    slug: "ai-solutions",
+    title: "AI Solutions",
     description:
-      "Practical AI assistants, content helpers, estimators, and decision-support tools for real business workflows.",
+      "When growth is limited by slow response times or information overload, we deploy practical AI tools that guide customers, assist teams, and speed up decision-making.",
     features: [
       "AI assistants",
-      "Smart forms",
-      "Document helpers",
-      "Knowledge interfaces",
+      "Knowledge tools",
+      "Smart intake",
+      "Decision support",
     ],
   },
   {
-    slug: "seo-google-ads-landing-pages",
-    title: "SEO & Google Ads Landing Pages",
+    slug: "custom-business-software",
+    title: "Custom Business Software",
     description:
-      "Focused pages designed for search visibility, paid traffic, lead capture, and strong conversion measurement.",
+      "When off-the-shelf tools do not match how your business works, we develop custom software that centralizes operations, organizes data, and gives your team better control.",
     features: [
-      "Local SEO",
-      "European landing pages",
-      "GA4 events",
-      "Campaign pages",
+      "Admin dashboards",
+      "Client portals",
+      "Operational systems",
+      "Data workflows",
     ],
   },
   {
-    slug: "maintenance-support",
-    title: "Website Maintenance & Support",
+    slug: "cloud-digital-transformation-consulting",
+    title: "Cloud & Digital Transformation Consulting",
     description:
-      "Security, content updates, monitoring, technical improvements, and growth support after launch.",
+      "When systems feel disconnected or growth requires a bigger shift, we guide cloud and digital transformation decisions so technology investments stay aligned with business goals.",
     features: [
-      "Bug fixes",
-      "Performance checks",
-      "Backups",
-      "Monthly improvements",
-    ],
-  },
-  {
-    slug: "branding-digital-presence",
-    title: "Branding & Digital Presence",
-    description:
-      "A sharper online presence across your website, messaging, proposal assets, and trust-building customer touchpoints.",
-    features: [
-      "Brand positioning",
-      "Visual systems",
-      "Copywriting",
-      "Digital credibility",
+      "Transformation audits",
+      "Cloud planning",
+      "Systems roadmap",
+      "Advisory support",
     ],
   },
 ];
 
 const sharedServicesFr: CardItem[] = [
   {
-    slug: "website-design-development",
-    title: "Création de sites web premium",
+    slug: "social-media-management",
+    title: "Gestion des réseaux sociaux",
     description:
-      "Des sites rapides, professionnels et optimisés SEO pour inspirer confiance dès la première visite.",
+      "Si votre marque publie de façon irrégulière ou manque d’attention en ligne, nous pilotons un contenu qui crée de la visibilité, de la confiance et des conversations client régulières.",
     features: [
-      "Sites vitrines",
+      "Plan de contenu",
+      "Direction créative",
+      "Community management",
+      "Rapports de performance",
+    ],
+  },
+  {
+    slug: "digital-marketing",
+    title: "Marketing digital",
+    description:
+      "Quand les leads sont imprévisibles et les campagnes dispersées, nous construisons un dispositif marketing digital qui génère une demande qualifiée et une croissance mesurable.",
+    features: [
+      "Stratégie de campagne",
+      "Support média payant",
+      "Funnels email",
+      "Analytics de croissance",
+    ],
+  },
+  {
+    slug: "branding-graphic-design",
+    title: "Branding & design graphique",
+    description:
+      "Quand l’entreprise paraît floue ou oubliable, nous clarifions le positionnement et le design pour que la valeur soit comprise, crédible et mémorable.",
+    features: [
+      "Stratégie de marque",
+      "Identité visuelle",
+      "Supports commerciaux",
+      "Affinage du message",
+    ],
+  },
+  {
+    slug: "website-design-development",
+    title: "Design & développement web",
+    description:
+      "Quand les visiteurs hésitent à vous faire confiance ou à vous contacter, nous concevons des sites performants qui clarifient l’offre, captent les demandes et soutiennent la conversion.",
+    features: [
+      "Sites marketing",
       "Pages de conversion",
-      "Contenu orienté client",
+      "UX writing",
       "Architecture évolutive",
     ],
   },
   {
-    slug: "business-management-systems",
-    title: "Systèmes de gestion d’entreprise",
+    slug: "e-commerce-solutions",
+    title: "Solutions e-commerce",
     description:
-      "Des plateformes internes pour organiser prospects, équipes, processus, documents, stocks, devis et demandes clients.",
+      "Quand les ventes dépendent de messages manuels et de paiements fragmentés, nous créons des expériences e-commerce qui fluidifient l’achat et facilitent la montée en chiffre d’affaires.",
     features: [
-      "Tableaux de bord",
-      "Rôles utilisateurs",
-      "Gestion des données",
-      "Rapports opérationnels",
+      "Catalogues produits",
+      "Parcours de paiement",
+      "Intégration de paiement",
+      "Gestion des commandes",
     ],
   },
   {
-    slug: "custom-web-applications",
-    title: "Applications web sur mesure",
+    slug: "seo",
+    title: "SEO",
     description:
-      "Des applications modernes construites autour de votre modèle d’affaires, pas autour d’un outil générique.",
-    features: ["Portails clients", "Réservations", "Devis", "Places de marché"],
+      "Si vos prospects ne vous trouvent pas sur Google, nous améliorons le SEO technique, la structure de contenu et l’alignement avec l’intention de recherche pour gagner en visibilité durable.",
+    features: [
+      "SEO technique",
+      "Optimisation on-page",
+      "Cartographie de contenu",
+      "Reporting search",
+    ],
   },
   {
-    slug: "automation-workflow-systems",
-    title: "Automatisation & processus",
+    slug: "business-automation",
+    title: "Automatisation métier",
     description:
-      "Des automatisations qui réduisent le travail répétitif et améliorent la coordination entre clients, équipes et managers.",
+      "Quand les tâches répétitives ralentissent l’équipe, nous automatisons relances, validations, notifications et workflows pour rendre l’exécution plus rapide et plus propre.",
     features: [
-      "Emails automatisés",
-      "Parcours compatibles WhatsApp",
+      "Workflows automatisés",
+      "Séquences de relance",
       "Notifications",
-      "Relances",
+      "Optimisation de processus",
     ],
   },
   {
-    slug: "ai-powered-business-tools",
-    title: "Outils métier alimentés par l’IA",
+    slug: "ai-solutions",
+    title: "Solutions IA",
     description:
-      "Des assistants IA, estimateurs et interfaces intelligentes adaptés à de vrais processus métier.",
+      "Quand la croissance est freinée par des réponses lentes ou trop d’informations à traiter, nous déployons des outils IA pratiques pour guider les clients et assister les équipes.",
     features: [
       "Assistants IA",
-      "Formulaires intelligents",
-      "Aide documentaire",
-      "Interfaces de connaissance",
+      "Outils de connaissance",
+      "Intake intelligent",
+      "Aide à la décision",
     ],
   },
   {
-    slug: "seo-google-ads-landing-pages",
-    title: "SEO & pages de conversion Google Ads",
+    slug: "custom-business-software",
+    title: "Logiciels métier sur mesure",
     description:
-      "Des pages conçues pour la visibilité, le trafic payant, la conversion et la mesure des résultats.",
-    features: ["SEO local", "Pages Europe", "Événements GA4", "Pages campagne"],
-  },
-  {
-    slug: "maintenance-support",
-    title: "Maintenance & support",
-    description:
-      "Sécurité, mises à jour, surveillance, améliorations techniques et accompagnement après la mise en ligne.",
+      "Quand les outils standards ne reflètent pas votre manière de travailler, nous développons un logiciel métier qui centralise les opérations, structure les données et améliore le pilotage.",
     features: [
-      "Corrections",
-      "Performance",
-      "Sauvegardes",
-      "Améliorations mensuelles",
+      "Tableaux de bord",
+      "Portails clients",
+      "Systèmes opérationnels",
+      "Flux de données",
     ],
   },
   {
-    slug: "branding-digital-presence",
-    title: "Image de marque & présence digitale",
+    slug: "cloud-digital-transformation-consulting",
+    title: "Conseil cloud & transformation digitale",
     description:
-      "Une présence plus crédible sur votre site, votre message, vos supports commerciaux et vos points de contact clients.",
+      "Quand les systèmes sont déconnectés ou que la croissance exige un changement plus profond, nous guidons les décisions cloud et transformation digitale pour garder la technologie alignée avec le business.",
     features: [
-      "Positionnement",
-      "Système visuel",
-      "Rédaction persuasive",
-      "Crédibilité digitale",
+      "Audits de transformation",
+      "Planification cloud",
+      "Roadmap système",
+      "Conseil stratégique",
     ],
   },
 ];
@@ -606,9 +664,9 @@ export const dictionaries = {
     localeName: "English",
     nav: routeLabels.en,
     meta: {
-      title: "teChia Digital Solutions — Digital Homes for Modern Businesses",
+      title: "teChia Digital Solutions — Digitalize. Simplify. Grow.",
       description:
-        "Premium websites, client portals, business systems, automation workflows, and AI-powered tools for local businesses, African SMEs, and international-facing teams.",
+        "teChia Digital Solutions helps businesses grow through social media management, digital marketing, branding, websites, e-commerce, SEO, automation, AI solutions, custom software, and digital transformation consulting.",
     },
     common: {
       startProject: "Start a Project",
@@ -621,110 +679,112 @@ export const dictionaries = {
       buildLikeThis: "Create a similar solution",
     },
     hero: {
-      eyebrow: "Digital transformation studio for ambitious businesses",
-      title: "Digital Homes for Modern Businesses",
+      eyebrow: "Business growth partner for ambitious companies",
+      title: "Digitalize. Simplify. Grow.",
       description:
-        "teChia Digital Solutions builds premium websites, client portals, business systems, automation workflows, and AI-powered tools that help serious businesses win trust, run cleaner operations, and scale with less friction.",
+        "Helping businesses grow through social media management, digital marketing, branding, AI, websites, automation, and software built for real operations.",
       trust: [
-        "Premium Websites",
-        "Client Portals",
-        "Business Systems",
-        "Automation Workflows",
-        "AI Tools",
-        "SEO-Ready",
-        "International-Ready",
+        "Social Media Management",
+        "Digital Marketing",
+        "Branding",
+        "Websites",
+        "SEO",
+        "Automation",
+        "AI Solutions",
       ],
     },
     home: {
       problemTitle:
-        "Most businesses do not need more complexity. They need better systems.",
+        "Growth slows down when visibility and operations are disconnected.",
       problemBody:
-        "When your website, customer communication, documents, quotes, and follow-ups live in different places, growth becomes harder than it should be. We design the digital layer that makes the business easier to understand and easier to run.",
-      digitalHomeTitle: "A digital home is more than a website.",
+        "When your social media, campaigns, website, leads, customer communication, and internal workflows live in different places, revenue becomes harder than it should be. teChia connects the digital layer so the business can market better, operate better, and grow with more control.",
+      digitalHomeTitle: "Technology should support growth, not create more noise.",
       digitalHomeBody:
-        "Your public website, lead flow, client experience, reporting, and internal processes should reinforce each other instead of living in separate tools.",
-      europeTitle: "Built for local trust and international credibility.",
+        "Your branding, content, website, lead flow, reporting, automation, and internal systems should reinforce one another instead of competing for attention.",
+      europeTitle: "Built for local relevance and international credibility.",
       europeBody:
-        "Whether a client finds you from Douala, Lagos, Paris, Berlin, London, or a Google Ads campaign, your digital presence should feel serious, clear, and safe.",
-      finalCtaTitle: "Ready to digitalize your business properly?",
+        "Whether you serve Douala, Lagos, Paris, Berlin, London, or buyers anywhere online, your digital experience should feel clear, modern, and trustworthy.",
+      finalCtaTitle:
+        "Ready to grow your business with the right digital strategy?",
       finalCtaBody:
-        "Tell us whether you need a website, portal, dashboard, automation workflow, or AI tool, and teChia will recommend the right starting scope.",
+        "Tell us the growth goal, and teChia will shape the right mix of marketing, branding, websites, e-commerce, automation, AI, and software around it.",
     },
     pages: {
       home: {
-        realityEyebrow: "Reality check",
-        servicesTitle:
-          "Websites, systems, automation, and AI tools built by teChia",
+        realityEyebrow: "Growth reality",
+        servicesTitle: "Growth services led by teChia",
         servicesDescription:
-          "Explore the core services teChia delivers for companies that need stronger online credibility, cleaner operations, and better customer follow-up.",
-        demoTitle: "Interactive examples of the solutions teChia can build",
+          "Explore the capabilities teChia combines to attract customers, strengthen brand visibility, improve operations, and scale businesses with less friction.",
+        demoTitle:
+          "Interactive examples of the systems behind modern business growth",
         demoDescription:
-          "Browse hands-on examples of portals, dashboards, quote tools, booking flows, and AI experiences built around real business use cases.",
-        caseTitle: "Selected work",
+          "Browse hands-on examples of portals, dashboards, quote tools, booking flows, and AI experiences built around real customer and operational needs.",
+        caseTitle: "Growth-focused work",
         caseDescription:
-          "Selected projects show how teChia turns business requirements into polished websites, practical tools, and stronger customer journeys.",
-        methodTitle: "How teChia takes a project from idea to launch.",
-        stackTitle: "Modern stack. Calm engineering.",
-        securityTitle: "Trust signals built in from day one.",
-        pricingTitle: "Choose an entry point, not a rigid package.",
+          "Selected projects show how teChia turns business priorities into stronger visibility, smoother operations, and better customer journeys.",
+        methodTitle: "How teChia moves from business goal to digital execution.",
+        stackTitle: "Modern stack. Business-first execution.",
+        securityTitle: "Trust, speed, and measurable growth built in.",
+        pricingTitle:
+          "Choose the right growth starting point, not a rigid package.",
         pricingDescription:
-          "Use pricing to frame the right starting scope, then tailor the stack, automation, and rollout around the business.",
-        faqTitle: "Questions before we start",
-        finalCtaEyebrow: "Next step",
+          "Use pricing to frame the first phase, then tailor the strategy, build, and rollout around the business.",
+        faqTitle: "Questions before we grow together",
+        finalCtaEyebrow: "Next move",
       },
       about: {
         metaTitle: "About teChia Digital Solutions",
         metaDescription:
-          "Learn how teChia creates premium websites, smart systems, automation, and AI-powered tools for modern businesses.",
+          "Learn how teChia operates as a long-term growth partner across marketing, branding, web, automation, AI, and software.",
         eyebrow: "About",
-        title: "Simple problems. Smart tech solutions.",
+        title: "A long-term partner for business growth.",
         description:
-          "teChia Digital Solutions helps serious businesses create a professional digital layer that attracts clients, organizes operations, and creates room for growth.",
-        pillars: ["Digital homes", "Operational clarity", "Global credibility"],
-        beliefTitle: "What we believe",
+          "teChia Digital Solutions helps businesses grow through digital marketing, brand strategy, social media, websites, automation, AI, business systems, SEO, and digital transformation planning.",
+        pillars: ["Growth strategy", "Operational clarity", "Scalable systems"],
+        beliefTitle: "How teChia thinks",
         beliefs: [
-          "A website should be a business asset, not decoration.",
-          "Local businesses deserve international-quality digital presence.",
-          "Good systems make teams calmer, faster, and more organized.",
-          "Technology should reduce confusion, not create more of it.",
+          "Businesses rarely need technology for its own sake. They need better growth systems.",
+          "Marketing, branding, and software work better when they are planned together.",
+          "Automation should remove manual friction, not add complexity.",
+          "Digital transformation should improve both customer experience and internal execution.",
         ],
       },
       services: {
         metaTitle: "Services — teChia Digital Solutions",
         metaDescription:
-          "Premium website design, business systems, automation, AI tools, SEO landing pages, and maintenance services.",
-        title: "Services that turn a business into a digital system",
+          "Social media management, digital marketing, branding, website design, e-commerce, SEO, automation, AI solutions, custom software, and digital transformation consulting.",
+        title: "Growth services built around real business outcomes",
         description:
-          "Start with a website, expand into dashboards, automation, portals, SEO, and ongoing growth.",
+          "From social media and digital marketing to websites, automation, AI, and custom software, teChia helps businesses grow with the right digital mix.",
       },
       solutions: {
         metaTitle: "Solutions — teChia Digital Solutions",
         metaDescription:
-          "Client portals, quote systems, dashboards, booking systems, AI assistants, and landing pages for modern businesses.",
-        title: "Smart modules for real business problems",
+          "Client portals, quote systems, dashboards, booking systems, AI assistants, and growth tools for modern businesses.",
+        title: "Solution modules for customer growth and operational clarity",
         description:
-          "Use these modules independently or combine them into a full business operating system.",
+          "Use these modules independently or combine them into a connected growth and operations system.",
       },
       industries: {
         metaTitle: "Industries — teChia Digital Solutions",
         metaDescription:
-          "Search-ready websites and custom systems for travel agencies, logistics companies, schools, clinics, real estate, car dealerships, NGOs, restaurants, and SMEs.",
-        title: "Industry pages built for visibility and conversion",
+          "Growth-focused digital systems for travel agencies, logistics companies, schools, clinics, real estate teams, dealerships, NGOs, restaurants, and SMEs.",
+        title: "Industry solutions shaped around visibility, conversion, and delivery",
         description:
-          "Each industry page supports organic search, Google Ads, and clear business-specific messaging.",
+          "Each industry page translates teChia’s growth approach into a specific business context with clearer messaging and operational relevance.",
         detailPillars: [
           "Lead capture",
-          "Search visibility",
-          "Business system roadmap",
+          "Market visibility",
+          "Growth system roadmap",
         ],
       },
       portfolio: {
         metaTitle: "Portfolio and Case Studies — teChia",
         metaDescription:
-          "A portfolio of client projects and digital products showing teChia capability across websites, dashboards, automation, and business systems.",
-        title: "Projects, products, and business systems",
+          "Case studies showing how teChia connects brand, marketing, websites, automation, AI, and software for business growth.",
+        title: "Case studies shaped around business growth",
         description:
-          "Clear case studies that show how teChia thinks about business value, not only visuals.",
+          "Proof of how teChia turns growth goals into stronger visibility, cleaner operations, and better customer journeys.",
         detailSections: [
           "Problem",
           "Solution",
@@ -739,54 +799,54 @@ export const dictionaries = {
       blog: {
         metaTitle: "Blog — teChia Digital Solutions",
         metaDescription:
-          "Practical articles on digital homes, websites, business systems, automation, SEO, dashboards, and digital credibility.",
-        title: "Thought leadership for serious business digitalization",
+          "Insights on social media management, digital marketing, branding, SEO, automation, AI, websites, and digital transformation.",
+        title: "Practical thinking for businesses that want to grow digitally",
         description:
-          "Practical insights for companies that want a stronger digital presence, clearer operations, and measurable growth.",
+          "Useful guidance for leaders improving visibility, systems, customer experience, and measurable growth.",
         articleEyebrow: "teChia insights",
         intro:
-          "This article gives business leaders a practical way to evaluate digital decisions through brand credibility, lead generation, operations, and customer experience.",
+          "This article gives business leaders a practical way to evaluate digital decisions through visibility, brand credibility, operations, and customer experience.",
         keyIdeaTitle: "Key idea",
         keyIdeaBody:
-          "A serious digital presence connects brand, lead generation, customer communication, internal organization, and measurable growth. That is the difference between having a website and owning a digital home.",
+          "Growth improves when brand, marketing, customer experience, and operations are connected instead of handled in isolation.",
         nextStepTitle: "Practical next step",
         nextStepBody:
-          "Audit the business workflow first. Then choose whether the company needs a website, a dashboard, a portal, automation, or a combined system.",
+          "Start with the business goal. Then choose the right mix of marketing, branding, websites, automation, AI, or software.",
       },
       demoLab: {
         metaTitle: "Demo Lab — teChia Digital Solutions",
         metaDescription:
-          "Interactive demos for logistics quote systems, travel dashboards, school portals, car inventory, AI assistants, booking systems, and client portals.",
-        title: "Interactive proof of digital workflows",
+          "Interactive demos for quote systems, dashboards, portals, AI assistants, booking flows, and business software that support growth.",
+        title: "Interactive proof of digital growth workflows",
         description:
-          "These demos help prospects understand how structured systems improve inquiries, operations, and customer follow-up.",
+          "These demos help prospects understand how structured systems improve visibility, operations, and customer follow-up.",
       },
       pricing: {
         metaTitle: "Pricing — teChia Digital Solutions",
         metaDescription:
-          "Flexible website, business system, enterprise, and monthly maintenance packages for modern businesses.",
-        title: "Premium packages without fake one-size-fits-all pricing",
+          "Flexible growth packages across branding, web, marketing, automation, AI, and software support.",
+        title: "Growth packages without one-size-fits-all thinking",
         description:
-          "Every business has a different starting point. Use these packages to frame the scope, timeline, and best next step.",
+          "Every business starts from a different growth challenge. Use these packages to frame the first phase and next digital priorities.",
         addOnsTitle: "Common add-ons",
         addOns: [
-          "Extra landing pages",
-          "Blog setup",
-          "Admin dashboard",
+          "Extra campaign landing pages",
+          "Social media content support",
+          "Brand refresh",
+          "SEO content support",
+          "Automation workflow",
           "AI assistant",
           "Analytics reporting",
-          "Content writing",
-          "Maintenance",
-          "SEO support",
+          "Ongoing optimization",
         ],
       },
       contact: {
         metaTitle: "Contact — teChia Digital Solutions",
         metaDescription:
-          "Contact teChia Digital Solutions for premium websites, business systems, automation, and digital transformation projects.",
-        title: "Tell us what you are trying to create",
+          "Contact teChia Digital Solutions for social media management, digital marketing, branding, websites, automation, AI, software, and digital transformation consulting.",
+        title: "Tell us where your business wants to grow",
         description:
-          "Send a message for websites, systems, automation, dashboards, AI tools, or digital transformation strategy.",
+          "Share the goal, bottleneck, or opportunity. We will recommend the right marketing, branding, technology, or automation path.",
         detailsTitle: "Contact details",
         location: "Douala, Cameroon — serving Africa and international SMEs",
         emailLabel: "Email",
@@ -799,17 +859,17 @@ export const dictionaries = {
       startProject: {
         metaTitle: "Start a Project — teChia Digital Solutions",
         metaDescription:
-          "Start a serious project inquiry for websites, business systems, dashboards, automation, AI tools, and digital transformation.",
-        title: "Start with clarity, not confusion",
+          "Start a growth-focused project with teChia across marketing, branding, websites, e-commerce, SEO, automation, AI, software, and digital transformation.",
+        title: "Start with your growth goal",
         description:
-          "This inquiry flow captures the information needed to recommend the right digital solution, package, and next step.",
+          "This inquiry flow helps teChia understand your business priorities and recommend the right combination of strategy, creative, and technology.",
       },
       landing: {
         eyebrow: "Google Ads landing page",
         titlePrefix: "Premium",
         titleConnector: "for",
         description:
-          "teChia helps SMEs create a credible digital home: professional website, clear messaging, lead capture, analytics, SEO structure, and a roadmap toward custom business systems.",
+          "teChia helps SMEs grow with stronger messaging, better visibility, conversion-ready digital experiences, and a roadmap toward automation and custom systems.",
         trust: [
           "Fast landing pages",
           "GA4 conversion events",
@@ -830,7 +890,7 @@ export const dictionaries = {
           "A focused landing page makes your offer easier to understand and easier to act on.",
         metaFallbackTitle: "Landing Page — teChia",
         metaDescription:
-          "Conversion-focused landing page for European SMEs needing premium websites, business systems, automation, and digital credibility.",
+          "Conversion-focused landing page for European SMEs that need stronger visibility, better digital credibility, and scalable growth systems.",
       },
       admin: {
         metaTitle: "Admin Access — teChia",
@@ -852,17 +912,17 @@ export const dictionaries = {
       },
     },
     sections: {
-      services: "Premium services",
-      solutions: "Smart solutions",
+      services: "Growth services",
+      solutions: "Growth systems",
       industries: "Industries served",
       method: "The teChia Method",
       stack: "Technology credibility",
-      security: "Security, SEO, and performance promise",
-      testimonials: "Client-ready confidence",
+      security: "Security, SEO, and performance foundation",
+      testimonials: "Growth proof",
       faq: "Frequently asked questions",
-      pricing: "Flexible packages",
+      pricing: "Growth packages",
       demoLab: "Interactive demos",
-      caseStudies: "Featured work",
+      caseStudies: "Growth case studies",
     },
     solutions: [
       {
@@ -903,11 +963,11 @@ export const dictionaries = {
       },
     ],
     method: [
-      "Discover the real business problem",
-      "Design a clean digital system",
+      "Clarify the real business growth challenge",
+      "Design the right mix of marketing, brand, and technology",
       "Build fast with secure modern tools",
       "Launch with SEO, analytics, and conversion tracking",
-      "Improve continuously after release",
+      "Improve continuously as the business scales",
     ],
     stack: [
       "Next.js",
@@ -946,73 +1006,73 @@ export const dictionaries = {
     pricing: [
       {
         slug: "digital-foundation",
-        title: "Digital Foundation",
+        title: "Base de croissance",
         badge: "Best first step",
         description:
-          "A premium website foundation for a serious small business ready to look credible online.",
+          "For businesses that need stronger branding, social media clarity, and a conversion-ready digital foundation to start attracting better opportunities.",
         features: [
-          "5–8 core pages",
-          "Bilingual-ready structure",
-          "SEO setup",
-          "Contact/inquiry flow",
+          "Brand positioning refresh",
+          "Social media setup",
+          "Core web presence",
+          "Lead capture workflow",
         ],
-        cta: "Request foundation quote",
+        cta: "Plan my launchpad",
       },
       {
         slug: "business-pro-website",
-        title: "Business Pro Website",
+        title: "Moteur visibilité & demande",
         badge: "Most popular",
         description:
-          "A stronger website with landing pages, richer content, analytics events, and conversion-focused architecture.",
+          "For businesses ready to grow visibility through digital marketing, landing pages, SEO, and campaigns that generate qualified leads.",
         features: [
-          "10–20 pages",
-          "Industry landing pages",
-          "GA4 conversion events",
-          "Blog/content structure",
+          "Campaign landing pages",
+          "SEO foundations",
+          "Analytics and conversion events",
+          "Content and funnel support",
         ],
-        cta: "Plan my pro website",
+        cta: "Plan my demand engine",
       },
       {
         slug: "business-os",
-        title: "Business OS",
+        title: "Système d’opérations croissance",
         badge: "Operations upgrade",
         description:
-          "A custom website plus internal dashboard, leads, inquiries, workflows, and structured business data.",
+          "For teams that need marketing, leads, follow-up, internal workflows, and reporting connected inside one clearer business system.",
         features: [
-          "Admin dashboard",
-          "Database",
-          "Lead management",
-          "Operational modules",
+          "Lead and inquiry management",
+          "Automation workflows",
+          "Dashboards and reporting",
+          "Operational data structure",
         ],
-        cta: "Discuss Business OS",
+        cta: "Discuss operations system",
       },
       {
         slug: "custom-enterprise-system",
-        title: "Custom Enterprise System",
+        title: "Plateforme IA & logiciel sur mesure",
         badge: "Fully custom",
         description:
-          "A tailored platform for complex workflows, multiple departments, role-based access, and automation.",
+          "For businesses that need tailored software, AI support, and deeper digital transformation across departments or services.",
         features: [
           "Discovery workshop",
-          "Custom architecture",
-          "Role-based tools",
-          "Roadmap delivery",
+          "Custom software roadmap",
+          "AI workflow design",
+          "Role-based delivery",
         ],
-        cta: "Book a discovery call",
+        cta: "Book a strategy session",
       },
       {
         slug: "maintenance-growth",
-        title: "Maintenance & Growth",
+        title: "Support croissance continu",
         badge: "Monthly support",
         description:
-          "Ongoing technical care, monitoring, improvements, content updates, and performance support.",
+          "Ongoing optimization for campaigns, content, SEO, websites, automations, and digital systems after launch.",
         features: [
-          "Security checks",
-          "Content updates",
-          "SEO improvements",
-          "Priority fixes",
+          "Performance reviews",
+          "SEO and content updates",
+          "Automation improvements",
+          "Priority support",
         ],
-        cta: "Request support plan",
+        cta: "Request ongoing support",
       },
     ],
     testimonials: [
@@ -1037,9 +1097,14 @@ export const dictionaries = {
     ],
     faqs: [
       {
-        question: "Do you only build websites?",
+        question: "Do you only help with websites?",
         answer:
-          "No. Websites are often the first step, but we also build dashboards, portals, automation flows, quote systems, booking tools, and full business operating systems.",
+          "No. Websites are only one part of the work. teChia can start with social media, digital marketing, branding, SEO, automation, AI, software, or a broader growth roadmap depending on what the business actually needs.",
+      },
+      {
+        question: "Can teChia handle both marketing and technology?",
+        answer:
+          "Yes. teChia is designed to connect visibility, branding, customer acquisition, automation, AI, and software into one coherent growth system instead of treating each need separately.",
       },
       {
         question: "Can you work with businesses outside Cameroon?",
@@ -1047,14 +1112,9 @@ export const dictionaries = {
           "Yes. teChia is designed for local businesses, African SMEs, and international clients, especially European SMEs that need premium digital systems.",
       },
       {
-        question: "Can the website be bilingual?",
+        question: "Can you stay involved after launch?",
         answer:
-          "Yes. teChia creates English and French routing, metadata, navigation, and content structures for bilingual projects, and the same architecture can support additional languages when your market needs them.",
-      },
-      {
-        question: "Do you support after launch?",
-        answer:
-          "Yes. Maintenance and growth packages can cover security, performance, content updates, technical fixes, and new features.",
+          "Yes. teChia can continue with campaign refinement, SEO, content updates, technical support, automation improvements, and the next digital layer as the business evolves.",
       },
     ],
     simulator: {
@@ -1197,10 +1257,9 @@ export const dictionaries = {
       company: "Company",
       legal: "Legal",
       footerDescription:
-        "Premium websites, smart systems, automation tools, and digital homes for modern businesses.",
+        "teChia Digital Solutions helps businesses grow through social media management, digital marketing, branding, premium websites, SEO, automation, AI solutions, and custom software.",
       allRightsReserved: "All rights reserved.",
-      footerPromise:
-        "Built for speed, trust, accessibility, and measurable growth.",
+      footerPromise: "Digitalize. Simplify. Grow.",
       newsletterJoin: "Join",
       newsletterLoading: "...",
       newsletterSuccess: "Subscribed.",
@@ -1226,9 +1285,9 @@ export const dictionaries = {
     nav: routeLabels.fr,
     meta: {
       title:
-        "teChia Digital Solutions — Maisons digitales pour entreprises modernes",
+        "teChia Digital Solutions — Digitaliser. Simplifier. Grandir.",
       description:
-        "Sites web premium, portails clients, systèmes métiers, automatisations et outils IA pour entreprises locales, PME africaines et équipes tournées vers l’international.",
+        "teChia Digital Solutions aide les entreprises à grandir grâce à la gestion des réseaux sociaux, au marketing digital, au branding, au web, au e-commerce, au SEO, à l’automatisation, aux solutions IA, aux logiciels sur mesure et au conseil en transformation digitale.",
     },
     common: {
       startProject: "Démarrer un projet",
@@ -1241,117 +1300,120 @@ export const dictionaries = {
       buildLikeThis: "Créer une solution similaire",
     },
     hero: {
-      eyebrow: "Studio de transformation digitale pour entreprises ambitieuses",
-      title: "Maisons digitales pour entreprises modernes",
+      eyebrow: "Partenaire de croissance pour entreprises ambitieuses",
+      title: "Digitaliser. Simplifier. Grandir.",
       description:
-        "teChia Digital Solutions conçoit des sites premium, portails clients, systèmes métiers, automatisations et outils IA qui aident les entreprises sérieuses à inspirer confiance, mieux organiser leurs opérations et grandir avec moins de friction.",
+        "Nous aidons les entreprises à grandir grâce aux réseaux sociaux, au marketing digital, au branding, à l’IA, au web, à l’automatisation et aux logiciels pensés pour les vraies opérations.",
       trust: [
-        "Sites premium",
-        "Portails clients",
-        "Systèmes métiers",
+        "Réseaux sociaux",
+        "Marketing digital",
+        "Branding",
+        "Web",
+        "SEO",
         "Automatisations",
-        "Outils IA",
-        "Optimisé SEO",
-        "Prêt pour l’international",
+        "Solutions IA",
       ],
     },
     home: {
       problemTitle:
-        "La plupart des entreprises n’ont pas besoin de plus de complexité. Elles ont besoin de meilleurs systèmes.",
+        "La croissance ralentit quand la visibilité et les opérations restent déconnectées.",
       problemBody:
-        "Quand votre site, vos messages clients, documents, devis et relances sont dispersés, la croissance devient inutilement difficile. Nous concevons la couche digitale qui rend l’entreprise plus claire et plus facile à gérer.",
-      digitalHomeTitle: "Une maison digitale est plus qu’un site web.",
+        "Quand vos réseaux sociaux, campagnes, site, leads, messages clients et workflows internes vivent dans des outils séparés, la croissance devient plus difficile qu’elle ne devrait l’être. teChia relie la couche digitale pour mieux marketer, mieux opérer et mieux piloter.",
+      digitalHomeTitle:
+        "La technologie doit soutenir la croissance, pas créer plus de bruit.",
       digitalHomeBody:
-        "Votre site public, votre acquisition, votre expérience client, vos reportings et vos processus internes doivent se renforcer au lieu de vivre dans des outils séparés.",
+        "Votre branding, votre contenu, votre site, votre acquisition, vos reportings, vos automatisations et vos systèmes internes doivent se renforcer mutuellement au lieu de se disperser.",
       europeTitle:
-        "Conçu pour la confiance locale et la crédibilité internationale.",
+        "Pensé pour la pertinence locale et la crédibilité internationale.",
       europeBody:
-        "Qu’un client vous trouve depuis Douala, Lagos, Paris, Berlin, Londres ou une campagne Google Ads, votre présence digitale doit paraître sérieuse, claire et fiable.",
-      finalCtaTitle: "Prêt à digitaliser votre entreprise sérieusement ?",
+        "Que vous serviez Douala, Lagos, Paris, Berlin, Londres ou des acheteurs ailleurs en ligne, votre expérience digitale doit paraître claire, moderne et fiable.",
+      finalCtaTitle:
+        "Prêt à faire grandir votre entreprise avec la bonne stratégie digitale ?",
       finalCtaBody:
-        "Dites-nous si vous avez besoin d’un site web, d’un portail, d’un dashboard, d’une automatisation ou d’un outil IA, et teChia recommandera le bon périmètre de départ.",
+        "Dites-nous votre objectif de croissance et teChia construira le bon mix de marketing, branding, web, e-commerce, automatisation, IA et logiciel autour de lui.",
     },
     pages: {
       home: {
-        realityEyebrow: "Point de réalité",
+        realityEyebrow: "Réalité croissance",
         servicesTitle:
-          "Sites web, systèmes, automatisations et outils IA conçus par teChia",
+          "Des services de croissance pilotés par teChia",
         servicesDescription:
-          "Découvrez les services clés que teChia livre pour les entreprises qui veulent plus de crédibilité en ligne, des opérations plus nettes et un meilleur suivi client.",
+          "Découvrez les capacités que teChia combine pour attirer des clients, renforcer la visibilité de marque, améliorer les opérations et soutenir une croissance plus fluide.",
         demoTitle: "Exemples interactifs des solutions que teChia peut créer",
         demoDescription:
-          "Parcourez des exemples concrets de portails, dashboards, outils de devis, parcours de réservation et expériences IA pensés pour de vrais besoins métier.",
-        caseTitle: "Réalisations sélectionnées",
+          "Parcourez des exemples concrets de portails, dashboards, outils de devis, parcours de réservation et expériences IA pensés pour de vrais besoins de croissance et d’exécution.",
+        caseTitle: "Travaux orientés croissance",
         caseDescription:
-          "Des projets choisis qui montrent comment teChia transforme un besoin métier en site premium, outil concret et meilleur parcours client.",
+          "Des projets choisis qui montrent comment teChia transforme des priorités business en meilleure visibilité, opérations plus propres et parcours client plus solides.",
         methodTitle:
-          "Comment teChia mène un projet de l’idée jusqu’au lancement.",
-        stackTitle: "Stack moderne. Ingénierie sereine.",
-        securityTitle: "Des signaux de confiance intégrés dès le départ.",
-        pricingTitle: "Choisissez un point de départ, pas un forfait rigide.",
+          "Comment teChia passe d’un objectif business à une exécution digitale claire.",
+        stackTitle: "Stack moderne. Exécution orientée business.",
+        securityTitle: "Confiance, vitesse et croissance mesurable intégrées.",
+        pricingTitle:
+          "Choisissez le bon point de départ croissance, pas un forfait rigide.",
         pricingDescription:
-          "Utilisez les offres pour cadrer le bon périmètre de départ, puis adaptez la stack, l’automatisation et le déploiement au contexte métier.",
-        faqTitle: "Questions avant de commencer",
-        finalCtaEyebrow: "Prochaine étape",
+          "Utilisez les offres pour cadrer la première phase, puis adaptez la stratégie, la construction et le déploiement au contexte métier.",
+        faqTitle: "Questions avant de grandir avec nous",
+        finalCtaEyebrow: "Prochaine action",
       },
       about: {
         metaTitle: "À propos de teChia Digital Solutions",
         metaDescription:
-          "Découvrez comment teChia crée des sites premium, systèmes intelligents, automatisations et outils IA pour les entreprises modernes.",
+          "Découvrez comment teChia agit comme partenaire de croissance de long terme entre marketing, branding, web, automatisation, IA et logiciel.",
         eyebrow: "À propos",
-        title: "Des problèmes simples. Des solutions tech intelligentes.",
+        title: "Un partenaire de long terme pour la croissance des entreprises.",
         description:
-          "teChia Digital Solutions aide les entreprises sérieuses à créer une couche digitale professionnelle qui attire des clients, organise les opérations et ouvre de nouvelles possibilités de croissance.",
+          "teChia Digital Solutions aide les entreprises à grandir grâce au marketing digital, à la stratégie de marque, aux réseaux sociaux, au web, à l’automatisation, à l’IA, aux systèmes métier, au SEO et à la transformation digitale.",
         pillars: [
-          "Maisons digitales",
+          "Stratégie de croissance",
           "Clarté opérationnelle",
-          "Crédibilité internationale",
+          "Systèmes évolutifs",
         ],
-        beliefTitle: "Ce que nous croyons",
+        beliefTitle: "La logique teChia",
         beliefs: [
-          "Un site web doit être un actif métier, pas une simple décoration.",
-          "Les entreprises locales méritent une présence digitale de niveau international.",
-          "De bons systèmes rendent les équipes plus calmes, plus rapides et mieux organisées.",
-          "La technologie doit réduire la confusion, pas en créer davantage.",
+          "Les entreprises ont rarement besoin de technologie pour la technologie. Elles ont besoin de meilleurs systèmes de croissance.",
+          "Marketing, branding et logiciel sont plus puissants lorsqu’ils sont pensés ensemble.",
+          "L’automatisation doit enlever la friction manuelle, pas ajouter de la complexité.",
+          "La transformation digitale doit améliorer à la fois l’expérience client et l’exécution interne.",
         ],
       },
       services: {
         metaTitle: "Services — teChia Digital Solutions",
         metaDescription:
-          "Création de sites premium, systèmes métiers, automatisation, outils IA, pages de conversion SEO et services de maintenance.",
-        title: "Des services qui transforment l’entreprise en système digital",
+          "Gestion des réseaux sociaux, marketing digital, branding, création web, e-commerce, SEO, automatisation, solutions IA, logiciels sur mesure et conseil en transformation digitale.",
+        title: "Des services de croissance construits autour de vrais résultats métier",
         description:
-          "Commencez par un site web, puis évoluez vers les tableaux de bord, l’automatisation, les portails, le SEO et l’accompagnement continu.",
+          "Des réseaux sociaux et du marketing digital jusqu’au web, à l’automatisation, à l’IA et au logiciel sur mesure, teChia aide les entreprises à grandir avec le bon mix digital.",
       },
       solutions: {
         metaTitle: "Solutions — teChia Digital Solutions",
         metaDescription:
-          "Portails clients, systèmes de devis, tableaux de bord, réservations, assistants IA et pages de conversion pour entreprises modernes.",
-        title: "Des modules intelligents pour de vrais problèmes métier",
+          "Portails clients, systèmes de devis, tableaux de bord, réservations, assistants IA et outils de croissance pour entreprises modernes.",
+        title: "Des modules conçus pour la croissance client et la clarté opérationnelle",
         description:
-          "Utilisez ces modules séparément ou combinez-les dans un système complet de gestion d’entreprise.",
+          "Utilisez ces modules séparément ou combinez-les dans un système connecté de croissance et d’opérations.",
       },
       industries: {
         metaTitle: "Secteurs — teChia Digital Solutions",
         metaDescription:
-          "Sites optimisés pour la recherche et systèmes sur mesure pour agences de voyage, logistique, écoles, cliniques, immobilier, automobile, ONG, restaurants et PME.",
+          "Systèmes digitaux orientés croissance pour agences de voyage, logistique, écoles, cliniques, immobilier, automobile, ONG, restaurants et PME.",
         title:
-          "Des pages sectorielles conçues pour la visibilité et la conversion",
+          "Des solutions sectorielles pensées pour la visibilité, la conversion et la livraison",
         description:
-          "Chaque page sectorielle soutient le référencement naturel, Google Ads et un message clair adapté au métier.",
+          "Chaque page sectorielle traduit l’approche croissance de teChia dans un contexte métier précis avec un message plus clair et une vraie pertinence opérationnelle.",
         detailPillars: [
           "Capture de prospects",
-          "Visibilité Google",
-          "Feuille de route système métier",
+          "Visibilité marché",
+          "Roadmap système de croissance",
         ],
       },
       portfolio: {
         metaTitle: "Réalisations et études de cas — teChia",
         metaDescription:
-          "Un portfolio de projets clients et de produits digitaux montrant les capacités de teChia en sites web, tableaux de bord, automatisation et systèmes métiers.",
-        title: "Projets, produits et systèmes métiers",
+          "Des études de cas montrant comment teChia relie marque, marketing, web, automatisation, IA et logiciel pour soutenir la croissance.",
+        title: "Des études de cas construites autour de la croissance métier",
         description:
-          "Des études de cas claires qui montrent comment teChia pense la valeur métier, pas seulement l’apparence visuelle.",
+          "La preuve que teChia transforme des objectifs de croissance en meilleure visibilité, opérations plus fluides et parcours client plus solides.",
         detailSections: [
           "Problème",
           "Solution",
@@ -1366,54 +1428,54 @@ export const dictionaries = {
       blog: {
         metaTitle: "Blog — teChia Digital Solutions",
         metaDescription:
-          "Articles pratiques sur les maisons digitales, sites web, systèmes métiers, automatisation, SEO, tableaux de bord et crédibilité digitale.",
-        title: "Articles de fond pour une digitalisation sérieuse",
+          "Analyses sur les réseaux sociaux, le marketing digital, le branding, le SEO, l’automatisation, l’IA, le web et la transformation digitale.",
+        title: "Une réflexion pratique pour les entreprises qui veulent grandir digitalement",
         description:
-          "Des analyses pratiques pour les entreprises qui veulent une présence digitale plus forte, des opérations plus claires et une croissance mesurable.",
+          "Des analyses utiles pour les dirigeants qui veulent améliorer visibilité, systèmes, expérience client et croissance mesurable.",
         articleEyebrow: "Analyses teChia",
         intro:
-          "Cet article donne aux dirigeants une manière pratique d’évaluer leurs décisions digitales à travers la crédibilité de marque, la génération de prospects, les opérations et l’expérience client.",
+          "Cet article donne aux dirigeants une manière pratique d’évaluer leurs décisions digitales à travers la visibilité, la crédibilité de marque, les opérations et l’expérience client.",
         keyIdeaTitle: "Idée clé",
         keyIdeaBody:
-          "Une présence digitale sérieuse relie la marque, la génération de prospects, la communication client, l’organisation interne et la croissance mesurable. C’est la différence entre avoir un site web et posséder une maison digitale.",
+          "La croissance s’améliore quand la marque, le marketing, l’expérience client et les opérations sont connectés au lieu d’être traités séparément.",
         nextStepTitle: "Prochaine étape pratique",
         nextStepBody:
-          "Auditez d’abord le processus de l’entreprise. Choisissez ensuite si l’entreprise a besoin d’un site, d’un tableau de bord, d’un portail, d’une automatisation ou d’un système combiné.",
+          "Commencez par l’objectif business. Choisissez ensuite le bon mix entre marketing, branding, web, automatisation, IA ou logiciel.",
       },
       demoLab: {
         metaTitle: "Espace Démo — teChia Digital Solutions",
         metaDescription:
-          "Démos interactives pour systèmes de devis logistique, tableaux de bord voyage, portails scolaires, catalogues automobiles, assistants IA, réservations et portails clients.",
-        title: "La preuve interactive des processus digitaux",
+          "Démos interactives de systèmes de devis, dashboards, portails, assistants IA, réservations et logiciels métier qui soutiennent la croissance.",
+        title: "La preuve interactive des workflows de croissance digitale",
         description:
-          "Ces démos aident les prospects à comprendre comment des systèmes structurés améliorent les demandes, les opérations et le suivi client.",
+          "Ces démos aident à comprendre comment des systèmes structurés améliorent la visibilité, les opérations et le suivi client.",
       },
       pricing: {
         metaTitle: "Offres — teChia Digital Solutions",
         metaDescription:
-          "Offres flexibles pour sites web, systèmes métiers, plateformes sur mesure et maintenance mensuelle.",
-        title: "Des offres premium sans faux tarif unique",
+          "Offres de croissance flexibles couvrant branding, web, marketing, automatisation, IA et support logiciel.",
+        title: "Des offres de croissance sans faux forfait unique",
         description:
-          "Chaque entreprise commence à un point différent. Ces offres cadrent le périmètre, le délai et la meilleure prochaine étape.",
+          "Chaque entreprise démarre avec un défi de croissance différent. Ces offres cadrent la première phase et les prochaines priorités digitales.",
         addOnsTitle: "Options fréquentes",
         addOns: [
-          "Pages de conversion supplémentaires",
-          "Mise en place du blog",
-          "Tableau de bord admin",
+          "Landing pages de campagne supplémentaires",
+          "Support contenu réseaux sociaux",
+          "Refresh de marque",
+          "Support contenu SEO",
+          "Workflow d’automatisation",
           "Assistant IA",
           "Rapports analytics",
-          "Rédaction de contenu",
-          "Maintenance",
-          "Support SEO",
+          "Optimisation continue",
         ],
       },
       contact: {
         metaTitle: "Contact — teChia Digital Solutions",
         metaDescription:
-          "Contactez teChia Digital Solutions pour des sites premium, systèmes métiers, automatisations et projets de transformation digitale.",
-        title: "Dites-nous ce que vous voulez créer",
+          "Contactez teChia Digital Solutions pour la gestion des réseaux sociaux, le marketing digital, le branding, le web, l’automatisation, l’IA, le logiciel et la transformation digitale.",
+        title: "Dites-nous où votre entreprise veut grandir",
         description:
-          "Envoyez un message pour un site web, un système métier, une automatisation, un tableau de bord, un outil IA ou une stratégie de transformation digitale.",
+          "Partagez l’objectif, le blocage ou l’opportunité. Nous recommanderons le bon chemin entre marketing, branding, technologie et automatisation.",
         detailsTitle: "Coordonnées",
         location:
           "Douala, Cameroun — accompagnement des PME africaines et internationales",
@@ -1427,17 +1489,17 @@ export const dictionaries = {
       startProject: {
         metaTitle: "Démarrer un projet — teChia Digital Solutions",
         metaDescription:
-          "Lancez une demande de projet sérieuse pour sites web, systèmes métiers, tableaux de bord, automatisation, outils IA et transformation digitale.",
-        title: "Commencez avec clarté, pas avec confusion",
+          "Lancez un projet orienté croissance avec teChia autour du marketing, du branding, du web, du e-commerce, du SEO, de l’automatisation, de l’IA, du logiciel et de la transformation digitale.",
+        title: "Commencez par votre objectif de croissance",
         description:
-          "Ce formulaire recueille les informations nécessaires pour recommander la bonne solution digitale, la bonne offre et la meilleure prochaine étape.",
+          "Ce formulaire aide teChia à comprendre vos priorités business et à recommander le bon mélange de stratégie, de création et de technologie.",
       },
       landing: {
         eyebrow: "Landing page Google Ads",
         titlePrefix: "Solutions premium de",
         titleConnector: "pour",
         description:
-          "teChia aide les PME à créer une maison digitale crédible : site professionnel, message clair, capture de prospects, analytics, structure SEO et feuille de route vers des systèmes métiers sur mesure.",
+          "teChia aide les PME à grandir avec un meilleur message, plus de visibilité, des expériences digitales prêtes à convertir et une feuille de route vers l’automatisation et les systèmes sur mesure.",
         trust: [
           "Pages rapides",
           "Événements de conversion GA4",
@@ -1458,7 +1520,7 @@ export const dictionaries = {
           "Une landing page ciblée rend votre offre plus facile à comprendre et plus facile à contacter.",
         metaFallbackTitle: "Landing Page — teChia",
         metaDescription:
-          "Landing page orientée conversion pour les PME européennes qui recherchent sites premium, systèmes métiers, automatisation et crédibilité digitale.",
+          "Landing page orientée conversion pour les PME européennes qui veulent plus de visibilité, plus de crédibilité digitale et des systèmes de croissance évolutifs.",
       },
       admin: {
         metaTitle: "Accès admin — teChia",
@@ -1480,17 +1542,17 @@ export const dictionaries = {
       },
     },
     sections: {
-      services: "Services premium",
-      solutions: "Solutions intelligentes",
+      services: "Services de croissance",
+      solutions: "Systèmes de croissance",
       industries: "Secteurs accompagnés",
       method: "La méthode teChia",
       stack: "Crédibilité technologique",
-      security: "Promesse sécurité, SEO et performance",
-      testimonials: "Réassurance client",
+      security: "Fondation sécurité, SEO et performance",
+      testimonials: "Preuves de croissance",
       faq: "Questions fréquentes",
-      pricing: "Offres flexibles",
+      pricing: "Offres de croissance",
       demoLab: "Démos interactives",
-      caseStudies: "Réalisations clés",
+      caseStudies: "Études de cas croissance",
     },
     solutions: [
       {
@@ -1531,11 +1593,11 @@ export const dictionaries = {
       },
     ],
     method: [
-      "Comprendre le vrai problème métier",
-      "Concevoir un système digital clair",
+      "Clarifier le vrai défi de croissance",
+      "Concevoir le bon mix entre marketing, marque et technologie",
       "Construire vite avec des outils modernes et sécurisés",
       "Lancer avec SEO, analytics et suivi des conversions",
-      "Améliorer continuellement après le lancement",
+      "Améliorer continuellement à mesure que l’entreprise grandit",
     ],
     stack: [
       "Next.js",
@@ -1574,73 +1636,73 @@ export const dictionaries = {
     pricing: [
       {
         slug: "digital-foundation",
-        title: "Fondation digitale",
+        title: "Growth Launchpad",
         badge: "Meilleur premier pas",
         description:
-          "Une base web premium pour une petite entreprise sérieuse qui veut être crédible en ligne.",
+          "Pour les entreprises qui ont besoin d’une marque plus claire, d’une présence sociale mieux posée et d’une base digitale prête à convertir.",
         features: [
-          "5–8 pages clés",
-          "Structure bilingue",
-          "Configuration SEO",
-          "Flux de contact",
+          "Refresh de positionnement",
+          "Setup réseaux sociaux",
+          "Présence web essentielle",
+          "Flux de capture de leads",
         ],
-        cta: "Demander un devis fondation",
+        cta: "Planifier mon launchpad",
       },
       {
         slug: "business-pro-website",
-        title: "Site Pro",
+        title: "Visibility & Demand Engine",
         badge: "Le plus demandé",
         description:
-          "Un site plus solide avec pages de conversion, contenu riche, analytics et architecture orientée conversion.",
+          "Pour les entreprises prêtes à faire grandir leur visibilité avec marketing digital, landing pages, SEO et campagnes orientées leads qualifiés.",
         features: [
-          "10–20 pages",
-          "Pages sectorielles",
-          "Événements GA4",
-          "Structure blog",
+          "Landing pages de campagne",
+          "Fondations SEO",
+          "Analytics et conversions",
+          "Support contenu et funnel",
         ],
-        cta: "Planifier mon site pro",
+        cta: "Planifier mon moteur de demande",
       },
       {
         slug: "business-os",
-        title: "Système métier",
+        title: "Growth Operations System",
         badge: "Opérations",
         description:
-          "Site web avec tableau de bord interne, prospects, demandes, processus et données métier structurées.",
+          "Pour les équipes qui veulent connecter marketing, leads, suivi, workflows internes et reporting dans un système métier plus lisible.",
         features: [
-          "Tableau de bord",
-          "Base de données",
-          "Gestion des prospects",
-          "Modules métier",
+          "Gestion leads et demandes",
+          "Workflows automatisés",
+          "Dashboards et reporting",
+          "Structure de données métier",
         ],
-        cta: "Discuter du système métier",
+        cta: "Discuter du système d’opérations",
       },
       {
         slug: "custom-enterprise-system",
-        title: "Plateforme sur mesure",
+        title: "AI & Custom Software Platform",
         badge: "Sur mesure",
         description:
-          "Plateforme adaptée aux processus complexes, aux rôles multiples et aux automatisations.",
+          "Pour les entreprises qui ont besoin d’un logiciel sur mesure, d’IA utile et d’une transformation digitale plus profonde entre plusieurs services.",
         features: [
           "Atelier découverte",
-          "Architecture sur mesure",
-          "Outils par rôle",
-          "Feuille de route",
+          "Roadmap logiciel",
+          "Design de workflow IA",
+          "Livraison par rôle",
         ],
-        cta: "Réserver un appel découverte",
+        cta: "Réserver une session stratégie",
       },
       {
         slug: "maintenance-growth",
-        title: "Maintenance & croissance",
+        title: "Continuous Growth Support",
         badge: "Support mensuel",
         description:
-          "Suivi technique, monitoring, améliorations, contenu et performance après lancement.",
+          "Optimisation continue des campagnes, contenus, SEO, sites, automatisations et systèmes digitaux après le lancement.",
         features: [
-          "Sécurité",
-          "Mises à jour",
-          "SEO",
-          "Corrections prioritaires",
+          "Revues de performance",
+          "Mises à jour SEO et contenu",
+          "Améliorations d’automatisation",
+          "Support prioritaire",
         ],
-        cta: "Demander un plan support",
+        cta: "Demander un support continu",
       },
     ],
     testimonials: [
@@ -1665,9 +1727,14 @@ export const dictionaries = {
     ],
     faqs: [
       {
-        question: "Construisez-vous seulement des sites web ?",
+        question: "Vous aidez seulement sur les sites web ?",
         answer:
-          "Non. Le site est souvent la première étape, mais nous construisons aussi tableaux de bord, portails, automatisations, systèmes de devis, réservations et systèmes complets.",
+          "Non. Le site n’est qu’une partie du travail. teChia peut commencer par les réseaux sociaux, le marketing digital, le branding, le SEO, l’automatisation, l’IA, le logiciel ou une feuille de route croissance plus large selon le vrai besoin.",
+      },
+      {
+        question: "teChia peut gérer à la fois le marketing et la technologie ?",
+        answer:
+          "Oui. teChia est conçu pour relier visibilité, marque, acquisition, automatisation, IA et logiciel dans un seul système de croissance cohérent.",
       },
       {
         question: "Travaillez-vous hors du Cameroun ?",
@@ -1675,14 +1742,9 @@ export const dictionaries = {
           "Oui. teChia s’adresse aux entreprises locales, PME africaines et clients internationaux, notamment les PME européennes.",
       },
       {
-        question: "Le site peut-il être bilingue ?",
+        question: "Restez-vous impliqués après le lancement ?",
         answer:
-          "Oui. teChia crée des routes, métadonnées, contenus et navigations en anglais et en français pour les projets bilingues, et la même architecture peut accueillir d’autres langues selon votre marché.",
-      },
-      {
-        question: "Proposez-vous du support après lancement ?",
-        answer:
-          "Oui. Les offres de maintenance peuvent inclure sécurité, performance, contenu, corrections et nouvelles fonctionnalités.",
+          "Oui. teChia peut continuer avec l’optimisation des campagnes, le SEO, les contenus, le support technique, les améliorations d’automatisation et la prochaine couche digitale à mesure que l’entreprise évolue.",
       },
     ],
     simulator: {
@@ -1834,10 +1896,9 @@ export const dictionaries = {
       company: "Entreprise",
       legal: "Légal",
       footerDescription:
-        "Sites premium, systèmes intelligents, automatisation et maisons digitales pour entreprises modernes.",
+        "teChia Digital Solutions aide les entreprises à grandir grâce à la gestion des réseaux sociaux, au marketing digital, au branding, aux sites premium, au SEO, à l’automatisation, aux solutions IA et aux logiciels sur mesure.",
       allRightsReserved: "Tous droits réservés.",
-      footerPromise:
-        "Conçu pour la vitesse, la confiance, l’accessibilité et la croissance mesurable.",
+      footerPromise: "Digitaliser. Simplifier. Grandir.",
       newsletterJoin: "S’inscrire",
       newsletterLoading: "...",
       newsletterSuccess: "Inscription confirmée.",

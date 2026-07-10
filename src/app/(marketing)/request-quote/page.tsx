@@ -6,7 +6,7 @@ import { createMarketingMetadata } from "@/lib/marketing-seo";
 export const metadata: Metadata = createMarketingMetadata({
   title: "Request Quote",
   description:
-    "Request a premium digital solution quote from teChia Digital Solutions for websites, systems, dashboards, automation, AI tools, and consulting.",
+    "Request a growth-focused solution quote from teChia Digital Solutions for marketing, branding, websites, e-commerce, SEO, automation, AI, software, and consulting.",
   path: "/request-quote"
 });
 
@@ -16,10 +16,10 @@ export default function RequestQuotePage() {
       <Reveal>
         <p className="eyebrow">Request quote</p>
         <h1 className="mt-4 max-w-4xl text-balance text-4xl font-semibold text-foreground md:text-6xl">
-          Build the right digital solution, not just the obvious one.
+          Choose the right growth solution, not just the obvious deliverable.
         </h1>
         <p className="mt-5 max-w-3xl text-lg leading-8 text-muted">
-          Share the business context, the friction, the ambition, and the preferred timeline. We will turn that into a cleaner solution path.
+          Share the business context, the friction, the ambition, and the preferred timeline. We will turn that into a clearer growth path.
         </p>
       </Reveal>
 

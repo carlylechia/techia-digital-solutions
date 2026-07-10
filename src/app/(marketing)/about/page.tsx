@@ -9,7 +9,7 @@ const icons = [Sparkles, Wrench, ShieldCheck, Rocket, Lightbulb, Users];
 export const metadata: Metadata = createMarketingMetadata({
   title: "About",
   description:
-    "Learn why teChia Digital Solutions exists, how the company approaches digital transformation, and the values behind its premium product and engineering work.",
+    "Learn why teChia Digital Solutions exists, how the company approaches business growth through marketing and technology, and the values behind its execution.",
   path: "/about"
 });
 
@@ -19,7 +19,7 @@ export default function AboutPage() {
       <Reveal>
         <p className="eyebrow">About teChia</p>
         <h1 className="mt-4 max-w-4xl text-balance text-4xl font-semibold text-foreground md:text-6xl">
-          A technology company built around better digital homes for serious businesses.
+          A business growth partner built around clearer digital systems for serious companies.
         </h1>
       </Reveal>
 
@@ -47,7 +47,7 @@ export default function AboutPage() {
       <section className="mt-16">
         <Reveal>
           <p className="eyebrow">Values</p>
-          <h2 className="mt-4 text-3xl font-semibold text-foreground md:text-5xl">The values guiding how teChia designs and builds.</h2>
+          <h2 className="mt-4 text-3xl font-semibold text-foreground md:text-5xl">The values guiding how teChia strategizes, designs, and builds.</h2>
         </Reveal>
         <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {companyValues.map((value, index) => {

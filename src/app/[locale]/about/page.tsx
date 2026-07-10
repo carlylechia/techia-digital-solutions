@@ -34,14 +34,14 @@ function getMergedAboutMeta(locale: Locale) {
     return {
       title: "À propos, équipe et réalisations — teChia Digital Solutions",
       description:
-        "Découvrez le positionnement teChia, la polyvalence de l’équipe et un portfolio de projets premium soutenu par la même exigence technique.",
+        "Découvrez le positionnement teChia comme partenaire de croissance, la polyvalence de l’équipe et un portfolio soutenu par la même exigence d’exécution.",
     };
   }
 
   return {
     title: "About, Team, and Portfolio — teChia Digital Solutions",
     description:
-      "Explore the teChia company story, versatile delivery team, and DB-backed portfolio of premium digital projects in one continuous page.",
+      "Explore the teChia company story as a growth partner, the versatile delivery team behind the work, and a DB-backed portfolio of digital projects.",
   };
 }
 
@@ -77,8 +77,8 @@ export default async function AboutPage({
   ]);
   const teamNarrative =
     locale === "fr"
-      ? "teChia s’appuie sur un noyau fondateur fort et sur une équipe complète capable de couvrir le design produit, le développement, la qualité, l’infrastructure, la gouvernance produit, l’architecture système et la sécurité selon le périmètre du projet."
-      : "teChia operates with a strong founder core and a versatile delivery team able to cover product design, development, quality, infrastructure, product leadership, systems architecture, and security according to project scope.";
+      ? "teChia agit comme partenaire de croissance avec une équipe capable de couvrir marketing digital, stratégie de marque, réseaux sociaux, web, automatisation, IA, systèmes métier, SEO, architecture produit, infrastructure et sécurité selon le périmètre du projet."
+      : "teChia operates as a growth partner with a delivery team able to cover digital marketing, brand strategy, social media, web, automation, AI, business systems, SEO, product architecture, infrastructure, and security according to project scope.";
   const teamCapabilityCards = [
     {
       icon: Sparkles,
@@ -97,7 +97,7 @@ export default async function AboutPage({
       description:
         locale === "fr"
           ? "Des ingénieurs front-end et full-stack pour construire des sites, systèmes métier, portails et applications web robustes."
-          : "Front-end and full-stack engineers who build robust websites, business systems, portals, and web applications.",
+          : "Front-end and full-stack engineers who build robust web experiences, business systems, portals, and applications.",
     },
     {
       icon: CheckCircle2,
@@ -173,13 +173,13 @@ export default async function AboutPage({
             </p>
             <h2 className="mt-4 text-balance text-2xl font-semibold text-foreground md:text-3xl">
               {locale === "fr"
-                ? "Une équipe pensée pour rendre des projets sérieux réellement livrables."
-                : "A team shape built to make serious digital projects genuinely deliverable."}
+                ? "Une équipe pensée pour transformer la stratégie de croissance en exécution réelle."
+                : "A team shape built to turn growth strategy into real execution."}
             </h2>
             <p className="mt-4 text-sm leading-7 text-muted">
               {locale === "fr"
-                ? "La page raconte à la fois le positionnement de teChia, la capacité d’exécution humaine derrière les projets, et les preuves concrètes déjà visibles dans le portfolio."
-                : "This page ties together teChia’s positioning, the human delivery capability behind the work, and the concrete proof already visible across the portfolio."}
+                ? "La page relie le positionnement teChia, la capacité humaine derrière l’exécution, et les preuves déjà visibles dans le portfolio."
+                : "This page ties together teChia’s positioning, the human delivery capability behind the work, and the proof already visible across the portfolio."}
             </p>
             <div className="mt-6 grid gap-3">
               <a
@@ -189,8 +189,8 @@ export default async function AboutPage({
                 <p className="eyebrow">{locale === "fr" ? "Équipe" : "Team"}</p>
                 <p className="mt-3 text-base font-semibold text-foreground">
                   {locale === "fr"
-                    ? "Profils de conception, ingénierie et delivery"
-                    : "Design, engineering, and delivery profiles"}
+                    ? "Profils de stratégie, conception, ingénierie et delivery"
+                    : "Strategy, design, engineering, and delivery profiles"}
                 </p>
               </a>
               <a
@@ -201,7 +201,7 @@ export default async function AboutPage({
                 <p className="mt-3 text-base font-semibold text-foreground">
                   {locale === "fr"
                     ? "Le point de vue du fondateur et la logique de construction"
-                    : "Founder perspective and the logic behind the build"}
+                    : "Founder perspective and the logic behind the growth systems"}
                 </p>
               </a>
               <a
@@ -212,7 +212,7 @@ export default async function AboutPage({
                 <p className="mt-3 text-base font-semibold text-foreground">
                   {locale === "fr"
                     ? "Projets et études de cas soutenus par la base de données"
-                    : "DB-backed projects and case studies"}
+                    : "DB-backed projects and growth case studies"}
                 </p>
               </a>
             </div>
