@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { DEMO_SLUGS } from "@/content/demo-lab";
 import { getLocalizedAppPath } from "@/lib/site-routes";
 import {
   dictionaries,
@@ -8,6 +9,7 @@ import {
 } from "@/content/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const lastModified = new Date();
   const base = [
     "",
     "/about",
@@ -37,22 +39,30 @@ export default function sitemap(): MetadataRoute.Sitemap {
     const dict = dictionaries[locale];
     return [
       ...dict.services.map((item) => `/services/${item.slug}`),
+      ...dict.solutions.map((item) => `/solutions/${item.slug}`),
       ...dict.industries.map((item) => `/industries/${item.slug}`),
       ...dict.caseStudies.map((item) => `/portfolio/${item.slug}`),
       ...dict.blog.map((item) => `/blog/${item.slug}`),
+      ...DEMO_SLUGS.map((item) => `/demo-lab/${item}`),
       ...europeLandingPages.map((item) => `/${item.slug}`),
     ].map((path) => ({
       url: `${siteConfig.url}${getLocalizedAppPath(locale, path)}`,
-      lastModified: new Date(),
+      lastModified,
       changeFrequency: "monthly" as const,
       priority: 0.7,
     }));
   });
   return [
+    {
+      url: `${siteConfig.url}/`,
+      lastModified,
+      changeFrequency: "weekly" as const,
+      priority: 1,
+    },
     ...locales.flatMap((locale) =>
       base.map((path) => ({
         url: `${siteConfig.url}${getLocalizedAppPath(locale, path)}`,
-        lastModified: new Date(),
+        lastModified,
         changeFrequency: "weekly" as const,
         priority: path === "" ? 1 : 0.8,
       })),

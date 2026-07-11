@@ -87,6 +87,59 @@ export function organizationJsonLd(locale: Locale) {
   };
 }
 
+export function rootGatewayJsonLd() {
+  const serviceTypes = [
+    "Social Media Management",
+    "Digital Marketing",
+    "SEO",
+    "Website Design and Development",
+    "Business Automation",
+    "AI-Powered Business Tools",
+    "Business Dashboards",
+  ];
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        name: siteConfig.name,
+        alternateName: siteConfig.shortName,
+        url: siteConfig.url,
+        slogan: "Digitalize. Simplify. Grow.",
+        description: "Smart digital solutions for businesses ready to grow.",
+        logo: `${siteConfig.url}${logoAssets.primary.src}`,
+        image: `${siteConfig.url}/og/og-default.svg`,
+        areaServed: ["Cameroon", "Africa", "International"],
+        sameAs: Object.values(siteConfig.socials),
+        knowsAbout: serviceTypes,
+        ...(siteConfig.email ? { email: siteConfig.email } : {}),
+        ...(siteConfig.phone ? { telephone: siteConfig.phone } : {}),
+      },
+      {
+        "@type": "ProfessionalService",
+        name: siteConfig.name,
+        alternateName: siteConfig.shortName,
+        url: siteConfig.url,
+        slogan: "Digitalize. Simplify. Grow.",
+        description: "Smart digital solutions for businesses ready to grow.",
+        logo: `${siteConfig.url}${logoAssets.primary.src}`,
+        image: `${siteConfig.url}/og/og-default.svg`,
+        areaServed: ["Cameroon", "Africa", "International"],
+        availableLanguage: ["en", "fr"],
+        serviceType: serviceTypes,
+        address: {
+          "@type": "PostalAddress",
+          addressLocality: "Douala",
+          addressCountry: "CM",
+        },
+        ...(siteConfig.email ? { email: siteConfig.email } : {}),
+        ...(siteConfig.phone ? { telephone: siteConfig.phone } : {}),
+      },
+    ],
+  };
+}
+
 export function breadcrumbJsonLd(
   locale: Locale,
   items: { name: string; path: string }[],

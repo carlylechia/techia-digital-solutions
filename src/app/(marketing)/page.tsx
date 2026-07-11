@@ -1,187 +1,249 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { HeroSection } from "@/components/sections/HeroSection";
-import { Reveal } from "@/components/site/reveal";
-import { buttonVariants } from "@/components/site/button";
-import { AIConsultationSection } from "@/components/site/ai-consultation-section";
-import { InfiniteMarquee } from "@/components/site/infinite-marquee";
-import { PageDirectorySection } from "@/components/site/page-directory-section";
+import type { LucideIcon } from "lucide-react";
 import {
-  MetricCard,
-  PricingCard,
-  ServiceCard,
-  SolutionCard,
-  TestimonialCard,
-} from "@/components/site/cards";
-import { ProcessTimeline } from "@/components/site/process-timeline";
+  BarChart3,
+  BrainCircuit,
+  Globe2,
+  LayoutTemplate,
+  MapPin,
+  Megaphone,
+  PanelTopOpen,
+  Search,
+  Sparkles,
+  Workflow,
+} from "lucide-react";
+import { LanguageGatewayActions } from "@/components/i18n/language-gateway-actions";
 import { AnimatedGridBackground } from "@/components/site/animated-grid-background";
+import { GradientBadge } from "@/components/site/gradient-badge";
+import { Reveal } from "@/components/site/reveal";
+import { JsonLd } from "@/components/ui/json-ld";
 import { SectionHeading } from "@/components/ui/section-heading";
-import {
-  caseStudies,
-  pricingPlans,
-  processRoadmap,
-  services,
-  solutions,
-  testimonials,
-  trustStrip,
-} from "@/content/nexus-site";
-import type { Locale } from "@/content/site";
-import { createMarketingMetadata } from "@/lib/marketing-seo";
+import { siteConfig } from "@/content/site";
+import { rootGatewayJsonLd } from "@/lib/seo";
 
-export const metadata: Metadata = createMarketingMetadata({
-  title: "teChia Digital Solutions | Digitalize. Simplify. Grow.",
+const gatewayServices: Array<{
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}> = [
+  {
+    icon: Megaphone,
+    title: "Social Media Management",
+    description:
+      "Plan, structure, and manage content that helps your business look active, trusted, and professional.",
+  },
+  {
+    icon: Globe2,
+    title: "Digital Marketing",
+    description:
+      "Create campaigns that improve visibility, attract better leads, and support business growth.",
+  },
+  {
+    icon: Search,
+    title: "SEO & Google Visibility",
+    description:
+      "Optimize your website and content so customers can find your business more easily online.",
+  },
+  {
+    icon: LayoutTemplate,
+    title: "Website Design & Development",
+    description:
+      "Build premium, responsive websites that present your business clearly and convert visitors into leads.",
+  },
+  {
+    icon: PanelTopOpen,
+    title: "Business Dashboards",
+    description:
+      "Track requests, leads, orders, bookings, and business activity from one organized place.",
+  },
+  {
+    icon: BrainCircuit,
+    title: "Automation & AI Tools",
+    description:
+      "Reduce manual work with smart workflows, AI assistants, and digital systems built around your business.",
+  },
+];
+
+const serviceAreaPills = [
+  "Douala",
+  "Yaoundé",
+  "Bamenda",
+  "Africa",
+  "International",
+];
+
+const nextStepLinks: Array<{
+  href: string;
+  label: string;
+  helper: string;
+  icon: LucideIcon;
+}> = [
+  {
+    href: "/en",
+    label: "English homepage",
+    helper: "Full site experience in English",
+    icon: Sparkles,
+  },
+  {
+    href: "/fr",
+    label: "Accueil en français",
+    helper: "Expérience complète en français",
+    icon: Globe2,
+  },
+  {
+    href: "/en/services",
+    label: "English services",
+    helper: "Explore offers, demos, and growth systems",
+    icon: Workflow,
+  },
+  {
+    href: "/fr/services",
+    label: "Services en français",
+    helper: "Voir les offres et systèmes de croissance",
+    icon: BarChart3,
+  },
+];
+
+export const metadata: Metadata = {
+  title:
+    "teChia Digital Solutions | Digital Growth, Marketing, SEO & Business Automation",
   description:
-    "teChia Digital Solutions helps businesses grow through social media management, digital marketing, branding, websites, SEO, automation, AI solutions, custom software, and digital transformation consulting.",
-});
+    "teChia Digital Solutions helps SMEs grow with social media management, digital marketing, SEO, premium websites, dashboards, automation, and AI-powered business tools.",
+  keywords: [
+    "teChia Digital Solutions",
+    "digital marketing Cameroon",
+    "social media management Cameroon",
+    "website design Cameroon",
+    "SEO Cameroon",
+    "business automation",
+    "AI tools for business",
+    "SME digital solutions",
+    "digital transformation Cameroon",
+  ],
+  alternates: {
+    canonical: `${siteConfig.url}/`,
+    languages: {
+      "x-default": `${siteConfig.url}/`,
+      en: `${siteConfig.url}/en`,
+      fr: `${siteConfig.url}/fr`,
+    },
+  },
+  openGraph: {
+    title: "teChia Digital Solutions | Digitalize. Simplify. Grow.",
+    description: "Smart digital solutions for businesses ready to grow.",
+    url: `${siteConfig.url}/`,
+    siteName: siteConfig.name,
+    type: "website",
+    images: [
+      {
+        url: "/og/og-default.svg",
+        width: 1200,
+        height: 630,
+        alt: `${siteConfig.name} preview`,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "teChia Digital Solutions | Digitalize. Simplify. Grow.",
+    description: "Smart digital solutions for businesses ready to grow.",
+    images: ["/og/og-default.svg"],
+  },
+};
 
 export default function HomePage() {
-  const pageDirectoryItems = [
-    {
-      title: "About",
-      description:
-        "See the company story, team capability, founder context, and portfolio proof in one stronger narrative.",
-      href: "/about",
-      eyebrow: "Vision",
-      tags: ["Team", "Founder", "Portfolio"],
-    },
-    {
-      title: "Services",
-      description:
-        "Explore the merged service, solution, and industry flow across marketing, branding, web, automation, AI, and consulting.",
-      href: "/services",
-      eyebrow: "Offers",
-      tags: services.slice(0, 3).map((item) => item.title),
-    },
-    {
-      title: "Founder",
-      description:
-        "Meet the founder behind teChia’s delivery philosophy, technical depth, and product thinking.",
-      href: "/founder",
-      eyebrow: "Profile",
-      tags: ["Execution", "Product", "Credibility"],
-    },
-    {
-      title: "Process",
-      description:
-        "Walk through the full journey from discovery and scope to launch and optimization.",
-      href: "/process",
-      eyebrow: "Method",
-      tags: processRoadmap,
-    },
-    {
-      title: "Demo Lab",
-      description:
-        "Preview interactive teChia demos that make system thinking and interface quality tangible before a project starts.",
-      href: "/demo-lab",
-      eyebrow: "Preview",
-      tags: ["Dashboards", "Flows", "Prototypes"],
-    },
-    {
-      title: "Pricing",
-      description:
-        "Understand the commercial pathways from visibility and brand foundations to deeper transformation.",
-      href: "/pricing",
-      eyebrow: "Commercial",
-      tags: pricingPlans.map((item) => item.title),
-    },
-    {
-      title: "Resources",
-      description:
-        "Read practical strategy guidance before choosing the right digital path.",
-      href: "/resources",
-      eyebrow: "Insights",
-      tags: ["Digital homes", "AI readiness", "Systems thinking"],
-    },
-    {
-      title: "Contact",
-      description:
-        "Reach teChia through the direct channels and start a more concrete conversation.",
-      href: "/contact",
-      eyebrow: "Connect",
-      tags: ["WhatsApp", "Email", "FAQ"],
-    },
-    {
-      title: "Request Quote",
-      description:
-        "Share the business context and get pointed toward the right architecture and scope.",
-      href: "/request-quote",
-      eyebrow: "Conversion",
-      tags: ["Discovery", "Scope", "Launch"],
-    },
-    {
-      title: "Trust & legal",
-      description:
-        "Review the privacy and terms pages from a single trust-focused orientation point.",
-      href: "/privacy",
-      eyebrow: "Compliance",
-      tags: ["Privacy", "Terms", "Trust"],
-    },
-    {
-      title: "Client portal",
-      description:
-        "Preview the logged-in experience for projects, files, invoices, and communication.",
-      href: "/client-portal",
-      eyebrow: "Portal",
-      tags: ["Projects", "Files", "Invoices"],
-    },
-    {
-      title: "AI consultant",
-      description:
-        "Chat with the teChia AI Growth Agent to map the right marketing, web, automation, AI, or software direction before you commit.",
-      href: "/ai-consultant",
-      eyebrow: "AI",
-      tags: ["Chat", "Brief", "Recommendation"],
-    },
-  ];
-  const publicLocale = "en" as Locale;
-
   return (
     <main id="main-content">
-      <HeroSection />
+      <JsonLd data={rootGatewayJsonLd()} />
 
-      <section id="homepage-trust-strip" className="container pb-6">
-        <div className="gradient-border rounded-[1.75rem]">
-          <div className="surface-panel relative overflow-hidden px-5 py-5 md:px-8">
-            <AnimatedGridBackground />
-            <div className="relative z-10 flex flex-wrap gap-3">
-              {trustStrip.map((item) => (
-                <span key={item} className="trust-pill">
-                  {item}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="container py-10">
+      <section className="container pb-10 pt-16 md:pb-14 md:pt-20">
         <Reveal>
           <div className="gradient-border rounded-[2rem]">
-            <div className="surface-panel relative overflow-hidden p-5 md:p-6">
-              <AnimatedGridBackground className="opacity-60" />
-              <div className="relative z-10">
-                <p className="font-script text-3xl text-accent-3 md:text-4xl">
-                  a connected showcase of growth capability
-                </p>
-                <p className="eyebrow mt-3">Growth signals</p>
-                <div className="mt-5 space-y-4">
-                  <InfiniteMarquee
-                    items={[
-                      ...trustStrip,
-                      ...services.slice(0, 3).map((item) => item.title),
-                      ...processRoadmap,
-                    ]}
-                  />
-                  <InfiniteMarquee
-                    items={[
-                      ...solutions.slice(0, 4).map((item) => item.title),
-                      ...pricingPlans.map((item) => item.title),
-                      ...caseStudies.map((item) => item.title),
-                    ]}
-                    direction="right"
-                    speed="36s"
-                  />
+            <div className="surface-panel relative overflow-hidden px-6 py-8 md:px-10 md:py-12">
+              <AnimatedGridBackground className="opacity-70" />
+              <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_58%),radial-gradient(circle_at_top_right,rgba(251,113,133,0.14),transparent_36%)]" />
+              <div className="relative z-10 grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+                <div>
+                  <GradientBadge>Global gateway / Portail bilingue</GradientBadge>
+                  <p className="eyebrow mt-5">teChia Digital Solutions</p>
+                  <h1 className="mt-4 text-balance text-4xl font-semibold tracking-tight text-foreground md:text-6xl">
+                    <span className="headline-gradient">
+                      Digitalize. Simplify. Grow.
+                    </span>
+                  </h1>
+                  <p className="mt-5 max-w-3xl text-lg leading-8 text-foreground/90 md:text-2xl">
+                    Smart digital solutions for businesses ready to grow.
+                  </p>
+                  <p className="mt-6 max-w-3xl text-base leading-8 text-muted md:text-lg">
+                    teChia Digital Solutions helps SMEs build stronger digital
+                    presence, attract better leads, manage operations, and grow
+                    through social media management, digital marketing, SEO,
+                    premium websites, dashboards, automation, and AI-powered
+                    business tools.
+                  </p>
+
+                  <div className="mt-6 grid gap-4 md:grid-cols-[1.05fr_0.95fr]">
+                    <div className="subtle-tile rounded-[1.5rem] p-4">
+                      <p className="eyebrow">Français</p>
+                      <p className="mt-3 text-sm leading-7 text-muted">
+                        Des solutions digitales intelligentes pour les
+                        entreprises prêtes à grandir. teChia accompagne les PME
+                        avec les réseaux sociaux, le marketing digital, le SEO,
+                        les sites premium, les tableaux de bord,
+                        l’automatisation et les outils IA.
+                      </p>
+                    </div>
+
+                    <div className="subtle-tile rounded-[1.5rem] p-4">
+                      <p className="eyebrow">Service area</p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {serviceAreaPills.map((item) => (
+                          <span key={item} className="trust-pill">
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  id="gateway-language-selector"
+                  className="gradient-border rounded-[1.75rem]"
+                >
+                  <div className="elevated-panel relative h-full overflow-hidden p-6 md:p-7">
+                    <AnimatedGridBackground className="opacity-50" />
+                    <div className="relative z-10">
+                      <p className="eyebrow">Choose your language</p>
+                      <h2 className="mt-4 text-balance text-3xl font-semibold text-foreground">
+                        Start with the full teChia experience in English or
+                        French.
+                      </h2>
+                      <p className="mt-4 text-sm leading-7 text-muted">
+                        This page stays available for Google and first-time
+                        visitors. Your language choice is saved so future visits
+                        can stay consistent.
+                      </p>
+                      <LanguageGatewayActions className="mt-6" />
+                      <div className="mt-6 grid gap-3">
+                        <div className="subtle-tile rounded-[1.3rem] p-4 text-sm leading-7 text-muted">
+                          <span className="font-semibold text-foreground">
+                            English:
+                          </span>{" "}
+                          Explore the full homepage, services, demos, pricing,
+                          portfolio, and contact flow at <code>/en</code>.
+                        </div>
+                        <div className="subtle-tile rounded-[1.3rem] p-4 text-sm leading-7 text-muted">
+                          <span className="font-semibold text-foreground">
+                            Français:
+                          </span>{" "}
+                          Accédez à l’accueil, aux services, aux démos, aux
+                          offres et au contact sur <code>/fr</code>.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -189,336 +251,159 @@ export default function HomePage() {
         </Reveal>
       </section>
 
-      <section className="container py-16">
-        <Reveal>
-          <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-            <div className="gradient-border rounded-[1.75rem]">
-              <div className="elevated-panel h-full p-7 md:p-8">
-                <p className="eyebrow">Business friction</p>
-                <h2 className="mt-4 text-balance text-3xl font-semibold text-foreground md:text-5xl">
-                  Most businesses do not need more digital noise. They need a
-                  clearer growth system.
-                </h2>
-                <p className="mt-5 text-lg leading-8 text-muted">
-                  When your brand, campaigns, website, customer communication,
-                  files, and team processes live in different places, growth
-                  becomes harder than it should be.
-                </p>
-              </div>
-            </div>
-            <div className="gradient-border rounded-[1.75rem]">
-              <div className="elevated-panel h-full p-7 md:p-8">
-                <p className="eyebrow">Growth system</p>
-                <h2 className="mt-4 text-balance text-3xl font-semibold text-foreground md:text-5xl">
-                  teChia designs the connected digital layer that helps the
-                  business attract customers and run better.
-                </h2>
-                <p className="mt-5 text-lg leading-8 text-muted">
-                  Growth is stronger when branding, marketing, web, customer
-                  experience, dashboards, and automation work as one system.
-                </p>
-              </div>
-            </div>
-          </div>
-        </Reveal>
-      </section>
-
-      <section className="container py-16">
+      <section className="container py-10 md:py-14">
         <Reveal>
           <SectionHeading
-            eyebrow="Services"
-            title="Growth services built for businesses that want more customers, clearer branding, and better operations."
-            description="Every service is designed to support a real business outcome, not just a deliverable."
+            eyebrow="Service preview"
+            title="What we help businesses do"
+            description="A compact preview of teChia’s highest-priority growth services before you continue in English or French."
+            align="left"
+            className="max-w-4xl"
           />
         </Reveal>
+
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {services.map((service, index) => (
-            <Reveal key={service.title} delay={index * 0.04}>
-              <ServiceCard service={service} />
-            </Reveal>
-          ))}
-        </div>
-      </section>
+          {gatewayServices.map((service, index) => {
+            const Icon = service.icon;
 
-      <AIConsultationSection
-        locale={publicLocale}
-        secondaryAction={{ href: "/contact", label: "Book a consultation" }}
-      />
-
-      <section className="container py-16">
-        <Reveal>
-          <SectionHeading
-            eyebrow="Solutions"
-            title="The right solution depends on the business model, not a template."
-            description="We organize solutions around the kinds of businesses and internal challenges we actually help."
-          />
-        </Reveal>
-        <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
-          {solutions.map((solution, index) => (
-            <Reveal key={solution.title} delay={index * 0.04}>
-              <SolutionCard solution={solution} />
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      <section className="container py-16">
-        <Reveal>
-          <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="gradient-border rounded-[2rem]">
-              <div className="elevated-panel h-full p-8 md:p-10">
-                <p className="font-script text-3xl text-accent-3 md:text-4xl">
-                  strategy connected to execution
-                </p>
-                <p className="eyebrow mt-3">Growth architecture</p>
-                <h2 className="mt-4 text-balance text-4xl font-semibold md:text-6xl">
-                  <span className="headline-gradient">
-                    Strong growth systems work best when brand, campaigns, and
-                    operations move together.
-                  </span>
-                </h2>
-                <div className="headline-underline mt-6" aria-hidden="true" />
-                <p className="mt-6 text-base leading-8 text-muted md:text-lg">
-                  Our strongest work blends positioning, marketing, web
-                  experiences, lead systems, and operational clarity into one
-                  memorable digital layer.
-                </p>
-              </div>
-            </div>
-            <div className="grid gap-4">
-              {[
-                {
-                  title: "Signature presence",
-                  description:
-                    "High-trust branding, campaigns, and digital storytelling that make the company feel established from the first visit.",
-                  items: services.slice(0, 3).map((item) => item.title),
-                },
-                {
-                  title: "Operational intelligence",
-                  description:
-                    "Dashboards, portals, and automation flows that reduce noise while keeping teams informed.",
-                  items: processRoadmap,
-                },
-                {
-                  title: "Growth choreography",
-                  description:
-                    "Conversion paths, strategic follow-up, and scalable systems designed to build momentum.",
-                  items: pricingPlans.map((item) => item.title),
-                },
-              ].map((suite) => (
-                <article
-                  key={suite.title}
-                  className="gradient-border rounded-[1.6rem]"
-                >
-                  <div className="surface-panel h-full p-6">
-                    <h3 className="text-2xl font-semibold text-primary">
-                      {suite.title}
+            return (
+              <Reveal key={service.title} delay={index * 0.04}>
+                <article className="gradient-border h-full rounded-[1.5rem]">
+                  <div className="surface-panel flex h-full flex-col p-6">
+                    <span className="icon-chip inline-flex rounded-2xl p-3">
+                      <Icon className="size-5" />
+                    </span>
+                    <h3 className="mt-5 text-xl font-semibold text-foreground">
+                      {service.title}
                     </h3>
                     <p className="mt-3 text-sm leading-7 text-muted">
-                      {suite.description}
+                      {service.description}
                     </p>
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {suite.items.map((item) => (
-                        <span key={item} className="trust-pill">
-                          {item}
-                        </span>
-                      ))}
-                    </div>
                   </div>
                 </article>
-              ))}
-            </div>
-          </div>
-        </Reveal>
+              </Reveal>
+            );
+          })}
+        </div>
       </section>
 
-      <Reveal>
-        <PageDirectorySection
-          accentScript="browse the full constellation"
-          eyebrow="Full map"
-          title="The homepage now points toward every major destination in the wider teChia growth experience."
-          description="This gives visitors a clear orientation layer into vision, services, solutions, proof, trust, resources, and conversion moments across the full site."
-          items={pageDirectoryItems}
-        />
-      </Reveal>
-
-      <section className="container py-16">
-        <Reveal>
-          <SectionHeading
-            eyebrow="Process"
-            title="A premium process that moves from business clarity to growth-ready execution."
-            description="We stay close to the real business goal, reduce avoidable complexity, and build toward something trustworthy from day one."
-          />
-        </Reveal>
-        <Reveal delay={0.06}>
-          <ProcessTimeline steps={processRoadmap} />
-        </Reveal>
-      </section>
-
-      <section className="container py-16">
-        <Reveal>
-          <SectionHeading
-            eyebrow="Selected work"
-            title="A clearer growth system changes how seriously a business is taken."
-            description="These concepts and case studies show how branding, systems thinking, and product clarity come together."
-          />
-        </Reveal>
-        <div className="grid gap-5 md:grid-cols-2">
-          {caseStudies.map((study, index) => (
-            <Reveal key={study.slug} delay={index * 0.05}>
-              <div className="gradient-border rounded-[1.75rem]">
-                <div className="elevated-panel h-full p-6">
-                  <p className="eyebrow">{study.industry}</p>
-                  <h3 className="mt-4 text-2xl font-semibold text-foreground">
-                    {study.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-7 text-muted">
-                    {study.summary}
+      <section className="container py-10 md:py-14">
+        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <Reveal>
+            <div className="gradient-border rounded-[1.75rem]">
+              <div className="surface-panel relative overflow-hidden p-7 md:p-8">
+                <AnimatedGridBackground className="opacity-55" />
+                <div className="relative z-10">
+                  <p className="eyebrow">Location and fit</p>
+                  <h2 className="mt-4 text-balance text-3xl font-semibold text-foreground md:text-5xl">
+                    Based in Cameroon. Serving SMEs in Douala, Yaoundé,
+                    Bamenda, across Africa, and internationally.
+                  </h2>
+                  <p className="mt-5 max-w-3xl text-base leading-8 text-muted md:text-lg">
+                    Built for businesses that want to become easier to find,
+                    easier to trust, easier to manage, and easier to grow.
                   </p>
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {study.metrics.map((metric) => (
-                      <span key={metric} className="trust-pill">
-                        {metric}
-                      </span>
-                    ))}
-                  </div>
-                  <Link
-                    href="/about"
-                    className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-accent-2"
-                  >
-                    View Case Study
-                    <ArrowRight className="size-4" />
-                  </Link>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
 
-      <section className="container py-16">
-        <Reveal>
-          <div className="gradient-border rounded-[2rem]">
-            <div className="elevated-panel relative overflow-hidden p-8 md:p-12">
-              <AnimatedGridBackground />
-              <div className="relative z-10 grid gap-8 lg:grid-cols-[1fr_0.8fr]">
-                <div>
-                <p className="eyebrow">Interactive quote</p>
-                <h2 className="mt-4 text-balance text-4xl font-semibold text-foreground md:text-5xl">
-                    Not sure whether you need marketing, branding, web,
-                    automation, or software?
-                </h2>
-                <p className="mt-5 max-w-2xl text-lg leading-8 text-muted">
-                    Tell us the business context and we will recommend the
-                    smartest growth path, from discovery to launch support.
-                </p>
-                  <Link
-                    href="/request-quote"
-                    className={`${buttonVariants({ variant: "primary", size: "lg" })} mt-8 w-full sm:w-auto`}
-                  >
-                    Request a tailored solution
-                  </Link>
-                </div>
-                <div className="grid gap-4">
-                  {[
-                    "Map the problem and current friction",
-                    "Recommend the right marketing and digital architecture",
-                    "Prioritize delivery around business impact",
-                  ].map((item) => (
-                    <div
-                      key={item}
-                      className="subtle-tile rounded-[1.35rem] p-4 text-sm text-muted"
-                    >
-                      {item}
+                  <div className="mt-6 grid gap-3 md:grid-cols-2">
+                    <div className="subtle-tile rounded-[1.35rem] p-4 text-sm leading-7 text-muted">
+                      Stronger visibility for SMEs that need better digital
+                      positioning, clearer offers, and better lead quality.
                     </div>
-                  ))}
+                    <div className="subtle-tile rounded-[1.35rem] p-4 text-sm leading-7 text-muted">
+                      Connected systems for businesses ready to align websites,
+                      campaigns, dashboards, automation, and AI around one
+                      growth direction.
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </Reveal>
-      </section>
+          </Reveal>
 
-      <section className="container py-16">
-        <Reveal>
-          <SectionHeading
-            eyebrow="Testimonials"
-            title="The work should feel premium, thoughtful, and easier to grow with."
-            description="That is the standard teChia is designed around."
-          />
-        </Reveal>
-        <div className="grid gap-5 lg:grid-cols-3">
-          {testimonials.map((item, index) => (
-            <Reveal key={item.name} delay={index * 0.04}>
-              <TestimonialCard item={item} />
-            </Reveal>
-          ))}
+          <Reveal delay={0.06}>
+            <div className="gradient-border rounded-[1.75rem]">
+              <div className="elevated-panel h-full p-7 md:p-8">
+                <p className="eyebrow">Continue from here</p>
+                <h2 className="mt-4 text-balance text-3xl font-semibold text-foreground md:text-4xl">
+                  Choose the route that matches your next step.
+                </h2>
+                <div className="mt-6 grid gap-3">
+                  {nextStepLinks.map((item) => {
+                    const Icon = item.icon;
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className="subtle-tile group flex items-start gap-4 rounded-[1.35rem] p-4 transition hover:-translate-y-0.5"
+                      >
+                        <span className="icon-chip inline-flex rounded-2xl p-3">
+                          <Icon className="size-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold text-foreground">
+                            {item.label}
+                          </span>
+                          <span className="mt-1 block text-sm leading-7 text-muted">
+                            {item.helper}
+                          </span>
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </Reveal>
         </div>
       </section>
 
-      <section className="container py-16">
-        <Reveal>
-          <SectionHeading
-            eyebrow="Pricing"
-            title="Flexible engagement paths for different stages of digital growth."
-            description="We keep the commercial framing clear while leaving room for custom solution design."
-          />
-        </Reveal>
-        <div className="grid gap-5 xl:grid-cols-3">
-          {pricingPlans.map((plan, index) => (
-            <Reveal key={plan.title} delay={index * 0.05}>
-              <PricingCard plan={plan} />
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      <section className="container py-20">
-        <Reveal>
-          <div className="grid gap-5 md:grid-cols-3">
-            <MetricCard
-              value="Africa + Europe"
-              label="Positioning built to feel credible across local and international markets."
-            />
-            <MetricCard
-              value="Systems + UX"
-              label="User experience and business operations are designed together, not separately."
-            />
-            <MetricCard
-              value="Premium by default"
-              label="High-trust visuals, clear structure, and practical delivery for serious businesses."
-            />
-          </div>
-        </Reveal>
-      </section>
-
-      <section className="container pb-20">
+      <section className="container pb-16 pt-8 md:pb-20">
         <Reveal>
           <div className="gradient-border rounded-[2rem]">
-            <div className="elevated-panel p-8 text-center md:p-12">
-              <p className="eyebrow mx-auto justify-center">
-                Final call to action
-              </p>
-              <h2 className="mx-auto mt-4 max-w-4xl text-balance text-4xl font-semibold text-foreground md:text-6xl">
-                Ready to grow your business with a smarter digital strategy?
-              </h2>
-              <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-muted">
-                Start with a conversation. We will help shape the right service
-                mix before we build or launch anything.
-              </p>
-              <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-                <Link
-                  href="/contact"
-                  className={`${buttonVariants({ variant: "primary", size: "lg" })} w-full sm:w-auto`}
-                >
-                  Book a Free Consultation
-                </Link>
-                <Link
-                  href="/services"
-                  className={`${buttonVariants({ variant: "secondary", size: "lg" })} w-full sm:w-auto`}
-                >
-                  Explore Our Services
-                </Link>
+            <div className="elevated-panel p-7 md:p-10">
+              <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+                <div>
+                  <p className="font-script text-3xl text-accent-3 md:text-4xl">
+                    choose the next growth layer
+                  </p>
+                  <p className="eyebrow mt-3">Gateway CTA</p>
+                  <h2 className="mt-4 max-w-3xl text-balance text-4xl font-semibold md:text-5xl">
+                    <span className="headline-gradient">
+                      Continue to the full teChia site in the language that
+                      fits your audience.
+                    </span>
+                  </h2>
+                  <p className="mt-5 max-w-2xl text-base leading-8 text-muted md:text-lg">
+                    Visit <code>/en</code> for the English homepage or{" "}
+                    <code>/fr</code> for the French homepage. You can switch
+                    language later from the localized navigation.
+                  </p>
+                </div>
+
+                <div>
+                  <LanguageGatewayActions source="gateway-footer" />
+                  <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-muted">
+                    <span className="inline-flex items-center gap-2">
+                      <MapPin className="size-4 text-accent-2" />
+                      Cameroon-based, international delivery
+                    </span>
+                    <Link
+                      href="/en"
+                      hrefLang="en"
+                      className="footer-link inline-flex"
+                    >
+                      /en
+                    </Link>
+                    <Link
+                      href="/fr"
+                      hrefLang="fr"
+                      className="footer-link inline-flex"
+                    >
+                      /fr
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

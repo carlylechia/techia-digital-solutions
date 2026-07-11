@@ -13,7 +13,6 @@ function isLocale(value: string): value is Locale {
 }
 
 const legacyRouteMap: Record<string, { path: string; hash?: string }> = {
-  "/": { path: "" },
   "/about": { path: "/about" },
   "/founder": { path: "/founder" },
   "/services": { path: "/services" },
@@ -114,6 +113,11 @@ export function proxy(request: NextRequest) {
     pathname !== "/" && pathname.endsWith("/")
       ? pathname.slice(0, -1)
       : pathname;
+
+  if (normalizedPath === "/") {
+    return NextResponse.next();
+  }
+
   const mappedPath = legacyRouteMap[normalizedPath];
 
   if (mappedPath === undefined) {

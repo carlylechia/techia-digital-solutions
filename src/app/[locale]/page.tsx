@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { HeroSection } from "@/components/sections/HeroSection";
 import { HomepageConversionFlow } from "@/components/sections/homepage-conversion-flow";
 import { JsonLd } from "@/components/ui/json-ld";
-import { getDictionary, isLocale, type Locale } from "@/content/site";
+import { getDictionary, isLocale, siteConfig, type Locale } from "@/content/site";
 import {
   loadHomepageFaqs,
   loadHomepageFeedback,
@@ -18,11 +18,23 @@ export async function generateMetadata({
   const { locale: rawLocale } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : "en";
   const dict = getDictionary(locale);
-  return createMetadata({
+  const metadata = createMetadata({
     locale,
     title: dict.meta.title,
     description: dict.meta.description,
   });
+
+  return {
+    ...metadata,
+    alternates: {
+      canonical: metadata.alternates?.canonical,
+      languages: {
+        "x-default": siteConfig.url,
+        en: `${siteConfig.url}/en`,
+        fr: `${siteConfig.url}/fr`,
+      },
+    },
+  };
 }
 
 export default async function HomePage({

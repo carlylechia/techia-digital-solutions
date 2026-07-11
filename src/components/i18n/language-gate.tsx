@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type Locale } from "@/content/site";
+import { persistLocalePreference } from "@/lib/locale-preference";
 
 export function LanguageGate({ locale }: { locale: Locale }) {
   const [open, setOpen] = useState(false);
@@ -14,9 +15,7 @@ export function LanguageGate({ locale }: { locale: Locale }) {
   }, []);
 
   function choose(nextLocale: Locale) {
-    document.cookie = `techia-locale=${nextLocale}; path=/; max-age=31536000; SameSite=Lax`;
-    window.localStorage.setItem("techia-locale", nextLocale);
-    window.dispatchEvent(new CustomEvent("techia:analytics", { detail: { name: "language_selected", params: { locale: nextLocale, source: "gate" } } }));
+    persistLocalePreference(nextLocale, "gate");
     setOpen(false);
     if (nextLocale !== locale) router.push(`/${nextLocale}`);
   }
