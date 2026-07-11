@@ -1850,6 +1850,103 @@ textarea {
     justify-self: end;
   }
 
+  .marketing-navbar-logo {
+    align-self: center;
+    max-width: min(100%, 12rem);
+  }
+
+  .marketing-navbar-logo.logo-lockup--interactive {
+    padding: 0.68rem 0.82rem;
+    border-radius: 1.25rem;
+  }
+
+  .marketing-navbar-menu-button {
+    align-self: center;
+  }
+
+  .marketing-mobile-nav-panel {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 2rem;
+    padding: 1.1rem;
+    background:
+      linear-gradient(180deg, rgba(7, 15, 28, 0.985), rgba(8, 20, 36, 0.965)),
+      radial-gradient(circle at top left, rgba(34, 211, 238, 0.12), transparent 36%),
+      radial-gradient(circle at bottom right, rgba(253, 186, 116, 0.1), transparent 28%);
+    box-shadow:
+      0 32px 120px rgba(0, 0, 0, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .marketing-mobile-nav-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 26%),
+      radial-gradient(circle at top right, rgba(34, 211, 238, 0.12), transparent 24%);
+    opacity: 0.9;
+  }
+
+  .marketing-mobile-nav-panel > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .marketing-mobile-nav-logo {
+    max-width: min(100%, 10.25rem);
+  }
+
+  .marketing-mobile-nav-intro {
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1.45rem;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03)),
+      radial-gradient(circle at top right, rgba(34, 211, 238, 0.12), transparent 38%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .marketing-mobile-nav-links {
+    min-height: 0;
+    flex: 1 1 auto;
+    overscroll-behavior: contain;
+  }
+
+  .marketing-mobile-nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.38rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.035)),
+      radial-gradient(circle at top right, rgba(34, 211, 238, 0.08), transparent 35%);
+    color: white;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 12px 34px rgba(0, 0, 0, 0.16);
+    transition:
+      transform 0.24s ease,
+      border-color 0.24s ease,
+      background 0.24s ease,
+      box-shadow 0.24s ease;
+  }
+
+  .marketing-mobile-nav-link:hover,
+  .marketing-mobile-nav-link:focus-visible {
+    transform: translateY(-2px);
+    border-color: rgba(103, 232, 249, 0.24);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.05)),
+      radial-gradient(circle at top right, rgba(34, 211, 238, 0.14), transparent 35%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 18px 40px rgba(0, 0, 0, 0.22);
+  }
+
   .header-action-cluster {
     position: relative;
     display: inline-flex;
@@ -2112,6 +2209,18 @@ textarea {
       gap: 1rem;
       border-radius: 2rem;
       padding: 0.95rem 1rem;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    .header-shell {
+      min-height: 4.4rem;
+      padding: 0.74rem 0.78rem;
+    }
+
+    .marketing-mobile-nav-panel {
+      padding: 1rem;
+      border-radius: 1.8rem;
     }
   }
 

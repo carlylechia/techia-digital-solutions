@@ -17,7 +17,22 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 px-3 pt-3 sm:px-4">
       <nav className="container header-shell" aria-label="Primary">
-        <Logo variant="horizontal" size="md" theme="auto" priority interactive />
+        <Logo
+          variant="horizontal"
+          size="sm"
+          theme="auto"
+          priority
+          interactive
+          className="marketing-navbar-logo lg:hidden"
+        />
+        <Logo
+          variant="horizontal"
+          size="md"
+          theme="auto"
+          priority
+          interactive
+          className="marketing-navbar-logo hidden lg:inline-flex"
+        />
 
         <div className="hidden min-w-0 lg:block">
           <NavRail
@@ -42,7 +57,12 @@ export function Navbar() {
           </div>
         </div>
 
-        <MobileNav items={marketingNav} ctaLabel="Start a Project" ctaHref="/request-quote" />
+        <MobileNav
+          key={pathname}
+          items={marketingNav}
+          ctaLabel="Start a Project"
+          ctaHref="/request-quote"
+        />
       </nav>
     </header>
   );

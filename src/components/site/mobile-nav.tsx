@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Logo } from "@/components/brand/Logo";
 import type { NavigationItem } from "@/content/nexus-site";
 import { cn } from "@/lib/utils";
@@ -21,6 +23,9 @@ export function MobileNav({
   ctaHref: string;
 }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const portalTarget =
+    typeof document === "undefined" ? null : document.body;
 
   useEffect(() => {
     if (!open) {
@@ -45,7 +50,7 @@ export function MobileNav({
     <>
       <button
         type="button"
-        className="icon-button justify-self-end lg:hidden"
+        className="icon-button marketing-navbar-menu-button justify-self-end lg:hidden"
         aria-label="Open navigation menu"
         aria-controls="mobile-site-nav"
         aria-expanded={open}
@@ -53,82 +58,121 @@ export function MobileNav({
       >
         <Menu className="size-5" />
       </button>
-      <AnimatePresence>
-        {open ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[80] bg-[#040812]/82 p-4 backdrop-blur-xl lg:hidden"
-            onClick={(event) => {
-              if (event.target === event.currentTarget) setOpen(false);
-            }}
-          >
-            <motion.div
-              id="mobile-site-nav"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Mobile navigation"
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", stiffness: 320, damping: 28 }}
-              className="ml-auto flex h-full w-full max-w-sm flex-col rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(7,15,28,0.98),rgba(8,20,36,0.94))] p-5 text-white shadow-[0_32px_120px_rgba(0,0,0,0.42)]"
-            >
-              <div className="flex items-center justify-between gap-4">
-                <Logo variant="horizontal" size="sm" theme="dark" interactive />
-                <button
-                  type="button"
-                  className="icon-button border-white/10 bg-white/[0.06] text-white"
-                  aria-label="Close navigation menu"
-                  onClick={() => setOpen(false)}
+      {portalTarget
+        ? createPortal(
+            <AnimatePresence>
+              {open ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[90] bg-[linear-gradient(180deg,rgba(4,8,18,0.92),rgba(4,8,18,0.76))] p-3 backdrop-blur-2xl sm:p-4 lg:hidden"
+                  onClick={(event) => {
+                    if (event.target === event.currentTarget) setOpen(false);
+                  }}
                 >
-                  <X className="size-5" />
-                </button>
-              </div>
-
-              <p className="font-script mt-6 text-3xl text-[#FDBA74]">
-                enter the showcase
-              </p>
-
-              <div className="mt-6 grid gap-2">
-                {items.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="rounded-[1.3rem] border border-white/10 bg-white/[0.06] px-4 py-4 text-lg font-medium text-white"
-                    onClick={() => setOpen(false)}
+                  <motion.div
+                    id="mobile-site-nav"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Mobile navigation"
+                    initial={{ x: "100%", opacity: 0.92 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: "100%", opacity: 0.92 }}
+                    transition={{ type: "spring", stiffness: 320, damping: 28 }}
+                    className="marketing-mobile-nav-panel ml-auto flex h-full w-full max-w-sm flex-col"
                   >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <Logo
+                        variant="horizontal"
+                        size="sm"
+                        theme="dark"
+                        interactive
+                        className="marketing-mobile-nav-logo"
+                      />
+                      <button
+                        type="button"
+                        className="icon-button border-white/10 bg-white/[0.06] text-white"
+                        aria-label="Close navigation menu"
+                        onClick={() => setOpen(false)}
+                      >
+                        <X className="size-5" />
+                      </button>
+                    </div>
 
-              <Link
-                href={ctaHref}
-                className={cn(
-                  buttonVariants({ variant: "primary", size: "lg" }),
-                  "mt-4",
-                )}
-                onClick={() => setOpen(false)}
-              >
-                {ctaLabel}
-              </Link>
+                    <div className="marketing-mobile-nav-intro mt-6">
+                      <span className="header-status-pill border-white/10 text-white">
+                        Global gateway
+                      </span>
+                      <p className="font-script mt-4 text-3xl text-[#FDBA74]">
+                        enter the showcase
+                      </p>
+                      <p className="mt-3 text-sm leading-7 text-slate-300">
+                        Navigate the full teChia experience with a clearer,
+                        distraction-free mobile menu.
+                      </p>
+                    </div>
 
-              <div className="header-action-cluster mt-auto flex items-center gap-3 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-6">
-                <LanguageToggle
-                  className="bg-white/[0.06] text-white"
-                  tone="inverted"
-                />
-                <ThemeToggle
-                  className="border-white/10 bg-white/[0.06] text-white"
-                  label="Toggle theme"
-                />
-              </div>
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+                    <div className="marketing-mobile-nav-links mt-6 grid gap-2 overflow-y-auto pr-1">
+                      {items.map((item) => {
+                        const active =
+                          pathname === item.href ||
+                          pathname.startsWith(`${item.href}/`);
+
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            aria-current={active ? "page" : undefined}
+                            className={cn(
+                              "marketing-mobile-nav-link rounded-[1.3rem] px-4 py-4 text-base font-semibold sm:text-lg",
+                              active &&
+                                "border-cyan-300/30 bg-[linear-gradient(135deg,rgba(34,211,238,0.18),rgba(255,255,255,0.1))] text-white shadow-[0_18px_40px_rgba(6,182,212,0.18)]",
+                            )}
+                            onClick={() => setOpen(false)}
+                          >
+                            <span>{item.label}</span>
+                            <span className="text-xs font-medium uppercase tracking-[0.18em] text-white/55">
+                              {active ? "Current page" : "Open page"}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+
+                    <Link
+                      href={ctaHref}
+                      className={cn(
+                        buttonVariants({ variant: "primary", size: "lg" }),
+                        "mt-4 justify-center",
+                      )}
+                      onClick={() => setOpen(false)}
+                    >
+                      {ctaLabel}
+                    </Link>
+
+                    <div className="header-action-cluster mt-auto flex flex-wrap items-center justify-between gap-3 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-6">
+                      <div className="flex items-center gap-3">
+                        <LanguageToggle
+                          className="bg-white/[0.06] text-white"
+                          tone="inverted"
+                        />
+                        <ThemeToggle
+                          className="border-white/10 bg-white/[0.06] text-white"
+                          label="Toggle theme"
+                        />
+                      </div>
+                      <span className="header-status-pill border-white/10 text-white">
+                        Launch mode
+                      </span>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>,
+            portalTarget,
+          )
+        : null}
     </>
   );
 }
