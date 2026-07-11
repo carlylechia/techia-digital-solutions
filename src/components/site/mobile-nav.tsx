@@ -6,7 +6,6 @@ import { Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Logo } from "@/components/brand/Logo";
 import type { NavigationItem } from "@/content/nexus-site";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "./button";
@@ -82,14 +81,14 @@ export function MobileNav({
                     transition={{ type: "spring", stiffness: 320, damping: 28 }}
                     className="marketing-mobile-nav-panel ml-auto flex h-full w-full max-w-sm flex-col"
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <Logo
-                        variant="horizontal"
-                        size="sm"
-                        theme="dark"
-                        interactive
-                        className="marketing-mobile-nav-logo"
-                      />
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="marketing-mobile-nav-header-copy min-w-0">
+                        <p className="eyebrow text-white/70">Navigation</p>
+                        <p className="mt-2 text-sm leading-6 text-slate-300">
+                          Browse the teChia gateway without duplicating the
+                          header branding.
+                        </p>
+                      </div>
                       <button
                         type="button"
                         className="icon-button border-white/10 bg-white/[0.06] text-white"
@@ -151,8 +150,8 @@ export function MobileNav({
                       {ctaLabel}
                     </Link>
 
-                    <div className="header-action-cluster mt-auto flex flex-wrap items-center justify-between gap-3 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-6">
-                      <div className="flex items-center gap-3">
+                    <div className="mt-auto flex flex-wrap items-center gap-3 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-6">
+                      <div className="header-action-cluster w-fit">
                         <LanguageToggle
                           className="bg-white/[0.06] text-white"
                           tone="inverted"
@@ -162,9 +161,6 @@ export function MobileNav({
                           label="Toggle theme"
                         />
                       </div>
-                      <span className="header-status-pill border-white/10 text-white">
-                        Launch mode
-                      </span>
                     </div>
                   </motion.div>
                 </motion.div>

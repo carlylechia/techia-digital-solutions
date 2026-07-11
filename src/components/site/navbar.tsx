@@ -19,19 +19,11 @@ export function Navbar() {
       <nav className="container header-shell" aria-label="Primary">
         <Logo
           variant="horizontal"
-          size="sm"
-          theme="auto"
-          priority
-          interactive
-          className="marketing-navbar-logo lg:hidden"
-        />
-        <Logo
-          variant="horizontal"
           size="md"
           theme="auto"
           priority
           interactive
-          className="marketing-navbar-logo hidden lg:inline-flex"
+          className="marketing-navbar-logo"
         />
 
         <div className="hidden min-w-0 lg:block">

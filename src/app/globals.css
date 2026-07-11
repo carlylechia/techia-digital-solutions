@@ -1896,8 +1896,8 @@ textarea {
     z-index: 1;
   }
 
-  .marketing-mobile-nav-logo {
-    max-width: min(100%, 10.25rem);
+  .marketing-mobile-nav-header-copy {
+    max-width: 13rem;
   }
 
   .marketing-mobile-nav-intro {
