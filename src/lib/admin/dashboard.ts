@@ -162,6 +162,8 @@ async function loadAdminHomepageFaqs(
 
 export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<typeof import("@/lib/prisma").getPrisma>>) {
   await ensureDefaultAdminRoles(prisma);
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
   const [
     leadCount,
@@ -169,6 +171,12 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
     demoCount,
     inquiryCount,
     subscriberCount,
+    newsletterEnglishCount,
+    newsletterFrenchCount,
+    newsletterActiveCount,
+    newsletterUnsubscribedCount,
+    newsletterThisMonthCount,
+    newsletterSourceCounts,
     clientCount,
     activeProjectCount,
     pageCount,
@@ -186,6 +194,7 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
     demos,
     inquiries,
     subscribers,
+    newsletterBroadcasts,
     roles,
     admins,
     clients,
@@ -202,6 +211,12 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
     prisma.demoRequest.count(),
     prisma.projectInquiry.count(),
     prisma.newsletterSubscriber.count(),
+    prisma.newsletterSubscriber.count({ where: { language: "en" } }),
+    prisma.newsletterSubscriber.count({ where: { language: "fr" } }),
+    prisma.newsletterSubscriber.count({ where: { subscribed: true } }),
+    prisma.newsletterSubscriber.count({ where: { subscribed: false } }),
+    prisma.newsletterSubscriber.count({ where: { createdAt: { gte: monthStart } } }),
+    prisma.newsletterSubscriber.groupBy({ by: ["source"], _count: { source: true } }),
     prisma.client.count(),
     prisma.clientProject.count({ where: { status: { in: ["PLANNED", "ACTIVE", "REVIEW"] } } }),
     prisma.contentPage.count(),
@@ -220,7 +235,8 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
     prisma.contactMessage.findMany({ orderBy: { createdAt: "desc" }, take: 10, include: { client: { select: { id: true, name: true, slug: true } } } }),
     prisma.demoRequest.findMany({ orderBy: { createdAt: "desc" }, take: 10, include: { client: { select: { id: true, name: true, slug: true } } } }),
     prisma.projectInquiry.findMany({ orderBy: { createdAt: "desc" }, take: 10, include: { lead: true, client: { select: { id: true, name: true, slug: true } } } }),
-    prisma.newsletterSubscriber.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
+    prisma.newsletterSubscriber.findMany({ orderBy: { createdAt: "desc" }, take: 200 }),
+    prisma.newsletterBroadcast.findMany({ orderBy: [{ scheduledDate: "desc" }, { createdAt: "desc" }], take: 20 }),
     prisma.adminRole.findMany({ orderBy: [{ level: "desc" }, { label: "asc" }], include: { _count: { select: { users: true } } } }),
     prisma.adminUser.findMany({ orderBy: { createdAt: "desc" }, take: 24, include: { roleRef: true, createdBy: { select: { name: true, email: true } } } }),
     prisma.client.findMany({
@@ -423,8 +439,50 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
     })),
     subscribers: subscribers.map((subscriber) => ({
       ...subscriber,
-      createdAt: iso(subscriber.createdAt)
+      consentDate: iso(subscriber.consentDate),
+      createdAt: iso(subscriber.createdAt),
+      updatedAt: iso(subscriber.updatedAt)
     })),
+    newsletter: {
+      metrics: {
+        total: subscriberCount,
+        english: newsletterEnglishCount,
+        french: newsletterFrenchCount,
+        active: newsletterActiveCount,
+        unsubscribed: newsletterUnsubscribedCount,
+        thisMonth: newsletterThisMonthCount,
+      },
+      sourceBreakdown: newsletterSourceCounts.map((item) => ({
+        source: item.source,
+        count: item._count.source,
+      })),
+      subscribers: subscribers.map((subscriber) => ({
+        id: subscriber.id,
+        email: subscriber.email,
+        firstName: subscriber.firstName,
+        language: subscriber.language,
+        interest: subscriber.interest,
+        source: subscriber.source,
+        businessName: subscriber.businessName,
+        consentDate: iso(subscriber.consentDate),
+        subscribed: subscriber.subscribed,
+        resendContactId: subscriber.resendContactId,
+        createdAt: iso(subscriber.createdAt),
+        updatedAt: iso(subscriber.updatedAt),
+      })),
+      broadcasts: newsletterBroadcasts.map((broadcast) => ({
+        id: broadcast.id,
+        title: broadcast.title,
+        subject: broadcast.subject,
+        previewText: broadcast.previewText,
+        segment: broadcast.segment,
+        scheduledDate: iso(broadcast.scheduledDate),
+        status: broadcast.status,
+        resendId: broadcast.resendId,
+        createdAt: iso(broadcast.createdAt),
+        updatedAt: iso(broadcast.updatedAt),
+      })),
+    },
     roles: roles.map((role) => ({
       id: role.id,
       name: role.name,

@@ -124,7 +124,8 @@ type AdminWorkspaceProps = {
   currentUser: CurrentUser;
 };
 
-type SectionKey = "overview" | "clients" | "projects" | "requests" | "content" | "processes" | "access" | "audit";
+type SectionKey = "overview" | "clients" | "projects" | "requests" | "newsletter" | "content" | "processes" | "access" | "audit";
+type NewsletterFilter = "all" | "en" | "fr" | "active" | "unsubscribed";
 
 const statusOptions = ["NEW", "CONTACTED", "DISCOVERY_BOOKED", "PROPOSAL_SENT", "NEGOTIATING", "WON", "LOST", "FOLLOW_UP_LATER"] as const;
 const adminStatuses = ["ACTIVE", "INVITED", "DISABLED"] as const;
@@ -553,7 +554,7 @@ function EmptyState({ title }: { title: string }) {
   return <p className="rounded-lg border border-dashed border-border bg-background p-5 text-sm text-muted">{title}</p>;
 }
 
-const VALID_SECTIONS: SectionKey[] = ["overview", "clients", "projects", "requests", "content", "processes", "access", "audit"];
+const VALID_SECTIONS: SectionKey[] = ["overview", "clients", "projects", "requests", "newsletter", "content", "processes", "access", "audit"];
 
 export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProps) {
   const searchParams = useSearchParams();
@@ -573,6 +574,7 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
         { key: "clients", label: "Clients", icon: BriefcaseBusiness, permission: "clients.manage" },
         { key: "projects", label: "Projects", icon: ClipboardList, permission: "projects.manage" },
         { key: "requests", label: "Requests", icon: Activity, permission: "requests.manage" },
+        { key: "newsletter", label: "Newsletter", icon: Mail, permission: "requests.manage" },
         { key: "content", label: "Content", icon: FileText, permission: "content.manage" },
         { key: "processes", label: "Processes", icon: KanbanSquare, permission: "dashboard.view" },
         { key: "access", label: "Access", icon: ShieldCheck, permission: "admins.manage" },
@@ -780,6 +782,7 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
               {active === "clients" && can("clients.manage") ? <Clients data={data} locale={locale} /> : null}
               {active === "projects" && can("projects.manage") ? <Projects data={data} locale={locale} /> : null}
               {active === "requests" && can("requests.manage") ? <Requests data={data} locale={locale} /> : null}
+              {active === "newsletter" && can("requests.manage") ? <Newsletter data={data} /> : null}
               {active === "content" && can("content.manage") ? <Content data={data} locale={locale} /> : null}
               {active === "processes" ? <Processes data={data} locale={locale} currentUser={currentUser} canManage={can("processes.manage")} /> : null}
               {active === "access" && can("admins.manage") ? <Access data={data} locale={locale} roles={assignableRoles} currentUser={currentUser} canManageRoles={can("roles.manage")} /> : null}
@@ -927,6 +930,254 @@ function Overview({ data, can, locale }: { data: AdminDashboardData; can: (permi
           </div>
         </Panel>
       ) : null}
+    </div>
+  );
+}
+
+function Newsletter({ data }: { data: AdminDashboardData }) {
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<NewsletterFilter>("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
+  const subscribers = data.newsletter.subscribers;
+
+  const filteredSubscribers = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return subscribers.filter((subscriber) => {
+      const matchesFilter =
+        filter === "all" ||
+        (filter === "en" && subscriber.language === "en") ||
+        (filter === "fr" && subscriber.language === "fr") ||
+        (filter === "active" && subscriber.subscribed) ||
+        (filter === "unsubscribed" && !subscriber.subscribed);
+
+      if (!matchesFilter) return false;
+      if (!normalizedQuery) return true;
+
+      return [
+        subscriber.firstName,
+        subscriber.email,
+        subscriber.language,
+        subscriber.interest,
+        subscriber.source,
+        subscriber.businessName,
+      ]
+        .filter(Boolean)
+        .some((value) =>
+          String(value).toLowerCase().includes(normalizedQuery),
+        );
+    });
+  }, [filter, query, subscribers]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSubscribers.length / pageSize));
+  const pageSubscribers = filteredSubscribers.slice(
+    (page - 1) * pageSize,
+    page * pageSize,
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, query]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  function exportCsv() {
+    const header = [
+      "Name",
+      "Email",
+      "Language",
+      "Interest",
+      "Source",
+      "Created Date",
+      "Status",
+    ];
+    const escapeCell = (value: unknown) =>
+      `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const rows = filteredSubscribers.map((subscriber) => [
+      subscriber.firstName || "",
+      subscriber.email,
+      subscriber.language,
+      subscriber.interest,
+      subscriber.source,
+      subscriber.createdAt || "",
+      subscriber.subscribed ? "Active" : "Unsubscribed",
+    ]);
+    const csv = [header, ...rows]
+      .map((row) => row.map(escapeCell).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `techia-newsletter-subscribers-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  const filters: Array<{ key: NewsletterFilter; label: string }> = [
+    { key: "all", label: "All" },
+    { key: "en", label: "English" },
+    { key: "fr", label: "French" },
+    { key: "active", label: "Active" },
+    { key: "unsubscribed", label: "Unsubscribed" },
+  ];
+
+  return (
+    <div className="grid gap-5">
+      <div className="grid gap-4 min-[420px]:grid-cols-2 xl:grid-cols-6">
+        <MetricCard icon={Mail} label="Total Subscribers" value={data.newsletter.metrics.total} detail="All captured newsletter contacts" />
+        <MetricCard icon={Users} label="English Subscribers" value={data.newsletter.metrics.english} detail="Assigned to English flow" />
+        <MetricCard icon={Users} label="French Subscribers" value={data.newsletter.metrics.french} detail="Assigned to French flow" />
+        <MetricCard icon={CheckCircle2} label="Active Subscribers" value={data.newsletter.metrics.active} detail="Eligible for future sends" />
+        <MetricCard icon={X} label="Unsubscribed" value={data.newsletter.metrics.unsubscribed} detail="Suppressed from broadcasts" />
+        <MetricCard icon={Activity} label="This Month" value={data.newsletter.metrics.thisMonth} detail="New subscribers this month" />
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
+        <Panel
+          title="Newsletter Subscribers"
+          eyebrow="Growth Brief"
+          action={
+            <button
+              type="button"
+              onClick={exportCsv}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-primary transition hover:border-accent/40"
+            >
+              <FileText className="size-3.5" />
+              Export CSV
+            </button>
+          }
+        >
+          <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_auto]">
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search name, email, interest, source..."
+              aria-label="Search newsletter subscribers"
+            />
+            <div className="flex flex-wrap gap-2">
+              {filters.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setFilter(item.key)}
+                  className={cn(
+                    "rounded-full border px-3 py-2 text-xs font-semibold transition",
+                    filter === item.key
+                      ? "border-accent/50 bg-accent/15 text-accent"
+                      : "border-border bg-background text-muted hover:text-primary",
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="min-w-[760px] w-full divide-y divide-border text-left text-sm">
+              <thead className="bg-background text-xs uppercase tracking-[0.08em] text-muted">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Name</th>
+                  <th className="px-4 py-3 font-semibold">Email</th>
+                  <th className="px-4 py-3 font-semibold">Language</th>
+                  <th className="px-4 py-3 font-semibold">Interest</th>
+                  <th className="px-4 py-3 font-semibold">Source</th>
+                  <th className="px-4 py-3 font-semibold">Created Date</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border bg-surface">
+                {pageSubscribers.map((subscriber) => (
+                  <tr key={subscriber.id}>
+                    <td className="px-4 py-3 font-medium text-primary">{subscriber.firstName || "-"}</td>
+                    <td className="px-4 py-3 text-muted">{subscriber.email}</td>
+                    <td className="px-4 py-3 text-muted">{subscriber.language.toUpperCase()}</td>
+                    <td className="px-4 py-3 text-muted">{subscriber.interest}</td>
+                    <td className="px-4 py-3 text-muted">{subscriber.source}</td>
+                    <td className="px-4 py-3 text-muted">{formatDate(subscriber.createdAt)}</td>
+                    <td className="px-4 py-3">
+                      <Pill tone={subscriber.subscribed ? "good" : "quiet"}>
+                        {subscriber.subscribed ? "Active" : "Unsubscribed"}
+                      </Pill>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {!pageSubscribers.length ? <div className="mt-4"><EmptyState title="No newsletter subscribers match this view." /></div> : null}
+
+          <div className="mt-4 flex flex-col gap-3 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              Showing {pageSubscribers.length} of {filteredSubscribers.length} subscribers
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((value) => Math.max(1, value - 1))}
+                disabled={page <= 1}
+                className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-primary disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <Pill tone="quiet">Page {page} / {totalPages}</Pill>
+              <button
+                type="button"
+                onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+                disabled={page >= totalPages}
+                className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-primary disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </Panel>
+
+        <div className="grid gap-5">
+          <Panel title="Source Breakdown" eyebrow="Acquisition">
+            <div className="grid gap-3">
+              {data.newsletter.sourceBreakdown.map((item) => (
+                <div key={item.source} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background p-3">
+                  <span className="text-sm font-semibold text-primary">{item.source}</span>
+                  <Pill tone="default">{item.count}</Pill>
+                </div>
+              ))}
+              {!data.newsletter.sourceBreakdown.length ? <EmptyState title="No source data yet." /> : null}
+            </div>
+          </Panel>
+
+          <Panel title="Broadcast Infrastructure" eyebrow="Future-ready">
+            <div className="grid gap-3">
+              <div className="rounded-lg border border-border bg-background p-4">
+                <p className="text-sm font-semibold text-primary">Monthly broadcast fields are ready.</p>
+                <p className="mt-2 text-sm leading-6 text-muted">
+                  Title, subject, preview text, segment, and scheduled date can be stored without adding a full editor yet.
+                </p>
+              </div>
+              {data.newsletter.broadcasts.map((broadcast) => (
+                <article key={broadcast.id} className="rounded-lg border border-border bg-background p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="break-words text-sm font-semibold text-primary">{broadcast.title}</h3>
+                      <p className="mt-1 break-words text-xs text-muted">{broadcast.subject}</p>
+                    </div>
+                    <Pill tone="quiet">{broadcast.status}</Pill>
+                  </div>
+                  <p className="mt-3 text-xs text-muted">
+                    Segment: {broadcast.segment} · Scheduled: {formatDate(broadcast.scheduledDate)}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </Panel>
+        </div>
+      </div>
     </div>
   );
 }

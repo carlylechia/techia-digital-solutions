@@ -70,6 +70,16 @@ export const viewport: Viewport = {
   ]
 };
 
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: siteConfig.name,
+  url: siteConfig.url,
+  logo: `${siteConfig.url}${brandIconAssets.appleTouch.src}`,
+  email: siteConfig.email || "contact@techiadigital.com",
+  sameAs: Object.values(siteConfig.socials),
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const initialThemeScript = getInitialThemeScript({
     storageKey: THEME_STORAGE_KEY,
@@ -84,6 +94,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           id="techia-initial-theme"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: initialThemeScript }}
+        />
+        <Script
+          id="techia-organization-jsonld"
+          type="application/ld+json"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationJsonLd),
+          }}
         />
       </head>
       <body className={`${manrope.variable} ${cormorant.variable} ${greatVibes.variable}`}>

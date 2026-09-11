@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
+import { NewsletterForm } from "@/components/forms/newsletter-form";
 import { services } from "@/content/nexus-site";
 import { siteConfig } from "@/content/site";
 import { toKebabCase } from "@/lib/utils";
@@ -105,6 +106,19 @@ export function Footer() {
               Book a Free Consultation
               <ArrowRight className="size-4" />
             </Link>
+          </div>
+
+          <div className="mt-4 rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300">
+              Newsletter
+            </p>
+            <p className="mt-3 text-sm leading-7 text-slate-300">
+              Join the teChia Growth Brief to make your business easier to
+              find, easier to trust, easier to manage, and easier to grow.
+            </p>
+            <div className="mt-4">
+              <NewsletterForm locale="en" />
+            </div>
           </div>
         </div>
 

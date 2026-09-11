@@ -126,7 +126,9 @@ export function SiteFooter({ locale }: { locale: Locale }) {
           <div className="mt-6 rounded-[1.5rem] border border-border bg-surface-strong p-5">
             <p className="eyebrow">Newsletter</p>
             <p className="mt-3 text-sm leading-7 text-muted">
-              {dict.pages.contact.location}
+              {locale === "fr"
+                ? "Recevez le teChia Growth Brief pour rendre votre entreprise plus visible, plus crédible, plus simple à gérer et plus facile à développer."
+                : "Join the teChia Growth Brief to make your business easier to find, easier to trust, easier to manage, and easier to grow."}
             </p>
             <div className="mt-4">
               <NewsletterForm locale={locale} />

@@ -159,10 +159,40 @@ model ContactMessage {
 }
 
 model NewsletterSubscriber {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  locale    Locale?
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  email           String   @unique
+  firstName       String?
+  language        String   @default("en")
+  interest        String   @default("general")
+  source          String   @default("footer")
+  businessName    String?
+  consentDate     DateTime @default(now())
+  subscribed      Boolean  @default(true)
+  resendContactId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([language])
+  @@index([source])
+  @@index([subscribed])
+  @@index([createdAt])
+}
+
+model NewsletterBroadcast {
+  id            String    @id @default(cuid())
+  title         String
+  subject       String
+  previewText   String?
+  segment       String
+  scheduledDate DateTime?
+  status        String    @default("DRAFT")
+  resendId      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([segment])
+  @@index([status])
+  @@index([scheduledDate])
 }
 
 model CaseStudy {

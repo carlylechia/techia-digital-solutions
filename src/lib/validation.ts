@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  NEWSLETTER_DEFAULTS,
+  NEWSLETTER_INTERESTS,
+  NEWSLETTER_LANGUAGES,
+  NEWSLETTER_SOURCES,
+} from "@/lib/newsletter/constants";
 
 const email = z.string().trim().toLowerCase().email().max(180);
 const shortText = z.string().trim().min(2).max(180);
@@ -38,9 +44,19 @@ export const projectInquirySchema = z.object({
 
 export const newsletterSchema = z.object({
   email,
+  firstName: z.string().trim().max(120).optional().or(z.literal("")),
+  language: z.enum(NEWSLETTER_LANGUAGES).optional(),
+  interest: z.enum(NEWSLETTER_INTERESTS).optional().default(NEWSLETTER_DEFAULTS.interest),
+  source: z.enum(NEWSLETTER_SOURCES).optional().default(NEWSLETTER_DEFAULTS.source),
+  businessName: z.string().trim().max(180).optional().or(z.literal("")),
   locale,
   honeypot
-});
+}).transform((data) => ({
+  ...data,
+  language: data.language || data.locale || NEWSLETTER_DEFAULTS.language,
+  firstName: data.firstName?.trim() || undefined,
+  businessName: data.businessName?.trim() || undefined,
+}));
 
 export const demoRequestSchema = z.object({
   name: shortText,
