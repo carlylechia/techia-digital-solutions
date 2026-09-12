@@ -14,7 +14,6 @@ type SecondaryAction = {
 
 function resolveHref(locale: Locale, href: string) {
   if (!href.startsWith("/")) return href;
-  if (href === `/${locale}` || href.startsWith(`/${locale}/`)) return href;
   return getLocalizedHref(locale, href);
 }
 

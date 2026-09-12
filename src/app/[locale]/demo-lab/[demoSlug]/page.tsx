@@ -170,12 +170,12 @@ export default async function DemoDetailPage({
           <div className="rounded-2xl border border-accent/30 bg-accent/5 p-6 max-w-2xl">
             <h3 className="text-xl font-bold text-primary mb-1">{demo.recommendedPackage[locale]}</h3>
             <p className="mt-2 text-sm text-muted leading-relaxed">{demo.estimatedBuildType[locale]}</p>
-            <a
-              href={`/${locale}/pricing`}
+            <Link
+              href="/pricing"
               className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-accent hover:underline"
             >
               {locale === "fr" ? "Voir les tarifs →" : "View pricing →"}
-            </a>
+            </Link>
           </div>
         </div>
       </section>

@@ -145,7 +145,6 @@ export function SiteFooter({ locale }: { locale: Locale }) {
                   <li key={href}>
                     <Link
                       href={
-                        href.startsWith(`/${locale}/`) ||
                         href.startsWith("/client-portal")
                           ? href
                           : getLocalizedHref(locale, href)

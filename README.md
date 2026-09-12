@@ -27,7 +27,7 @@ The website presents teChia as more than a website agency. It frames the company
 
 ## 3. Features
 
-- Bilingual localized routing: `/en` and `/fr`
+- Bilingual content on clean, language-neutral URLs
 - First-visit language selection modal
 - Browser language and cookie/localStorage language preference support
 - Premium dark and light themes using CSS variables
@@ -154,7 +154,10 @@ Open:
 http://localhost:3000
 ```
 
-The root route redirects to `/en` or `/fr` depending on cookie or browser language.
+The root route stays at `/`. A saved language preference (or the browser
+language on a first visit) selects the English or French content internally,
+without adding a locale to the URL. Legacy `/en/*` and `/fr/*` URLs permanently
+redirect to their clean canonical equivalents.
 
 ## 7. Environment variables
 
@@ -297,14 +300,13 @@ pnpm dev
 
 Useful routes:
 
-- `/en`
-- `/fr`
-- `/en/services`
-- `/en/industries`
-- `/en/demo-lab`
-- `/en/start-project`
-- `/en/admin`
-- `/en/europe-business-websites`
+- `/`
+- `/services`
+- `/industries`
+- `/demo-lab`
+- `/start-project`
+- `/admin`
+- `/europe-business-websites`
 
 ## 13. Build command
 

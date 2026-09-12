@@ -1,5 +1,5 @@
 import type { Locale } from "@/content/site";
-import { getLocalizedAppPath } from "@/lib/site-routes";
+import { getPublicAppPath } from "@/lib/site-routes";
 
 export type BonusEligibility = "all-buyers" | "full-pack";
 export type BonusType = "guide" | "template" | "support" | "update";
@@ -192,7 +192,7 @@ export function getBuyerBonusItems(locale: Locale) {
     filePath: item.filePath,
     iconKey: item.iconKey,
     downloadPath: item.filePath
-      ? getLocalizedAppPath(locale, `/courses/bonuses/${item.id}/download`)
+      ? getPublicAppPath(`/courses/bonuses/${item.id}/download`)
       : undefined,
   }));
 }

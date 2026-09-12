@@ -18,7 +18,7 @@ import {
   getCoursesWhatsappUrl,
 } from "@/lib/courses/chariowLinks";
 import { getFullCoursePack } from "@/lib/courses/coursePacks";
-import { getLocalizedAppPath } from "@/lib/site-routes";
+import { getPublicAppPath } from "@/lib/site-routes";
 
 export async function generateMetadata({
   params,
@@ -156,7 +156,7 @@ export default async function CourseBonusesPage({
         actions={[
           { href: fullPack.path, label: copy.heroPrimary },
           {
-            href: getLocalizedAppPath(locale, "/courses"),
+            href: getPublicAppPath("/courses"),
             label: copy.heroSecondary,
             variant: "secondary",
           },
@@ -243,7 +243,7 @@ export default async function CourseBonusesPage({
               variant="secondary"
             />
             <CourseTrackedLink
-              href={getLocalizedAppPath(locale, "/courses")}
+              href={getPublicAppPath("/courses")}
               eventName="course_pack_click"
               eventParams={{
                 source_page: "buyer_bonus_page",

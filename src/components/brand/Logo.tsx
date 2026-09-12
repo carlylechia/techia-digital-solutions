@@ -72,7 +72,7 @@ function resolveThemeAsset(
   if (variant === "horizontal") {
     return theme === "dark"
       ? logoAssets.monochromeWhite
-      : logoAssets.horizontal;
+      : logoAssets.monochromeBlack;
   }
 
   if (variant === "icon") {

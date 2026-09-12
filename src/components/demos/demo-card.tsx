@@ -105,7 +105,7 @@ export function DemoCard({ demo, locale }: DemoCardProps) {
         {/* Footer CTAs */}
         <div className="flex flex-col gap-2 border-t border-border/50 p-4 sm:flex-row sm:items-center sm:gap-3">
           <Link
-            href={`/${locale}/demo-lab/${demo.slug}`}
+            href={`/demo-lab/${demo.slug}`}
             onClick={handleCardClick}
             className="btn-primary flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold"
           >

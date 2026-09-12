@@ -80,25 +80,25 @@ const nextStepLinks: Array<{
   icon: LucideIcon;
 }> = [
   {
-    href: "/en",
+    href: "/",
     label: "English homepage",
     helper: "Full site experience in English",
     icon: Sparkles,
   },
   {
-    href: "/fr",
+    href: "/",
     label: "Accueil en français",
     helper: "Expérience complète en français",
     icon: Globe2,
   },
   {
-    href: "/en/services",
+    href: "/services",
     label: "English services",
     helper: "Explore offers, demos, and growth systems",
     icon: Workflow,
   },
   {
-    href: "/fr/services",
+    href: "/services",
     label: "Services en français",
     helper: "Voir les offres et systèmes de croissance",
     icon: BarChart3,
@@ -123,11 +123,6 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: `${siteConfig.url}/`,
-    languages: {
-      "x-default": `${siteConfig.url}/`,
-      en: `${siteConfig.url}/en`,
-      fr: `${siteConfig.url}/fr`,
-    },
   },
   openGraph: {
     title: "teChia Digital Solutions | Digitalize. Simplify. Grow.",
@@ -232,14 +227,14 @@ export default function HomePage() {
                             English:
                           </span>{" "}
                           Explore the full homepage, services, demos, pricing,
-                          portfolio, and contact flow at <code>/en</code>.
+                          portfolio, and contact flow on this same clean URL.
                         </div>
                         <div className="subtle-tile rounded-[1.3rem] p-4 text-sm leading-7 text-muted">
                           <span className="font-semibold text-foreground">
                             Français:
                           </span>{" "}
                           Accédez à l’accueil, aux services, aux démos, aux
-                          offres et au contact sur <code>/fr</code>.
+                          offres et au contact sur cette même URL simple.
                         </div>
                       </div>
                     </div>
@@ -375,9 +370,8 @@ export default function HomePage() {
                     </span>
                   </h2>
                   <p className="mt-5 max-w-2xl text-base leading-8 text-muted md:text-lg">
-                    Visit <code>/en</code> for the English homepage or{" "}
-                    <code>/fr</code> for the French homepage. You can switch
-                    language later from the localized navigation.
+                    Your preferred language is shown on the same clean URL.
+                    You can switch it at any time from the navigation.
                   </p>
                 </div>
 
@@ -389,18 +383,18 @@ export default function HomePage() {
                       Cameroon-based, international delivery
                     </span>
                     <Link
-                      href="/en"
+                      href="/"
                       hrefLang="en"
                       className="footer-link inline-flex"
                     >
-                      /en
+                      English
                     </Link>
                     <Link
-                      href="/fr"
+                      href="/"
                       hrefLang="fr"
                       className="footer-link inline-flex"
                     >
-                      /fr
+                      Français
                     </Link>
                   </div>
                 </div>

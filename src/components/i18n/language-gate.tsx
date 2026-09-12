@@ -17,7 +17,9 @@ export function LanguageGate({ locale }: { locale: Locale }) {
   function choose(nextLocale: Locale) {
     persistLocalePreference(nextLocale, "gate");
     setOpen(false);
-    if (nextLocale !== locale) router.push(`/${nextLocale}`);
+    // Locale is a preference, not a route segment. Refreshing lets the proxy
+    // render the chosen language without changing the current URL.
+    if (nextLocale !== locale) router.refresh();
   }
 
   if (!open) return null;

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { buttonVariants } from "@/components/site/button";
 import type { Locale } from "@/content/site";
@@ -8,19 +9,19 @@ import { persistLocalePreference } from "@/lib/locale-preference";
 import { cn } from "@/lib/utils";
 
 const languageActions: Array<{
-  href: `/${Locale}`;
+  href: "/";
   hrefLang: Locale;
   label: string;
   helper: string;
 }> = [
   {
-    href: "/en",
+    href: "/",
     hrefLang: "en",
     label: "Continue in English",
     helper: "English homepage and navigation",
   },
   {
-    href: "/fr",
+    href: "/",
     hrefLang: "fr",
     label: "Continuer en Français",
     helper: "Accueil et navigation en français",
@@ -34,16 +35,20 @@ export function LanguageGatewayActions({
   source?: string;
   className?: string;
 }) {
+  const router = useRouter();
+
   return (
     <div className={cn("grid gap-3 sm:grid-cols-2", className)}>
       {languageActions.map((action) => (
         <Link
-          key={action.href}
+          key={action.hrefLang}
           href={action.href}
           hrefLang={action.hrefLang}
-          onClick={() =>
-            persistLocalePreference(action.hrefLang, source)
-          }
+          onClick={(event) => {
+            event.preventDefault();
+            persistLocalePreference(action.hrefLang, source);
+            router.refresh();
+          }}
           className={cn(
             buttonVariants({
               variant: action.hrefLang === "en" ? "primary" : "secondary",

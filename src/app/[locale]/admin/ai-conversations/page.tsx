@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { notFound } from "next/navigation";
 import { AdminLoginForm } from "@/components/admin/admin-login-form";
@@ -138,7 +139,7 @@ export default async function AIConversationsPage({
   const [conversations, total] = result.data;
 
   const totalPages = Math.ceil(total / pageSize);
-  const baseHref = `/${locale}/admin/ai-conversations`;
+  const baseHref = "/admin/ai-conversations";
 
   return (
     <main className="min-h-dvh bg-background px-3 py-8 text-primary sm:px-4 sm:py-12">
@@ -146,12 +147,12 @@ export default async function AIConversationsPage({
         {/* Header */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <a
-              href={`/${locale}/admin`}
+            <Link
+              href="/admin"
               className="text-xs text-muted hover:text-primary transition-colors"
             >
               ← Admin
-            </a>
+            </Link>
             <h1 className="mt-1 text-2xl font-bold">AI Conversations</h1>
             <p className="text-sm text-muted">{total} total</p>
           </div>

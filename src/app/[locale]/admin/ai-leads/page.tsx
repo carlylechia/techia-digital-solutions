@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import { AdminLoginForm } from "@/components/admin/admin-login-form";
@@ -148,7 +149,7 @@ export default async function AILeadsPage({
   const [leads, total] = result.data;
 
   const totalPages = Math.ceil(total / pageSize);
-  const baseHref = `/${locale}/admin/ai-leads`;
+  const baseHref = "/admin/ai-leads";
 
   void redirect; // suppress unused import warning
 
@@ -158,12 +159,12 @@ export default async function AILeadsPage({
         {/* Header */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <a
-              href={`/${locale}/admin`}
+            <Link
+              href="/admin"
               className="text-xs text-muted hover:text-primary transition-colors"
             >
               ← Admin
-            </a>
+            </Link>
             <h1 className="mt-1 text-2xl font-bold">AI Leads</h1>
             <p className="text-sm text-muted">{total} total</p>
           </div>

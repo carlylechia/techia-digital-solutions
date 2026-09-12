@@ -117,7 +117,7 @@ export const authOptions: NextAuthOptions = {
       }
     })
   ],
-  pages: { signIn: "/en/admin" },
+  pages: { signIn: "/admin" },
   callbacks: {
     async jwt({ token, user }) {
       if (user?.email) {

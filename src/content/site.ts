@@ -1,4 +1,4 @@
-import { getLocalizedAppPath } from "@/lib/site-routes";
+import { getPublicAppPath } from "@/lib/site-routes";
 
 export const locales = ["en", "fr"] as const;
 export type Locale = (typeof locales)[number];
@@ -1999,7 +1999,8 @@ export function getLocalizedHref(locale: Locale, path = "") {
   ) {
     return normalized;
   }
-  return getLocalizedAppPath(locale, normalized);
+  void locale;
+  return getPublicAppPath(normalized);
 }
 
 export function getLocalizedSectionHref(

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { DemoDefinition } from "@/content/demo-lab";
 import { demoLabUi } from "@/content/demo-lab";
 import { DemoRequestModal } from "@/components/demos/demo-request-modal";
@@ -35,12 +36,12 @@ export function DemoDetailCtaBar({ demo, locale }: DemoDetailCtaBarProps) {
             <ExternalLink className="size-4" />
             {ui.buildLikeThis}
           </button>
-          <a
-            href={`/${locale}/start-project`}
+          <Link
+            href="/start-project"
             className="btn-secondary rounded-xl px-4 py-2.5 text-sm font-semibold"
           >
             {ui.talkToTechia}
-          </a>
+          </Link>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   delocalizePublicPath,
   getLocalizedAppPath,
+  getPublicAppPath,
 } from "../src/lib/site-routes";
 import {
   getCoursePackBySlug,
@@ -9,20 +10,26 @@ import {
 } from "../src/lib/courses/coursePacks";
 
 describe("course academy routing", () => {
-  it("localizes the French courses index path", () => {
-    expect(getLocalizedAppPath("fr", "/courses")).toBe("/fr/cours");
+  it("keeps the courses index path language-neutral", () => {
+    expect(getLocalizedAppPath("fr", "/courses")).toBe("/courses");
   });
 
-  it("localizes the French buyer bonus page path", () => {
+  it("keeps buyer bonus page paths language-neutral", () => {
     expect(getLocalizedAppPath("fr", "/courses/bonuses")).toBe(
-      "/fr/cours/bonus-officiels",
+      "/courses/bonuses",
     );
   });
 
-  it("localizes the French full-pack detail path", () => {
+  it("keeps course detail paths language-neutral", () => {
     expect(
       getLocalizedAppPath("fr", "/courses/complete-digital-skills-pack"),
-    ).toBe("/fr/cours/pack-complet-competences-digitales");
+    ).toBe("/courses/complete-digital-skills-pack");
+  });
+
+  it("normalizes old locale-prefixed links to the canonical URL", () => {
+    expect(getPublicAppPath("/fr/cours/reclamer-bonus")).toBe(
+      "/courses/claim-bonus",
+    );
   });
 
   it("maps French public slugs back to internal course pack paths", () => {
@@ -40,9 +47,9 @@ describe("course academy routing", () => {
     ).toBe("/courses/bonuses/digital-skills-learning-roadmap/download");
   });
 
-  it("localizes the French buyer bonus claim form path", () => {
+  it("keeps the buyer bonus claim form path language-neutral", () => {
     expect(getLocalizedAppPath("fr", "/courses/claim-bonus")).toBe(
-      "/fr/cours/reclamer-bonus",
+      "/courses/claim-bonus",
     );
   });
 });

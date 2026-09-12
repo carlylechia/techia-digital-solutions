@@ -48,9 +48,9 @@ describe("course buyer bonus configuration", () => {
 
   it("uses the built-in localized claim form when no external form URL is configured", () => {
     vi.stubEnv("NEXT_PUBLIC_COURSES_BONUS_CLAIM_URL", "");
-    expect(getCoursesBonusClaimUrl("en")).toBe("/en/courses/claim-bonus");
+    expect(getCoursesBonusClaimUrl("en")).toBe("/courses/claim-bonus");
     expect(getCoursesBonusClaimDestination("fr")).toEqual({
-      href: "/fr/cours/reclamer-bonus",
+      href: "/courses/claim-bonus",
       channel: "form",
     });
   });
@@ -67,7 +67,7 @@ describe("course buyer bonus data", () => {
     expect(updates?.eligibility).toBe("full-pack");
     expect(roadmap?.filePath).toMatch(/\.docx$/);
     expect(roadmap?.downloadPath).toContain(
-      "/en/courses/bonuses/digital-skills-learning-roadmap/download",
+      "/courses/bonuses/digital-skills-learning-roadmap/download",
     );
   });
 

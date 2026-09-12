@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Analytics } from "@/components/analytics/analytics";
 import { LanguageGate } from "@/components/i18n/language-gate";
@@ -13,7 +14,11 @@ type NavItem = { id: string; labelEn: string; labelFr: string; href: string; vis
 
 export function LocaleChrome({ children, locale, navItems = [] }: { children: React.ReactNode; locale: Locale; navItems?: NavItem[] }) {
   const pathname = usePathname();
-  const isAdmin = pathname === `/${locale}/admin` || pathname.startsWith(`/${locale}/admin/`);
+  const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
+
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
 
   return (
     <div className="page-frame relative min-h-screen">

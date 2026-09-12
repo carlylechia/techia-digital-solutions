@@ -1,6 +1,6 @@
 import { whatsappLink } from "@/lib/email";
 import type { Locale } from "@/content/site";
-import { getLocalizedAppPath } from "@/lib/site-routes";
+import { getPublicAppPath } from "@/lib/site-routes";
 
 export const CHARIOW_CHECKOUT_ENV_KEYS = {
   fullPack: "NEXT_PUBLIC_CHARIOW_FULL_PACK_URL",
@@ -95,7 +95,7 @@ export function getCoursesBonusClaimMessage(locale: Locale) {
 export function getCoursesBonusClaimUrl(locale?: Locale) {
   const externalUrl = cleanEnv(process.env.NEXT_PUBLIC_COURSES_BONUS_CLAIM_URL);
   if (externalUrl) return externalUrl;
-  return locale ? getLocalizedAppPath(locale, "/courses/claim-bonus") : "";
+  return locale ? getPublicAppPath("/courses/claim-bonus") : "";
 }
 
 export function getCoursesBonusClaimDestination(locale: Locale) {

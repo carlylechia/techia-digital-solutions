@@ -42,6 +42,7 @@ import {
   X,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
@@ -584,25 +585,25 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
   const aiLinks = useMemo(
     () => [
       {
-        href: `/${locale}/admin/ai-conversations`,
+        href: "/admin/ai-conversations",
         label: "AI Conversations",
         description: "Review visitor chat sessions",
         icon: MessageCircle,
       },
       {
-        href: `/${locale}/admin/ai-leads`,
+        href: "/admin/ai-leads",
         label: "AI Leads",
         description: "Track captured AI prospects",
         icon: UserPlus,
       },
       {
-        href: `/${locale}/admin/ai-usage`,
+        href: "/admin/ai-usage",
         label: "AI Usage",
         description: "Monitor tokens and cost",
         icon: Activity,
       },
     ],
-    [locale]
+    []
   );
 
   const assignableRoles = data.roles.filter((role) => currentUser.roleLevel >= 100 || role.level < currentUser.roleLevel);
@@ -658,8 +659,8 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
             <p className="px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-accent">
               Academy
             </p>
-            <a
-              href={`/${locale}/admin/bonus-claims`}
+            <Link
+              href="/admin/bonus-claims"
               className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-background"
             >
               <span className="flex min-w-0 items-start gap-3">
@@ -674,7 +675,7 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
                 </span>
               </span>
               <Pill tone="default">{data.stats.pendingBonusClaims}</Pill>
-            </a>
+            </Link>
           </div>
         ) : null}
         {can("dashboard.view") ? (
@@ -713,7 +714,7 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
           {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
           {theme === "dark" ? "Light mode" : "Dark mode"}
         </button>
-        <button className="flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-semibold text-primary" type="button" onClick={() => signOut({ callbackUrl: `/${locale}/admin` })}>
+        <button className="flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-semibold text-primary" type="button" onClick={() => signOut({ callbackUrl: "/admin" })}>
           <LogOut className="size-4" />
           Sign out
         </button>
@@ -776,7 +777,7 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
 
           <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
             <div className="mx-auto w-full max-w-[120rem]">
-              {active === "overview" ? <Overview data={data} can={can} locale={locale} /> : null}
+              {active === "overview" ? <Overview data={data} can={can} /> : null}
               {active === "clients" && can("clients.manage") ? <Clients data={data} locale={locale} /> : null}
               {active === "projects" && can("projects.manage") ? <Projects data={data} locale={locale} /> : null}
               {active === "requests" && can("requests.manage") ? <Requests data={data} locale={locale} /> : null}
@@ -792,7 +793,7 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
   );
 }
 
-function Overview({ data, can, locale }: { data: AdminDashboardData; can: (permission: AdminPermission) => boolean; locale: Locale }) {
+function Overview({ data, can }: { data: AdminDashboardData; can: (permission: AdminPermission) => boolean }) {
   return (
     <div className="grid gap-5">
       <div className="grid gap-4 min-[420px]:grid-cols-2 xl:grid-cols-6">
@@ -864,7 +865,7 @@ function Overview({ data, can, locale }: { data: AdminDashboardData; can: (permi
               return (
                 <a
                   key={item.href}
-                  href={`/${locale}${item.href}`}
+                  href={item.href}
                   className="rounded-lg border border-border bg-background p-4 transition hover:border-accent/40 hover:bg-surface"
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -884,8 +885,8 @@ function Overview({ data, can, locale }: { data: AdminDashboardData; can: (permi
 
       {can("requests.manage") ? (
         <Panel title="Academy Operations" eyebrow="Courses">
-          <a
-            href={`/${locale}/admin/bonus-claims`}
+          <Link
+            href="/admin/bonus-claims"
             className="group flex flex-col gap-3 rounded-lg border border-border bg-background p-4 transition hover:border-accent/40 hover:bg-surface"
           >
             <div className="flex items-start justify-between gap-3">
@@ -904,7 +905,7 @@ function Overview({ data, can, locale }: { data: AdminDashboardData; can: (permi
               <Pill tone="default">{data.stats.pendingBonusClaims} open</Pill>
               <Pill tone="quiet">{data.stats.bonusClaims} total</Pill>
             </div>
-          </a>
+          </Link>
         </Panel>
       ) : null}
 
@@ -3369,8 +3370,8 @@ function Requests({ data, locale }: { data: AdminDashboardData; locale: Locale }
   return (
     <div className="grid gap-5">
       <Panel title="Academy Bonus Claims" eyebrow="Verification">
-        <a
-          href={`/${locale}/admin/bonus-claims`}
+        <Link
+          href="/admin/bonus-claims"
           className="group flex flex-col gap-3 rounded-lg border border-border bg-background p-4 transition hover:border-accent/40 hover:bg-surface"
         >
           <div className="flex items-start justify-between gap-3">
@@ -3389,7 +3390,7 @@ function Requests({ data, locale }: { data: AdminDashboardData; locale: Locale }
             <Pill tone="default">{data.stats.pendingBonusClaims} open</Pill>
             <Pill tone="quiet">{data.stats.bonusClaims} total</Pill>
           </div>
-        </a>
+        </Link>
       </Panel>
 
       <Panel title="Request Pipeline" eyebrow="Inbound">
@@ -4112,7 +4113,7 @@ function Content({ data, locale }: { data: AdminDashboardData; locale: Locale })
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-primary">/{page.slug}</h3>
                       {page.status === "PUBLISHED" && (
-                        <a href={`/${locale}/${page.slug}`} target="_blank" rel="noopener noreferrer" className="text-accent">
+                        <a href={`/${page.slug}`} target="_blank" rel="noopener noreferrer" className="text-accent">
                           <ExternalLink className="size-3.5" />
                         </a>
                       )}

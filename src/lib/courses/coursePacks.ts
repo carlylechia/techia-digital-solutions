@@ -1,5 +1,5 @@
 import type { Locale } from "@/content/site";
-import { getLocalizedAppPath } from "@/lib/site-routes";
+import { getPublicAppPath } from "@/lib/site-routes";
 import { COURSE_CATALOG, COURSE_CATALOG_BY_SLUG } from "./catalog";
 import {
   CHARIOW_CHECKOUT_ENV_KEYS,
@@ -576,7 +576,7 @@ export function getCoursePacks(locale: Locale): CoursePack[] {
       seoTitle: copy.seoTitle,
       seoDescription: copy.seoDescription,
       locale,
-      path: getLocalizedAppPath(locale, `/courses/${definition.id}`),
+      path: getPublicAppPath(`/courses/${definition.id}`),
       whyChoose: copy.whyChoose,
     };
   });

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { logoAssets } from "@/components/brand/logo-assets";
-import { type Locale, locales, siteConfig } from "@/content/site";
-import { getLocalizedAppPath } from "@/lib/site-routes";
+import { type Locale, siteConfig } from "@/content/site";
+import { getPublicAppPath } from "@/lib/site-routes";
 
 export function createMetadata({
   locale,
@@ -17,19 +17,13 @@ export function createMetadata({
   image?: string;
 }): Metadata {
   const cleanPath = path ? `/${path.replace(/^\//, "")}` : "";
-  const canonical = `${siteConfig.url}${getLocalizedAppPath(locale, cleanPath)}`;
+  const canonical = `${siteConfig.url}${getPublicAppPath(cleanPath)}`;
   return {
     metadataBase: new URL(siteConfig.url),
     title,
     description,
     alternates: {
       canonical,
-      languages: Object.fromEntries(
-        locales.map((lang) => [
-          lang,
-          `${siteConfig.url}${getLocalizedAppPath(lang, cleanPath)}`,
-        ]),
-      ),
     },
     openGraph: {
       title,
@@ -151,7 +145,7 @@ export function breadcrumbJsonLd(
       "@type": "ListItem",
       position: index + 1,
       name: item.name,
-      item: `${siteConfig.url}${getLocalizedAppPath(locale, item.path)}`,
+      item: `${siteConfig.url}${getPublicAppPath(item.path)}`,
     })),
   };
 }

@@ -50,11 +50,11 @@ export function AdminLoginForm({ locale }: { locale: Locale }) {
       email: String(formData.get("email") || ""),
       password: String(formData.get("password") || ""),
       redirect: false,
-      callbackUrl: `/${locale}/admin`,
+      callbackUrl: "/admin",
     });
 
     if (result?.ok) {
-      window.location.assign(result.url || `/${locale}/admin`);
+      window.location.assign(result.url || "/admin");
       return;
     }
 

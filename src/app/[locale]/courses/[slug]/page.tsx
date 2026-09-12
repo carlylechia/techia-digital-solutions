@@ -30,7 +30,7 @@ import {
   getRelatedCoursePacks,
 } from "@/lib/courses/coursePacks";
 import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
-import { getLocalizedAppPath } from "@/lib/site-routes";
+import { getPublicAppPath } from "@/lib/site-routes";
 
 export async function generateMetadata({
   params,
@@ -461,7 +461,7 @@ export default async function CoursePackDetailPage({
                 sourcePage="course_pack_final_cta"
               />
               <CourseTrackedLink
-                href={getLocalizedAppPath(locale, "/courses")}
+                href={getPublicAppPath("/courses")}
                 eventName="course_pack_click"
                 eventParams={{
                   pack_id: pack.id,

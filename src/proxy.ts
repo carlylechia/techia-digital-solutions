@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   delocalizePublicPath,
-  getLocalizedAppPath,
-  localizePublicPath,
 } from "@/lib/site-routes";
 
 const locales = ["en", "fr"] as const;
@@ -88,25 +86,19 @@ export function proxy(request: NextRequest) {
   if (segments.length > 0 && isLocale(segments[0])) {
     const locale = segments[0];
     const localizedRemainder = pathname.slice(`/${locale}`.length) || "/";
-
-    if (locale === "fr") {
-      const internalPath = delocalizePublicPath(locale, localizedRemainder);
-      const canonicalPublicPath = localizePublicPath(locale, internalPath);
-
-      if (localizedRemainder !== canonicalPublicPath) {
-        const url = request.nextUrl.clone();
-        url.pathname = getLocalizedAppPath(locale, internalPath);
-        return NextResponse.redirect(url);
-      }
-
-      if (localizedRemainder !== internalPath) {
-        const url = request.nextUrl.clone();
-        url.pathname = `/${locale}${internalPath === "/" ? "" : internalPath}`;
-        return NextResponse.rewrite(url);
-      }
-    }
-
-    return NextResponse.next();
+    // Migrate every indexed locale-prefixed URL to the language-neutral
+    // canonical URL. French course aliases are converted to their stable
+    // internal path before the redirect.
+    const canonicalPath = delocalizePublicPath(locale, localizedRemainder);
+    const url = request.nextUrl.clone();
+    url.pathname = canonicalPath;
+    const response = NextResponse.redirect(url, 308);
+    response.cookies.set("techia-locale", locale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+    return response;
   }
 
   const normalizedPath =
@@ -114,22 +106,31 @@ export function proxy(request: NextRequest) {
       ? pathname.slice(0, -1)
       : pathname;
 
-  if (normalizedPath === "/") {
-    return NextResponse.next();
+  if (pathname !== normalizedPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = normalizedPath;
+    return NextResponse.redirect(url, 308);
   }
 
   const mappedPath = legacyRouteMap[normalizedPath];
-
-  if (mappedPath === undefined) {
-    return NextResponse.next();
+  if (
+    mappedPath &&
+    (mappedPath.path !== normalizedPath || Boolean(mappedPath.hash))
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = mappedPath.path;
+    url.hash = mappedPath.hash ?? "";
+    return NextResponse.redirect(url, 308);
   }
 
   const locale = getPreferredLocale(request);
   const url = request.nextUrl.clone();
-  url.pathname = `/${locale}${mappedPath.path}`;
-  url.hash = mappedPath.hash ?? "";
-
-  return NextResponse.redirect(url);
+  url.pathname = `/${locale}${normalizedPath === "/" ? "" : normalizedPath}`;
+  const response = NextResponse.rewrite(url);
+  // The rendered document varies by the saved language preference. Declaring
+  // this prevents shared caches from treating both language versions as one.
+  response.headers.set("Vary", "Cookie, Accept-Language");
+  return response;
 }
 
 export const config = {

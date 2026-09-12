@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Loader2, CheckCircle2, X, ExternalLink } from "lucide-react";
 import type { DemoDefinition } from "@/content/demo-lab";
 import { demoLabUi } from "@/content/demo-lab";
@@ -186,15 +187,15 @@ export function DemoRequestForm({ demo, locale, onSuccess, onCancel, compact }: 
         <h3 className="text-xl font-bold text-primary">{ui.successTitle}</h3>
         <p className="text-sm text-muted">{ui.successBody}</p>
         <div className="mt-2 flex flex-wrap justify-center gap-3">
-          <a href={`/${locale}/demo-lab`} className="btn-secondary rounded-lg px-4 py-2.5 text-sm font-semibold">
+          <Link href="/demo-lab" className="btn-secondary rounded-lg px-4 py-2.5 text-sm font-semibold">
             {ui.successExplore}
-          </a>
-          <a
-            href={`/${locale}/demo-lab/ai-digital-advisor`}
+          </Link>
+          <Link
+            href="/demo-lab/ai-digital-advisor"
             className="btn-primary rounded-lg px-4 py-2.5 text-sm font-semibold"
           >
             {ui.successAdvisor}
-          </a>
+          </Link>
         </div>
       </div>
     );

@@ -33,9 +33,9 @@ function buildPersonJsonLd(locale: Locale) {
   return {
     "@context": "https://schema.org",
     "@type": "Person",
-    "@id": `${siteConfig.url}/${locale}/founder#person`,
+    "@id": `${siteConfig.url}/founder#person`,
     name: FOUNDER_NAME,
-    url: `${siteConfig.url}/${locale}/founder`,
+    url: `${siteConfig.url}/founder`,
     image: `${siteConfig.url}/images/carlyle.png`,
     jobTitle: locale === "fr" ? "Développeur Full-Stack et Fondateur" : "Full-Stack Developer and Founder",
     description: content.hero.subtext,
@@ -74,8 +74,8 @@ function buildProfilePageJsonLd(locale: Locale) {
   return {
     "@context": "https://schema.org",
     "@type": "ProfilePage",
-    "@id": `${siteConfig.url}/${locale}/founder#profile`,
-    url: `${siteConfig.url}/${locale}/founder`,
+    "@id": `${siteConfig.url}/founder#profile`,
+    url: `${siteConfig.url}/founder`,
     name: content.pageTitle,
     description: content.metadata.description,
     inLanguage: locale,
@@ -85,7 +85,7 @@ function buildProfilePageJsonLd(locale: Locale) {
       url: siteConfig.url
     },
     mainEntity: {
-      "@id": `${siteConfig.url}/${locale}/founder#person`
+      "@id": `${siteConfig.url}/founder#person`
     }
   };
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
@@ -43,11 +44,11 @@ export default async function AdminBonusClaimsPage({
 
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
-    redirect(`/${locale}/admin`);
+    redirect("/admin");
   }
 
   if (!hasPermission(session.user.permissions, "requests.manage")) {
-    redirect(`/${locale}/admin`);
+    redirect("/admin");
   }
 
   const prisma = getPrisma();
@@ -88,13 +89,13 @@ export default async function AdminBonusClaimsPage({
       <section className="container relative grid gap-6">
         <div className="gradient-border rounded-[2rem]">
           <div className="elevated-panel p-6 sm:p-7 md:p-8">
-            <a
-              href={`/${locale}/admin`}
+            <Link
+              href="/admin"
               className="inline-flex items-center gap-2 text-sm font-medium text-accent hover:underline"
             >
               <ArrowLeft className="size-4" />
               Back to admin workspace
-            </a>
+            </Link>
 
             <div className="mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
               <div>

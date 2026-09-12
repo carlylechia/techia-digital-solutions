@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   convertAILeadToClientAction,
   sendAILeadEmailAction,
@@ -186,12 +187,12 @@ export function AILeadConvertForm({
           ✓ This lead has been converted to a client.
         </p>
         {state?.clientId && (
-          <a
-            href={`/${locale}/admin`}
+          <Link
+            href="/admin"
             className="mt-2 inline-block text-xs text-accent hover:underline"
           >
             View in Admin →
-          </a>
+          </Link>
         )}
       </div>
     );

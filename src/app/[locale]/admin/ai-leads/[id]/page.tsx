@@ -101,7 +101,7 @@ export default async function AILeadDetailPage({
           .catch(() => null)
       : null;
 
-  const baseLeadsHref = `/${locale}/admin/ai-leads`;
+  const baseLeadsHref = "/admin/ai-leads";
 
   return (
     <main className="min-h-dvh bg-background px-3 py-8 text-primary sm:px-4 sm:py-12">

@@ -48,6 +48,25 @@ function normalizePathname(pathname: string) {
   return pathname.replace(/\/+$/, "") || "/";
 }
 
+/**
+ * The public URL for a page is language-neutral. Locale remains an internal
+ * routing detail, selected from the visitor's preference cookie.
+ */
+export function getPublicAppPath(path = "") {
+  const normalized = path ? (path.startsWith("/") ? path : `/${path}`) : "/";
+  const { pathname, suffix } = splitPathSuffix(normalized);
+  const cleanPathname = normalizePathname(pathname);
+  const localeMatch = cleanPathname.match(/^\/(en|fr)(?:\/|$)/);
+
+  if (localeMatch) {
+    const locale = localeMatch[1] as PublicLocale;
+    const remainder = cleanPathname.slice(`/${locale}`.length) || "/";
+    return `${delocalizePublicPath(locale, remainder)}${suffix}`;
+  }
+
+  return `${cleanPathname}${suffix}`;
+}
+
 export function localizePublicPath(locale: PublicLocale, path = "") {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   const { pathname, suffix } = splitPathSuffix(normalized);
@@ -113,7 +132,8 @@ export function delocalizePublicPath(locale: PublicLocale, path = "") {
 }
 
 export function getLocalizedAppPath(locale: PublicLocale, path = "") {
-  const normalized = path ? (path.startsWith("/") ? path : `/${path}`) : "/";
-  const publicPath = localizePublicPath(locale, normalized);
-  return `/${locale}${publicPath === "/" ? "" : publicPath}`;
+  // Kept as a compatibility alias while callers migrate. Public links must
+  // never expose the internal locale segment.
+  void locale;
+  return getPublicAppPath(path);
 }

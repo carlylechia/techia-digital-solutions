@@ -32,7 +32,7 @@ export function RelatedDemos({ demos, locale, currentSlug }: RelatedDemosProps) 
         {related.map((demo) => (
           <Link
             key={demo.slug}
-            href={`/${locale}/demo-lab/${demo.slug}`}
+            href={`/demo-lab/${demo.slug}`}
             className="group flex items-start gap-4 rounded-xl border border-border bg-surface p-4 transition hover:border-accent/40 hover:bg-surface/80"
           >
             <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent/10 text-xl">
