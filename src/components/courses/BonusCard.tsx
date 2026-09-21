@@ -121,12 +121,12 @@ export function BonusCard({
       className={cn(
         "rounded-[1.55rem] border p-5 sm:p-6",
         item.eligibility === "full-pack"
-          ? "border-amber-400/20 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_40%),rgba(15,23,42,0.9)]"
-          : "border-cyan-500/16 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.14),transparent_36%),rgba(15,23,42,0.9)]",
+          ? "border-amber-400/40 bg-surface [background-image:radial-gradient(circle_at_top_right,rgba(251,191,36,0.16),transparent_45%)] dark:border-amber-400/20 dark:bg-[rgba(15,23,42,0.9)] dark:[background-image:radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_40%)]"
+          : "border-cyan-500/30 bg-surface [background-image:radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_40%)] dark:border-cyan-500/16 dark:bg-[rgba(15,23,42,0.9)] dark:[background-image:radial-gradient(circle_at_top_right,rgba(34,211,238,0.14),transparent_36%)]",
       )}
     >
       <div className="flex items-start justify-between gap-4">
-        <div className="inline-flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-cyan-200">
+        <div className="icon-chip inline-flex size-12 items-center justify-center rounded-2xl">
           <Icon className="size-5" />
         </div>
         <BonusEligibilityBadge locale={locale} eligibility={item.eligibility} />
@@ -136,10 +136,14 @@ export function BonusCard({
         <span className="trust-pill">{getTypeLabel(locale, item.type)}</span>
       </div>
 
-      <h3 className="mt-4 text-xl font-semibold text-white">{item.title}</h3>
-      <p className="mt-3 text-sm leading-7 text-slate-300">{item.summary}</p>
+      <h3 className="mt-4 text-xl font-semibold text-primary dark:text-white">
+        {item.title}
+      </h3>
+      <p className="mt-3 text-sm leading-7 text-muted dark:text-slate-300">
+        {item.summary}
+      </p>
 
-      <p className="mt-4 text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
+      <p className="mt-4 text-xs font-medium uppercase tracking-[0.16em] text-muted dark:text-slate-400">
         {item.eligibility === "full-pack"
           ? locale === "fr"
             ? "Debloque avec le pack complet 16 cours"
@@ -171,13 +175,13 @@ export function BonusCard({
               "inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-medium transition",
               item.eligibility === "full-pack"
                 ? "bg-amber-300 text-slate-950 hover:bg-amber-200"
-                : "border border-white/12 bg-white/[0.06] text-white hover:bg-white/[0.1]",
+                : "border border-border bg-background/70 text-primary hover:bg-background dark:border-white/12 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.1]",
             )}
           >
             {actionLabel}
           </a>
         ) : (
-          <span className="inline-flex rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-400">
+          <span className="inline-flex rounded-xl border border-border bg-surface px-4 py-3 text-sm font-medium text-muted dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400">
             {actionLabel}
           </span>
         )}

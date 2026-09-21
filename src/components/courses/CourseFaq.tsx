@@ -17,7 +17,7 @@ export function CourseFaq({
       {items.map((item) => (
         <details
           key={item.question}
-          className="group rounded-[1.45rem] border border-border bg-surface p-5"
+          className="group rounded-[1.45rem] border border-border bg-surface p-5 transition hover:border-accent-2/40"
           onToggle={(event) => {
             if (!(event.currentTarget as HTMLDetailsElement).open) return;
             trackCourseEvent("faq_opened", {
