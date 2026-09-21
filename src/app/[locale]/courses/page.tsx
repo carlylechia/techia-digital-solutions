@@ -217,17 +217,17 @@ export default async function CoursesPage({
         aside={
           <div className="rounded-[1.55rem] bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(251,113,133,0.14),transparent_28%)] p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
                 {copy.heroAsideEyebrow}
               </p>
               {fullPack.badge ? (
                 <span className="trust-pill">{fullPack.badge}</span>
               ) : null}
             </div>
-            <h2 className="mt-4 text-3xl font-semibold text-white">
+            <h2 className="mt-4 text-3xl font-semibold text-primary">
               {fullPack.title}
             </h2>
-            <p className="mt-3 text-sm leading-7 text-slate-300">
+            <p className="mt-3 text-sm leading-7 text-muted dark:text-slate-300">
               {copy.heroAsideBody}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -269,9 +269,9 @@ export default async function CoursesPage({
                     pack_title: fullPack.title,
                     source_page: "courses_hero",
                   }}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-5 py-3 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/70 px-5 py-3 text-sm font-medium text-primary transition hover:bg-background dark:border-white/12 dark:bg-white/[0.05] dark:text-white dark:hover:bg-white/[0.08]"
                 >
-                  <MessageCircle className="size-4 text-cyan-300" />
+                  <MessageCircle className="size-4 text-cyan-600 dark:text-cyan-300" />
                   {copy.supportWhatsapp}
                 </CourseTrackedAnchor>
               ) : null}
@@ -401,7 +401,7 @@ export default async function CoursesPage({
                   key={step}
                   className="rounded-[1.45rem] border border-border bg-surface p-5"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-500/80">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-500/90">
                     {locale === "fr" ? "Étape" : "Step"} {index + 1}
                   </p>
                   <p className="mt-3 text-sm font-medium leading-7 text-primary">
@@ -490,7 +490,7 @@ export default async function CoursesPage({
                     }}
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/70 px-5 py-3 text-sm font-medium text-primary transition hover:bg-background"
                   >
-                    <MessageCircle className="size-4 text-cyan-500" />
+                    <MessageCircle className="size-4 text-cyan-600 dark:text-cyan-500" />
                     {copy.supportWhatsapp}
                   </CourseTrackedAnchor>
                 ) : null}
@@ -499,7 +499,7 @@ export default async function CoursesPage({
                     href={`mailto:${supportEmail}`}
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/70 px-5 py-3 text-sm font-medium text-primary transition hover:bg-background"
                   >
-                    <Mail className="size-4 text-cyan-500" />
+                    <Mail className="size-4 text-cyan-600 dark:text-cyan-500" />
                     {copy.supportEmail}
                   </a>
                 ) : null}

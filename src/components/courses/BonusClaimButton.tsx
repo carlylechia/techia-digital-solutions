@@ -45,7 +45,7 @@ export function BonusClaimButton({
       <span
         aria-disabled="true"
         className={cn(
-          "inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-5 py-3 text-sm font-medium text-slate-400",
+          "inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-border bg-surface px-5 py-3 text-sm font-medium text-muted dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-400",
           className,
         )}
       >

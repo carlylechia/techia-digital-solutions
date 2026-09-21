@@ -36,7 +36,7 @@ export function CoursePackCard({
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-500/80">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-500/90">
               {pack.category}
             </p>
             <h3 className="mt-3 text-2xl font-semibold text-primary">

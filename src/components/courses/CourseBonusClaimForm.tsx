@@ -227,7 +227,7 @@ export function CourseBonusClaimForm({
           {copy.proofFile}
           <div className="rounded-[1.2rem] border border-dashed border-cyan-500/30 bg-cyan-500/[0.04] p-4">
             <div className="flex items-center gap-3 text-sm text-muted">
-              <Upload className="size-4 text-cyan-400" />
+              <Upload className="size-4 text-cyan-600 dark:text-cyan-400" />
               <span>
                 {locale === "fr"
                   ? "Ajoutez un fichier image ou PDF si vous en avez un."
@@ -238,7 +238,7 @@ export function CourseBonusClaimForm({
               name="proofFile"
               type="file"
               accept=".pdf,image/*"
-              className="mt-4 block w-full text-sm text-muted file:mr-4 file:rounded-lg file:border-0 file:bg-white/10 file:px-4 file:py-2 file:font-medium file:text-white"
+              className="mt-4 block w-full text-sm text-muted file:mr-4 file:rounded-lg file:border-0 file:bg-cyan-600 file:px-4 file:py-2 file:font-medium file:text-white dark:file:bg-white/10 dark:file:text-white"
             />
           </div>
         </label>
@@ -255,7 +255,7 @@ export function CourseBonusClaimForm({
 
       <div className="grid gap-3">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="size-4 text-cyan-400" />
+          <ShieldCheck className="size-4 text-cyan-600 dark:text-cyan-400" />
           <p className="text-sm font-medium text-primary">
             {copy.requestedBonuses}
           </p>
@@ -309,8 +309,8 @@ export function CourseBonusClaimForm({
         <div
           className={
             status === "success"
-              ? "rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-300"
-              : "rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300"
+              ? "rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-800 dark:text-emerald-300"
+              : "rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300"
           }
           role={status === "success" ? "status" : "alert"}
         >

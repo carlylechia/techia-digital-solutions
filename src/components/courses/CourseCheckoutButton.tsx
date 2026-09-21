@@ -20,7 +20,7 @@ export function CourseCheckoutButton({
       <span
         aria-disabled="true"
         className={cn(
-          "inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] px-5 py-3 text-center text-sm font-medium text-slate-400 sm:w-auto",
+          "inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl border border-border bg-surface px-5 py-3 text-center text-sm font-medium text-muted dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-400 sm:w-auto",
           className,
         )}
       >

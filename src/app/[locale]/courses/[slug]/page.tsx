@@ -196,14 +196,14 @@ export default async function CoursePackDetailPage({
         aside={
           <div className="rounded-[1.55rem] bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(251,113,133,0.14),transparent_28%)] p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
                 {copy.packOverview}
               </p>
               {pack.badge ? (
                 <span className="trust-pill">{pack.badge}</span>
               ) : null}
             </div>
-            <p className="mt-4 text-sm leading-7 text-slate-300">
+            <p className="mt-4 text-sm leading-7 text-muted dark:text-slate-300">
               {pack.summary}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -235,18 +235,18 @@ export default async function CoursePackDetailPage({
                     pack_title: pack.title,
                     source_page: "course_pack_hero",
                   }}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-5 py-3 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/70 px-5 py-3 text-sm font-medium text-primary transition hover:bg-background dark:border-white/12 dark:bg-white/[0.05] dark:text-white dark:hover:bg-white/[0.08]"
                 >
-                  <MessageCircle className="size-4 text-cyan-300" />
+                  <MessageCircle className="size-4 text-cyan-600 dark:text-cyan-300" />
                   {copy.askWhatsapp}
                 </CourseTrackedAnchor>
               ) : null}
               {supportEmail ? (
                 <a
                   href={`mailto:${supportEmail}`}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-5 py-3 text-sm font-medium text-white transition hover:bg-white/[0.08]"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/70 px-5 py-3 text-sm font-medium text-primary transition hover:bg-background dark:border-white/12 dark:bg-white/[0.05] dark:text-white dark:hover:bg-white/[0.08]"
                 >
-                  <Mail className="size-4 text-cyan-300" />
+                  <Mail className="size-4 text-cyan-600 dark:text-cyan-300" />
                   {copy.supportEmail}
                 </a>
               ) : null}
@@ -355,7 +355,7 @@ export default async function CoursePackDetailPage({
                     key={step}
                     className="rounded-[1.2rem] border border-cyan-500/18 bg-cyan-500/[0.08] px-4 py-3 text-sm leading-7 text-primary"
                   >
-                    <span className="mr-2 text-cyan-500">
+                    <span className="mr-2 text-cyan-700 dark:text-cyan-500">
                       {locale === "fr" ? "Étape" : "Step"} {index + 1}
                     </span>
                     {step}

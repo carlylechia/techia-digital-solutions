@@ -159,9 +159,9 @@ export function BuyerBonusSection({
           </div>
 
           <div className="mt-8 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="rounded-[1.55rem] border border-white/10 bg-white/[0.04] p-5 sm:p-6">
+            <div className="rounded-[1.55rem] border border-border bg-surface p-5 sm:p-6 dark:border-white/10 dark:bg-white/[0.04]">
               <p className="eyebrow">{copy.claimTitle}</p>
-              <p className="mt-4 text-sm leading-7 text-slate-300">
+              <p className="mt-4 text-sm leading-7 text-muted dark:text-slate-300">
                 {claimFormUrl
                   ? copy.claimBodyWithForm
                   : bonusWhatsappUrl
@@ -176,7 +176,7 @@ export function BuyerBonusSection({
                       href={claimFormUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center justify-center rounded-xl border border-white/12 bg-white/[0.06] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.1]"
+                      className="inline-flex items-center justify-center rounded-xl border border-border bg-background/70 px-4 py-3 text-sm font-medium text-primary transition hover:bg-background dark:border-white/12 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.1]"
                     >
                       {copy.claimFormLink}
                     </a>
@@ -198,7 +198,7 @@ export function BuyerBonusSection({
                             ? "all-buyers"
                             : "mixed",
                       }}
-                      className="inline-flex items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/[0.08] px-4 py-3 text-sm font-medium text-cyan-100 transition hover:bg-cyan-500/[0.14]"
+                      className="inline-flex items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/[0.08] px-4 py-3 text-sm font-medium text-cyan-800 transition hover:bg-cyan-500/[0.14] dark:text-cyan-100"
                     >
                       {copy.claimWhatsappLink}
                     </CourseTrackedAnchor>
@@ -206,7 +206,7 @@ export function BuyerBonusSection({
                   {supportEmail ? (
                     <a
                       href={`mailto:${supportEmail}`}
-                      className="inline-flex items-center justify-center rounded-xl border border-white/12 bg-white/[0.06] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.1]"
+                      className="inline-flex items-center justify-center rounded-xl border border-border bg-background/70 px-4 py-3 text-sm font-medium text-primary transition hover:bg-background dark:border-white/12 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.1]"
                     >
                       {copy.supportEmailLink}
                     </a>
@@ -217,7 +217,7 @@ export function BuyerBonusSection({
 
             <div className="rounded-[1.55rem] border border-amber-400/18 bg-amber-400/[0.08] p-5 sm:p-6">
               <p className="eyebrow">{copy.disclaimerTitle}</p>
-              <p className="mt-4 text-sm leading-7 text-slate-100">
+              <p className="mt-4 text-sm leading-7 text-primary dark:text-slate-100">
                 {copy.disclaimer}
               </p>
             </div>
