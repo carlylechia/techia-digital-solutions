@@ -26,6 +26,15 @@ function officialInfo() {
   };
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function baseHtml(content: string, title: string) {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -159,6 +168,8 @@ export async function sendOutboundEmail(options: {
   to: string;
   subject: string;
   body: string;
+  html?: string;
+  text?: string;
   from?: string;
   replyTo?: string;
   attachments?: Array<{
@@ -175,8 +186,8 @@ export async function sendOutboundEmail(options: {
     );
   }
 
-  const content = `<div style="font-size:15px;color:#e2e8f0;line-height:1.7;white-space:pre-wrap;">${options.body.replace(/[<>]/g, (c) => (c === "<" ? "&lt;" : "&gt;")).replace(/\n/g, "<br>")}</div>`;
-  const html = baseHtml(content, options.subject);
+  const content = options.html || `<div style="font-size:15px;color:#e2e8f0;line-height:1.7;white-space:pre-wrap;">${options.body.replace(/[<>]/g, (c) => (c === "<" ? "&lt;" : "&gt;")).replace(/\n/g, "<br>")}</div>`;
+  const html = options.html ? content : baseHtml(content, options.subject);
 
   const from = options.from || info.from;
   const { data, error } = await resend.emails.send({
@@ -185,6 +196,7 @@ export async function sendOutboundEmail(options: {
     replyTo: options.replyTo || info.replyTo,
     subject: options.subject,
     html,
+    text: options.text || options.body,
     attachments: options.attachments?.map((attachment) => ({
       filename: attachment.filename,
       content: attachment.content,
@@ -251,10 +263,44 @@ export async function sendWriterInviteEmail(data: {
   temporaryPassword: string;
   loginUrl: string;
 }) {
+  const name = escapeHtml(data.toName);
+  const password = escapeHtml(data.temporaryPassword);
+  const loginUrl = escapeHtml(data.loginUrl);
+  const subject = "Your teChia writer account";
+  const text = [
+    `Hello ${data.toName},`,
+    "",
+    "An administrator has created your restricted teChia writer account.",
+    "Copy the temporary password below exactly, including any capital letters or symbols.",
+    "",
+    "TEMPORARY PASSWORD:",
+    data.temporaryPassword,
+    "",
+    `Writer sign-in: ${data.loginUrl}`,
+    "",
+    "After signing in, open your Author profile and change the temporary password.",
+    "This account can only access your own drafts, author profile, media uploads, and review submissions. It cannot publish or manage site settings.",
+    "",
+    "For security, do not forward this message.",
+  ].join("\n");
+  const content = `
+    <p style="color:#94a3b8;font-size:15px;line-height:1.7;margin:0 0 20px;">Hello <strong style="color:#f8fafc;">${name}</strong>,</p>
+    <p style="color:#94a3b8;font-size:15px;line-height:1.7;margin:0 0 20px;">An administrator has created your restricted teChia writer account. Copy the temporary password below exactly, including capital letters and symbols.</p>
+    <div style="background:#090d16;border:2px solid #06b6d4;border-radius:14px;padding:22px 24px;margin:0 0 22px;">
+      <p style="margin:0 0 12px;color:#94a3b8;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;">Temporary password — copy this value</p>
+      <pre style="margin:0;padding:16px;background:#111827;border:1px solid #334155;border-radius:10px;color:#f8fafc;font-family:Menlo,Monaco,Consolas,'Courier New',monospace;font-size:20px;line-height:1.4;letter-spacing:0.04em;word-break:break-all;user-select:all;-webkit-user-select:all;">${password}</pre>
+      <p style="margin:12px 0 0;color:#94a3b8;font-size:12px;line-height:1.6;">Select the password above and copy it directly into the password field.</p>
+    </div>
+    <p style="margin:0 0 20px;"><a href="${loginUrl}" style="display:inline-block;background:#06b6d4;color:#04101c;text-decoration:none;padding:13px 22px;border-radius:9px;font-size:14px;font-weight:700;">Open writer sign-in</a></p>
+    <p style="color:#94a3b8;font-size:14px;line-height:1.7;margin:0 0 16px;">After signing in, open your Author profile and change the temporary password.</p>
+    <p style="color:#94a3b8;font-size:13px;line-height:1.7;margin:0;">This account can only access your own drafts, author profile, media uploads, and review submissions. It cannot publish or manage site settings.</p>
+  `;
   return sendOutboundEmail({
     to: data.toEmail,
-    subject: "Your teChia writer account",
-    body: `Hello ${data.toName},\n\nAn administrator has created your restricted teChia writer account. Use the temporary password below to sign in, then ask the administrator to replace it through your account process.\n\nTemporary password: ${data.temporaryPassword}\n\nWriter sign-in: ${data.loginUrl}\n\nThis account can only access your own drafts, author profile, media uploads, and review submissions. It cannot publish or manage site settings.\n\nFor security, do not forward this message.`,
+    subject,
+    body: text,
+    text,
+    html: baseHtml(content, subject),
   });
 }
 
