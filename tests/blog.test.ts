@@ -160,6 +160,11 @@ const post = {
     expect(schema.dateModified).toBe("2026-01-03T10:00:00.000Z");
   });
 
+  it("does not emit a stale same-site canonical path", () => {
+    const metadata = buildArticleMetadata("en", { ...post, canonicalUrl: "https://techiadigital.com/blog/a-useful-article" });
+    expect(metadata.alternates?.canonical).toBe("https://techiadigital.com/en/blog/a-useful-article");
+  });
+
   it("reports publication blockers without inventing content", () => {
     const issues = getSeoIssues({ title: post.title, excerpt: post.excerpt, content: "<p>Too short</p>", featuredImageUrl: null, featuredImageAlt: null, hasAuthor: false, hasCategory: false, internalLinkCount: 0 });
     expect(issues.some((issue) => issue.field === "authorId" && issue.severity === "error")).toBe(true);

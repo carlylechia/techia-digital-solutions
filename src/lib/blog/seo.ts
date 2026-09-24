@@ -42,9 +42,23 @@ function defaultLanguage(locale: BlogLocale) {
   return locale === "fr" ? "fr-FR" : "en-US";
 }
 
+function articleCanonicalUrl(locale: BlogLocale, post: Pick<PublicPost, "canonicalUrl" | "slug">) {
+  const expected = absolute(getBlogPostPath(locale, post.slug));
+  if (!post.canonicalUrl) return expected;
+  try {
+    const configured = new URL(post.canonicalUrl);
+    const site = new URL(siteConfig.url);
+    const sameSite = configured.hostname.replace(/^www\./i, "") === site.hostname.replace(/^www\./i, "");
+    if (sameSite && configured.pathname.replace(/\/+$/, "") !== new URL(expected).pathname.replace(/\/+$/, "")) return expected;
+    return configured.toString();
+  } catch {
+    return expected;
+  }
+}
+
 export function buildArticleMetadata(locale: Locale, post: PublicPost): Metadata {
   const blogLocale: BlogLocale = locale;
-  const canonical = post.canonicalUrl || absolute(getBlogPostPath(blogLocale, post.slug));
+  const canonical = articleCanonicalUrl(blogLocale, post);
   const description = post.seoDescription?.trim() || post.excerpt;
   const title = post.seoTitle?.trim() || post.title;
   const image = post.ogImageUrl || post.featuredImageUrl || "/og/og-default.svg";

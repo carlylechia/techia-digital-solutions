@@ -8,7 +8,8 @@ import { getBlogAuthorPath, getBlogCategoryPath, getBlogIndexPath, getBlogPostPa
 export const revalidate = 300;
 
 function isCmsReplacementSlug(staticSlug: string, locale: BlogLocale, post: { locale: string; slug: string }) {
-  if (post.locale !== locale || post.slug === staticSlug) return false;
+  if (post.locale !== locale) return false;
+  if (post.slug === staticSlug) return true;
   const prefix = `${staticSlug}-`;
   if (!post.slug.startsWith(prefix)) return false;
   const suffix = post.slug.slice(prefix.length);
