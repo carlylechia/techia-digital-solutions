@@ -9,6 +9,7 @@ import {
   loadHomepageFeedback,
 } from "@/lib/public-showcase";
 import { createMetadata, organizationJsonLd } from "@/lib/seo";
+import { getBlogHome } from "@/lib/blog/queries";
 
 export async function generateMetadata({
   params,
@@ -36,10 +37,14 @@ export default async function HomePage({
   if (!isLocale(rawLocale)) notFound();
   const locale = rawLocale as Locale;
   const dict = getDictionary(locale);
-  const [feedbackItems, faqItems] = await Promise.all([
+  const [feedbackItems, faqItems, blogHome] = await Promise.all([
     loadHomepageFeedback(locale),
     loadHomepageFaqs(locale),
+    getBlogHome(locale).catch(() => null),
   ]);
+  const latestBlogCards = (blogHome?.latest || [])
+    .slice(0, 3)
+    .map((post) => ({ slug: post.slug, title: post.title, description: post.excerpt }));
 
   return (
     <main id="main-content">
@@ -47,7 +52,7 @@ export default async function HomePage({
       <HeroSection locale={locale} />
       <HomepageConversionFlow
         locale={locale}
-        blogPosts={dict.blog.slice(0, 3)}
+        blogPosts={latestBlogCards.length ? latestBlogCards : dict.blog.slice(0, 3)}
         faqItems={faqItems}
         feedbackItems={feedbackItems}
       />

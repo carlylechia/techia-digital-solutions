@@ -4,6 +4,9 @@ export type CloudinaryUploadResult = {
   original_filename: string;
   format: string;
   bytes: number;
+  width?: number;
+  height?: number;
+  content_type?: string;
   resource_type: string;
 };
 
@@ -32,7 +35,7 @@ export function isCloudinaryConfigured() {
 export async function uploadToCloudinary(
   file: File,
   folder = "portal-files",
-  options: { forcePublic?: boolean } = {}
+  options: { forcePublic?: boolean; forceSigned?: boolean } = {}
 ): Promise<CloudinaryUploadResult> {
   const config = getCloudinaryConfig();
 
@@ -44,7 +47,7 @@ export async function uploadToCloudinary(
   formData.append("file", file);
   formData.append("folder", folder);
 
-  if (!options.forcePublic && config.uploadPreset) {
+  if (!options.forcePublic && !options.forceSigned && config.uploadPreset) {
     // Unsigned upload via preset — also append access_mode to override preset default
     formData.append("upload_preset", config.uploadPreset);
     formData.append("access_mode", "public");

@@ -7,6 +7,7 @@ import { Logo } from "@/components/brand/Logo";
 import { isLocale, type Locale } from "@/content/site";
 import { authOptions } from "@/lib/auth";
 import { getPrisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/admin/session";
 import { getErrorMessage, isPrismaSchemaDriftError } from "@/lib/prisma-errors";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +67,12 @@ export default async function AILeadsPage({
         <AdminLoginForm locale={locale} />
       </main>
     );
+  }
+
+  try {
+    await requireAdmin("requests.manage");
+  } catch {
+    redirect("/admin");
   }
 
   const prisma = getPrisma();

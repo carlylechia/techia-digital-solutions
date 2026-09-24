@@ -14,7 +14,9 @@ type NavItem = { id: string; labelEn: string; labelFr: string; href: string; vis
 
 export function LocaleChrome({ children, locale, navItems = [] }: { children: React.ReactNode; locale: Locale; navItems?: NavItem[] }) {
   const pathname = usePathname();
-  const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/") || /^\/(?:en|fr)\/admin(?:\/|$)/.test(pathname);
+  const isWriter = pathname === "/writer" || pathname.startsWith("/writer/") || /^\/(?:en|fr)\/writer(?:\/|$)/.test(pathname);
+  const isInternal = isAdmin || isWriter;
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -22,18 +24,18 @@ export function LocaleChrome({ children, locale, navItems = [] }: { children: Re
 
   return (
     <div className="page-frame relative min-h-screen">
-      <Analytics />
-      <PublicScrollEffects />
-      {!isAdmin ? (
+      {!isInternal ? <Analytics /> : null}
+      {!isInternal ? <PublicScrollEffects /> : null}
+      {!isInternal ? (
         <a href="#content-start" className="skip-link">
           Skip to content
         </a>
       ) : null}
-      {!isAdmin ? <LanguageGate locale={locale} /> : null}
-      {!isAdmin ? <SiteHeader locale={locale} navItems={navItems} /> : null}
+      {!isInternal ? <LanguageGate locale={locale} /> : null}
+      {!isInternal ? <SiteHeader locale={locale} navItems={navItems} /> : null}
       <div id="content-start">{children}</div>
-      {!isAdmin ? <SiteFooter locale={locale} /> : null}
-      {!isAdmin ? <AIChatWidget /> : null}
+      {!isInternal ? <SiteFooter locale={locale} /> : null}
+      {!isInternal ? <AIChatWidget /> : null}
     </div>
   );
 }

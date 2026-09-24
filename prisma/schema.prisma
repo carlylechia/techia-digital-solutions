@@ -60,6 +60,15 @@ enum ContentStatus {
   ARCHIVED
 }
 
+enum BlogPostStatus {
+  DRAFT
+  IN_REVIEW
+  CHANGES_REQUESTED
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
 enum ProcessStatus {
   ACTIVE
   PAUSED
@@ -178,17 +187,223 @@ model CaseStudy {
 }
 
 model BlogPost {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  title       String
-  excerpt     String
-  content     String
-  locale      Locale   @default(en)
-  published   Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                    String         @id @default(cuid())
+  slug                  String
+  title                 String
+  excerpt               String
+  content               String         @db.Text
+  contentText           String         @default("") @db.Text
+  locale                Locale         @default(en)
+  published             Boolean        @default(true)
+  status                BlogPostStatus @default(DRAFT)
+  featured              Boolean        @default(false)
+  allowIndex            Boolean        @default(true)
+  nofollow              Boolean        @default(false)
+  seoTitle              String?
+  seoDescription        String?
+  focusKeyword          String?
+  canonicalUrl          String?
+  featuredImageUrl      String?
+  featuredImagePublicId String?
+  featuredImageAlt      String?
+  ogImageUrl            String?
+  ogImagePublicId       String?
+  ctaTitle              String?
+  ctaDescription        String?        @db.Text
+  ctaHref               String?
+  ctaLabel              String?
+  readingTime           Int            @default(1)
+  version               Int            @default(1)
+  publishedAt           DateTime?
+  scheduledAt           DateTime?
+  submittedAt           DateTime?
+  archivedAt            DateTime?
+  authorId              String?
+  categoryId            String?
+  translationGroupId    String?
+  createdById           String?
+  lastEditedById        String?
+  publishedById         String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
 
+  author           BlogAuthor?           @relation("BlogPostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  category         BlogCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  translationGroup BlogTranslationGroup? @relation(fields: [translationGroupId], references: [id], onDelete: SetNull)
+  createdBy        AdminUser?            @relation("BlogPostCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  lastEditedBy     AdminUser?            @relation("BlogPostEditor", fields: [lastEditedById], references: [id], onDelete: SetNull)
+  publishedBy      AdminUser?            @relation("BlogPostPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+  tags             BlogPostTag[]
+  relatedFrom      BlogPostRelation[]    @relation("BlogRelatedFrom")
+  relatedTo        BlogPostRelation[]    @relation("BlogRelatedTo")
+  reviewNotes      BlogReviewNote[]
+  revisions        BlogPostRevision[]
+  slugRedirects    BlogSlugRedirect[]
+
+  @@unique([locale, slug])
   @@index([locale, published])
+  @@index([locale, status, publishedAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([authorId, status, updatedAt(sort: Desc)])
+  @@index([createdById])
+  @@index([lastEditedById])
+  @@index([publishedById])
+  @@index([categoryId, status, publishedAt(sort: Desc)])
+  @@index([featured, status, publishedAt(sort: Desc)])
+  @@index([scheduledAt, status])
+  @@index([translationGroupId])
+}
+
+model BlogAuthor {
+  id            String   @id @default(cuid())
+  userId        String?  @unique
+  displayName   String
+  slug          String   @unique
+  bio           String   @db.Text
+  jobTitle      String?
+  imageUrl      String?
+  imagePublicId String?
+  websiteUrl    String?
+  linkedinUrl   String?
+  xUrl          String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user  AdminUser? @relation("BlogAuthorUser", fields: [userId], references: [id], onDelete: SetNull)
+  posts BlogPost[] @relation("BlogPostAuthor")
+
+  @@index([isActive, displayName])
+}
+
+model BlogCategory {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String
+  description    String?  @db.Text
+  locale         Locale
+  seoTitle       String?
+  seoDescription String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  posts BlogPost[]
+
+  @@unique([locale, slug])
+  @@index([locale, isActive, name])
+}
+
+model BlogTag {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String
+  locale    Locale
+  createdAt DateTime @default(now())
+
+  posts BlogPostTag[]
+
+  @@unique([locale, slug])
+  @@index([locale, name])
+}
+
+model BlogPostTag {
+  postId String
+  tagId  String
+  post   BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    BlogTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+}
+
+model BlogTranslationGroup {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts BlogPost[]
+}
+
+model BlogPostRelation {
+  fromPostId String
+  toPostId   String
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  fromPost   BlogPost @relation("BlogRelatedFrom", fields: [fromPostId], references: [id], onDelete: Cascade)
+  toPost     BlogPost @relation("BlogRelatedTo", fields: [toPostId], references: [id], onDelete: Cascade)
+
+  @@id([fromPostId, toPostId])
+  @@index([toPostId])
+  @@index([fromPostId, sortOrder])
+}
+
+model BlogReviewNote {
+  id        String     @id @default(cuid())
+  postId    String
+  authorId  String?
+  body      String     @db.Text
+  createdAt DateTime   @default(now())
+  post      BlogPost   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    AdminUser? @relation("BlogReviewNoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([postId, createdAt(sort: Desc)])
+  @@index([authorId])
+}
+
+model BlogPostRevision {
+  id                    String     @id @default(cuid())
+  postId                String
+  version               Int
+  title                 String
+  excerpt               String
+  content               String     @db.Text
+  seoTitle              String?
+  seoDescription        String?
+  featuredImageUrl      String?
+  featuredImagePublicId String?
+  featuredImageAlt      String?
+  createdById           String?
+  createdAt             DateTime   @default(now())
+  post                  BlogPost   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdBy             AdminUser? @relation("BlogRevisionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([postId, version])
+  @@index([createdById])
+  @@index([createdAt(sort: Desc)])
+}
+
+model BlogMedia {
+  id           String     @id @default(cuid())
+  publicId     String     @unique
+  url          String
+  resourceType String     @default("image")
+  format       String
+  mimeType     String
+  width        Int?
+  height       Int?
+  bytes        Int
+  altText      String     @default("")
+  folder       String     @default("techia/blog")
+  uploadedById String?
+  createdAt    DateTime   @default(now())
+  uploadedBy   AdminUser? @relation("BlogMediaUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([uploadedById, createdAt(sort: Desc)])
+}
+
+model BlogSlugRedirect {
+  id         String    @id @default(cuid())
+  locale     Locale
+  slug       String
+  targetSlug String
+  postId     String?
+  createdAt  DateTime  @default(now())
+  post       BlogPost? @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@unique([locale, slug])
+  @@index([postId])
 }
 
 model Service {
@@ -244,37 +459,44 @@ model DemoRequest {
 }
 
 model AdminUser {
-  id               String                @id @default(cuid())
-  email            String                @unique
-  name             String?
-  passwordHash     String?
-  role             String                @default("admin")
-  roleId           String?
-  roleRef          AdminRole?            @relation("RoleUsers", fields: [roleId], references: [id], onDelete: SetNull)
-  status           AdminStatus           @default(ACTIVE)
-  lastLoginAt      DateTime?
-  createdById      String?
-  createdBy        AdminUser?            @relation("AdminCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAdmins    AdminUser[]           @relation("AdminCreator")
-  createdRoles     AdminRole[]           @relation("RoleCreator")
-  ownedClients     Client[]              @relation("ClientOwner")
-  assignedProjects ClientProject[]       @relation("ProjectOwner")
-  ownedBoards      ProcessBoard[]        @relation("BoardOwner")
-  assignedTasks    ProcessTask[]         @relation("TaskAssignee")
-  createdTasks     ProcessTask[]         @relation("TaskCreator")
-  authoredPages    ContentPage[]         @relation("ContentAuthor")
-  sentMessages     ConversationMessage[] @relation("AdminSentMessages")
-  portalAccesses   ClientPortalAccess[]
-  portalMessages   PortalMessage[]
-  portalReplies    PortalMessageReply[]
-  portalFiles      PortalFile[]
-  portalPayments   PortalPayment[]       @relation("PaymentCreatedBy")
-  verifiedBonusClaims  CourseBonusClaim[]        @relation("VerifiedBonusClaims")
-  fulfilledBonusClaims CourseBonusClaim[]        @relation("FulfilledBonusClaims")
+  id                    String                     @id @default(cuid())
+  email                 String                     @unique
+  name                  String?
+  passwordHash          String?
+  role                  String                     @default("admin")
+  roleId                String?
+  roleRef               AdminRole?                 @relation("RoleUsers", fields: [roleId], references: [id], onDelete: SetNull)
+  status                AdminStatus                @default(ACTIVE)
+  lastLoginAt           DateTime?
+  createdById           String?
+  createdBy             AdminUser?                 @relation("AdminCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAdmins         AdminUser[]                @relation("AdminCreator")
+  createdRoles          AdminRole[]                @relation("RoleCreator")
+  ownedClients          Client[]                   @relation("ClientOwner")
+  assignedProjects      ClientProject[]            @relation("ProjectOwner")
+  ownedBoards           ProcessBoard[]             @relation("BoardOwner")
+  assignedTasks         ProcessTask[]              @relation("TaskAssignee")
+  createdTasks          ProcessTask[]              @relation("TaskCreator")
+  authoredPages         ContentPage[]              @relation("ContentAuthor")
+  sentMessages          ConversationMessage[]      @relation("AdminSentMessages")
+  portalAccesses        ClientPortalAccess[]
+  portalMessages        PortalMessage[]
+  portalReplies         PortalMessageReply[]
+  portalFiles           PortalFile[]
+  portalPayments        PortalPayment[]            @relation("PaymentCreatedBy")
+  verifiedBonusClaims   CourseBonusClaim[]         @relation("VerifiedBonusClaims")
+  fulfilledBonusClaims  CourseBonusClaim[]         @relation("FulfilledBonusClaims")
   courseBonusDeliveries CourseBonusClaimDelivery[] @relation("BonusDeliverySender")
-  auditLogs        AuditLog[]
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  auditLogs             AuditLog[]
+  blogAuthor            BlogAuthor?                @relation("BlogAuthorUser")
+  blogPostsCreated      BlogPost[]                 @relation("BlogPostCreator")
+  blogPostsEdited       BlogPost[]                 @relation("BlogPostEditor")
+  blogPostsPublished    BlogPost[]                 @relation("BlogPostPublisher")
+  blogMedia             BlogMedia[]                @relation("BlogMediaUploader")
+  blogReviewNotes       BlogReviewNote[]           @relation("BlogReviewNoteAuthor")
+  blogRevisions         BlogPostRevision[]         @relation("BlogRevisionCreator")
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
 
   @@index([roleId])
   @@index([status])
@@ -297,46 +519,46 @@ model AdminRole {
 }
 
 model Client {
-  id                String           @id @default(cuid())
-  name              String
-  slug              String           @unique
-  industry          String?
-  status            ClientStatus     @default(PROSPECT)
-  priority          ClientPriority   @default(MEDIUM)
-  contactName       String?
-  contactRole       String?
-  email             String?
-  phone             String?
-  whatsapp          String?
-  website           String?
-  country           String?
-  city              String?
-  estimatedValue    Int?
-  preferredLocale   Locale           @default(en)
-  source            String           @default("admin")
-  sourceRequestId   String?
-  sourceRequestType String?
-  tags              String[]         @default([])
-  notes             String?
-  ownerId           String?
-  owner             AdminUser?       @relation("ClientOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  contacts          ClientContact[]
-  projects          ClientProject[]
-  tasks             ProcessTask[]
-  leads             Lead[]           @relation("LeadClient")
-  contactMessages   ContactMessage[] @relation("ContactMessageClient")
-  demoRequests         DemoRequest[]       @relation("DemoRequestClient")
-  inquiries            ProjectInquiry[]    @relation("InquiryClient")
-  conversations        Conversation[]
-  portalAccess         ClientPortalAccess?
-  portalMessages       PortalMessage[]
-  portalFiles          PortalFile[]
-  portalInvoices       PortalInvoice[]
-  portalRequirements   PortalRequirement[]
-  portalNotifications  PortalNotification[]
-  portalPayments       PortalPayment[]
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
+  id                  String               @id @default(cuid())
+  name                String
+  slug                String               @unique
+  industry            String?
+  status              ClientStatus         @default(PROSPECT)
+  priority            ClientPriority       @default(MEDIUM)
+  contactName         String?
+  contactRole         String?
+  email               String?
+  phone               String?
+  whatsapp            String?
+  website             String?
+  country             String?
+  city                String?
+  estimatedValue      Int?
+  preferredLocale     Locale               @default(en)
+  source              String               @default("admin")
+  sourceRequestId     String?
+  sourceRequestType   String?
+  tags                String[]             @default([])
+  notes               String?
+  ownerId             String?
+  owner               AdminUser?           @relation("ClientOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  contacts            ClientContact[]
+  projects            ClientProject[]
+  tasks               ProcessTask[]
+  leads               Lead[]               @relation("LeadClient")
+  contactMessages     ContactMessage[]     @relation("ContactMessageClient")
+  demoRequests        DemoRequest[]        @relation("DemoRequestClient")
+  inquiries           ProjectInquiry[]     @relation("InquiryClient")
+  conversations       Conversation[]
+  portalAccess        ClientPortalAccess?
+  portalMessages      PortalMessage[]
+  portalFiles         PortalFile[]
+  portalInvoices      PortalInvoice[]
+  portalRequirements  PortalRequirement[]
+  portalNotifications PortalNotification[]
+  portalPayments      PortalPayment[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@index([status, priority])
   @@index([ownerId])
@@ -361,49 +583,49 @@ model ClientContact {
 }
 
 model ClientProject {
-  id          String         @id @default(cuid())
-  clientId    String
-  client      Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  ownerId     String?
-  owner       AdminUser?     @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  title       String
-  slug        String
-  status      ProjectStatus  @default(PLANNED)
-  priority    ClientPriority @default(MEDIUM)
-  description String?
-  budget      Int?
-  progress    Int            @default(0)
-  startDate   DateTime?
-  dueDate     DateTime?
-  completedAt DateTime?
-  showInPortfolio Boolean    @default(false)
-  showOnHomepage Boolean     @default(false)
-  showInFounder   Boolean    @default(false)
-  publicOrder     Int        @default(0)
-  publicSlug      String?    @unique
-  publicTitleEn   String?
-  publicTitleFr   String?
-  publicEyebrowEn String?
-  publicEyebrowFr String?
-  publicDescriptionEn String?
-  publicDescriptionFr String?
-  publicProblemEn String?
-  publicProblemFr String?
-  publicSolutionEn String?
-  publicSolutionFr String?
-  publicRoleEn String?
-  publicRoleFr String?
+  id                    String                 @id @default(cuid())
+  clientId              String
+  client                Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  ownerId               String?
+  owner                 AdminUser?             @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  title                 String
+  slug                  String
+  status                ProjectStatus          @default(PLANNED)
+  priority              ClientPriority         @default(MEDIUM)
+  description           String?
+  budget                Int?
+  progress              Int                    @default(0)
+  startDate             DateTime?
+  dueDate               DateTime?
+  completedAt           DateTime?
+  showInPortfolio       Boolean                @default(false)
+  showOnHomepage        Boolean                @default(false)
+  showInFounder         Boolean                @default(false)
+  publicOrder           Int                    @default(0)
+  publicSlug            String?                @unique
+  publicTitleEn         String?
+  publicTitleFr         String?
+  publicEyebrowEn       String?
+  publicEyebrowFr       String?
+  publicDescriptionEn   String?
+  publicDescriptionFr   String?
+  publicProblemEn       String?
+  publicProblemFr       String?
+  publicSolutionEn      String?
+  publicSolutionFr      String?
+  publicRoleEn          String?
+  publicRoleFr          String?
   publicBusinessValueEn String?
   publicBusinessValueFr String?
-  publicTechStack String[]   @default([])
-  feedbacks    CustomerFeedback[]
-  portalFiles          PortalFile[]
-  portalInvoices       PortalInvoice[]
-  portalRequirements   PortalRequirement[]
-  tasks       ProcessTask[]
+  publicTechStack       String[]               @default([])
+  feedbacks             CustomerFeedback[]
+  portalFiles           PortalFile[]
+  portalInvoices        PortalInvoice[]
+  portalRequirements    PortalRequirement[]
+  tasks                 ProcessTask[]
   portalPaymentProjects PortalPaymentProject[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 
   @@unique([clientId, slug])
   @@index([status, priority])
@@ -415,29 +637,29 @@ model ClientProject {
 }
 
 model CustomerFeedback {
-  id            String         @id @default(cuid())
-  projectId      String?
-  project        ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  name           String
-  nameFr         String?
-  role           String?
-  roleFr         String?
-  company        String?
-  email          String?
-  rating         Int?
-  quote          String
-  quoteFr        String?
-  locale         Locale?
-  source         String         @default("website")
-  status         FeedbackStatus @default(PENDING)
-  showOnHomepage Boolean        @default(false)
-  showOnFounder  Boolean        @default(false)
-  showOnPortfolio Boolean       @default(false)
-  displayOrder   Int            @default(0)
-  consent        Boolean        @default(false)
-  internalNotes  String?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id              String         @id @default(cuid())
+  projectId       String?
+  project         ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  name            String
+  nameFr          String?
+  role            String?
+  roleFr          String?
+  company         String?
+  email           String?
+  rating          Int?
+  quote           String
+  quoteFr         String?
+  locale          Locale?
+  source          String         @default("website")
+  status          FeedbackStatus @default(PENDING)
+  showOnHomepage  Boolean        @default(false)
+  showOnFounder   Boolean        @default(false)
+  showOnPortfolio Boolean        @default(false)
+  displayOrder    Int            @default(0)
+  consent         Boolean        @default(false)
+  internalNotes   String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   @@index([projectId])
   @@index([status, createdAt])
@@ -447,35 +669,35 @@ model CustomerFeedback {
 }
 
 model CourseBonusClaim {
-  id                 String                  @id @default(cuid())
-  locale             Locale?
-  name               String
-  email              String
-  whatsapp           String?
-  coursePackId       String
-  coursePackTitle    String
-  orderReference     String
-  purchaseDate       DateTime?
-  requestedBonusIds  String[]                @default([])
-  proofNotes         String?
-  proofUrl           String?
-  proofPublicId      String?
-  proofFileName      String?
-  proofFileType      String?
-  proofFileSize      Int?
-  preferredDelivery  BonusDeliveryPreference @default(EMAIL)
-  status             CourseBonusClaimStatus  @default(SUBMITTED)
-  adminNotes         String?
-  sourcePage         String?
-  verifiedAt         DateTime?
-  verifiedById       String?
-  verifiedBy         AdminUser?              @relation("VerifiedBonusClaims", fields: [verifiedById], references: [id], onDelete: SetNull)
-  fulfilledAt        DateTime?
-  fulfilledById      String?
-  fulfilledBy        AdminUser?              @relation("FulfilledBonusClaims", fields: [fulfilledById], references: [id], onDelete: SetNull)
-  deliveries         CourseBonusClaimDelivery[]
-  createdAt          DateTime                @default(now())
-  updatedAt          DateTime                @updatedAt
+  id                String                     @id @default(cuid())
+  locale            Locale?
+  name              String
+  email             String
+  whatsapp          String?
+  coursePackId      String
+  coursePackTitle   String
+  orderReference    String
+  purchaseDate      DateTime?
+  requestedBonusIds String[]                   @default([])
+  proofNotes        String?
+  proofUrl          String?
+  proofPublicId     String?
+  proofFileName     String?
+  proofFileType     String?
+  proofFileSize     Int?
+  preferredDelivery BonusDeliveryPreference    @default(EMAIL)
+  status            CourseBonusClaimStatus     @default(SUBMITTED)
+  adminNotes        String?
+  sourcePage        String?
+  verifiedAt        DateTime?
+  verifiedById      String?
+  verifiedBy        AdminUser?                 @relation("VerifiedBonusClaims", fields: [verifiedById], references: [id], onDelete: SetNull)
+  fulfilledAt       DateTime?
+  fulfilledById     String?
+  fulfilledBy       AdminUser?                 @relation("FulfilledBonusClaims", fields: [fulfilledById], references: [id], onDelete: SetNull)
+  deliveries        CourseBonusClaimDelivery[]
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
 
   @@index([status, createdAt])
   @@index([email])
@@ -485,17 +707,17 @@ model CourseBonusClaim {
 }
 
 model CourseBonusClaimDelivery {
-  id        String               @id @default(cuid())
-  claimId   String
-  claim     CourseBonusClaim     @relation(fields: [claimId], references: [id], onDelete: Cascade)
-  channel   BonusDeliveryChannel
-  sentTo    String
-  bonusIds  String[]             @default([])
-  subject   String?
-  message   String?
-  sentById  String?
-  sentBy    AdminUser?           @relation("BonusDeliverySender", fields: [sentById], references: [id], onDelete: SetNull)
-  sentAt    DateTime             @default(now())
+  id       String               @id @default(cuid())
+  claimId  String
+  claim    CourseBonusClaim     @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  channel  BonusDeliveryChannel
+  sentTo   String
+  bonusIds String[]             @default([])
+  subject  String?
+  message  String?
+  sentById String?
+  sentBy   AdminUser?           @relation("BonusDeliverySender", fields: [sentById], references: [id], onDelete: SetNull)
+  sentAt   DateTime             @default(now())
 
   @@index([claimId, sentAt])
   @@index([sentById])
@@ -707,18 +929,18 @@ model ClientPortalAccess {
 }
 
 model PortalMessage {
-  id          String               @id @default(cuid())
-  clientId    String
-  client      Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  subject     String
-  body        String
-  fromAdmin   Boolean              @default(true)
-  adminId     String?
-  admin       AdminUser?           @relation(fields: [adminId], references: [id], onDelete: SetNull)
-  readAt      DateTime?
-  replies     PortalMessageReply[]
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  id        String               @id @default(cuid())
+  clientId  String
+  client    Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  subject   String
+  body      String
+  fromAdmin Boolean              @default(true)
+  adminId   String?
+  admin     AdminUser?           @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  readAt    DateTime?
+  replies   PortalMessageReply[]
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
 
   @@index([clientId])
   @@index([adminId])
@@ -740,24 +962,24 @@ model PortalMessageReply {
 }
 
 model PortalFile {
-  id          String         @id @default(cuid())
-  clientId    String
-  client      Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  projectId   String?
-  project     ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  name        String
-  fileType    String
-  category    String         @default("deliverable")
-  url         String
-  publicId    String?
-  size        Int?
-  uploadedBy  String         @default("admin")
-  adminId     String?
-  admin       AdminUser?     @relation(fields: [adminId], references: [id], onDelete: SetNull)
-  status      String         @default("available")
-  notes       String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id         String         @id @default(cuid())
+  clientId   String
+  client     Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  projectId  String?
+  project    ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  name       String
+  fileType   String
+  category   String         @default("deliverable")
+  url        String
+  publicId   String?
+  size       Int?
+  uploadedBy String         @default("admin")
+  adminId    String?
+  admin      AdminUser?     @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  status     String         @default("available")
+  notes      String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
   @@index([clientId])
   @@index([projectId])
@@ -766,30 +988,30 @@ model PortalFile {
 }
 
 model PortalInvoice {
-  id            String         @id @default(cuid())
-  clientId      String
-  client        Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  projectId     String?
-  project       ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  paymentId     String?
-  payment       PortalPayment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
-  invoiceNumber String
-  title         String
-  amount        Int
-  currency      String         @default("USD")
+  id                 String         @id @default(cuid())
+  clientId           String
+  client             Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  projectId          String?
+  project            ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  paymentId          String?
+  payment            PortalPayment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  invoiceNumber      String
+  title              String
+  amount             Int
+  currency           String         @default("USD")
   // DRAFT | SENT | AWAITING_CONFIRMATION | PAID | OVERDUE | CANCELLED
-  status        String         @default("DRAFT")
-  dueDate       DateTime?
-  paidAt        DateTime?
-  confirmedAt          DateTime?
-  confirmedById        String?
-  notes                String?
-  lineItems            Json?
-  proofOfPaymentUrl    String?
-  proofOfPaymentName   String?
-  proofRequired        Boolean   @default(false)
-  createdAt            DateTime  @default(now())
-  updatedAt     DateTime       @updatedAt
+  status             String         @default("DRAFT")
+  dueDate            DateTime?
+  paidAt             DateTime?
+  confirmedAt        DateTime?
+  confirmedById      String?
+  notes              String?
+  lineItems          Json?
+  proofOfPaymentUrl  String?
+  proofOfPaymentName String?
+  proofRequired      Boolean        @default(false)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   @@index([clientId])
   @@index([projectId])
@@ -857,15 +1079,15 @@ model PortalRequirement {
 }
 
 model PortalNotification {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   clientId  String
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   type      String
   title     String
   body      String?
   link      String?
   readAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([clientId])
   @@index([readAt])
@@ -873,21 +1095,21 @@ model PortalNotification {
 }
 
 model AIConversation {
-  id             String      @id @default(cuid())
-  sessionId      String
-  userId         String?
-  visitorName    String?
-  visitorEmail   String?
-  visitorPhone   String?
-  sourcePage     String?
-  status         String      @default("ACTIVE")
-  messageCount   Int         @default(0)
-  totalTokens    Int         @default(0)
-  summary        String?
-  messages       AIMessage[]
-  usageRecords   AIUsage[]
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id           String      @id @default(cuid())
+  sessionId    String
+  userId       String?
+  visitorName  String?
+  visitorEmail String?
+  visitorPhone String?
+  sourcePage   String?
+  status       String      @default("ACTIVE")
+  messageCount Int         @default(0)
+  totalTokens  Int         @default(0)
+  summary      String?
+  messages     AIMessage[]
+  usageRecords AIUsage[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   @@index([sessionId])
   @@index([userId])

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AdminLoginForm } from "@/components/admin/admin-login-form";
 import { Logo } from "@/components/brand/Logo";
 import { AdminWorkspace } from "@/components/admin/admin-workspace";
 import { isLocale, type Locale } from "@/content/site";
 import { authOptions } from "@/lib/auth";
+import { getAdminSessionUser } from "@/lib/admin/session";
+import { hasPermission } from "@/lib/admin/permissions";
 import { loadAdminDashboardData } from "@/lib/admin/dashboard";
 import { getPrisma } from "@/lib/prisma";
 import { createMetadata } from "@/lib/seo";
@@ -144,6 +146,11 @@ export default async function AdminPage({
     );
   }
 
+  const currentAdmin = await getAdminSessionUser();
+  if (!currentAdmin || !hasPermission(currentAdmin.permissions, "dashboard.view")) {
+    redirect("/writer");
+  }
+
   const prisma = getPrisma();
   if (!prisma) {
     return (
@@ -185,12 +192,12 @@ export default async function AdminPage({
   }
 
   const currentUser = {
-    id: session.user.id,
-    email: session.user.email,
-    name: session.user.name,
-    role: session.user.role,
-    roleLevel: session.user.roleLevel,
-    permissions: session.user.permissions,
+    id: currentAdmin.id,
+    email: currentAdmin.email,
+    name: currentAdmin.name,
+    role: currentAdmin.role,
+    roleLevel: currentAdmin.roleLevel,
+    permissions: currentAdmin.permissions,
   };
 
   return (

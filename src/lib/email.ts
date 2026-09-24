@@ -245,6 +245,23 @@ export async function sendCourseBonusClaimNotification(data: {
   );
 }
 
+export async function sendWriterInviteEmail(data: {
+  toEmail: string;
+  toName: string;
+  temporaryPassword: string;
+  loginUrl: string;
+}) {
+  return sendOutboundEmail({
+    to: data.toEmail,
+    subject: "Your teChia writer account",
+    body: `Hello ${data.toName},\n\nAn administrator has created your restricted teChia writer account. Use the temporary password below to sign in, then ask the administrator to replace it through your account process.\n\nTemporary password: ${data.temporaryPassword}\n\nWriter sign-in: ${data.loginUrl}\n\nThis account can only access your own drafts, author profile, media uploads, and review submissions. It cannot publish or manage site settings.\n\nFor security, do not forward this message.`,
+  });
+}
+
+export async function sendWriterPasswordResetEmail(data: { toEmail: string; toName: string; temporaryPassword: string; loginUrl: string }) {
+  return sendWriterInviteEmail(data);
+}
+
 export function whatsappLink(number: string, message?: string) {
   const clean = number.replace(/\D/g, "");
   const encoded = message ? `?text=${encodeURIComponent(message)}` : "";

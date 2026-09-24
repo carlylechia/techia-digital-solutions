@@ -9,19 +9,26 @@ export function createMetadata({
   description,
   path = "",
   image = "/og/og-default.svg",
+  canonicalPath,
+  robots,
 }: {
   locale: Locale;
   title: string;
   description: string;
   path?: string;
   image?: string;
+  canonicalPath?: string;
+  robots?: Metadata["robots"];
 }): Metadata {
   const cleanPath = path ? `/${path.replace(/^\//, "")}` : "";
-  const canonical = `${siteConfig.url}${getPublicAppPath(cleanPath)}`;
+  const canonical = canonicalPath
+    ? `${siteConfig.url}${canonicalPath}`
+    : `${siteConfig.url}${getPublicAppPath(cleanPath)}`;
   return {
     metadataBase: new URL(siteConfig.url),
     title,
     description,
+    robots,
     alternates: {
       canonical,
     },

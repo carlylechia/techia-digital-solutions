@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import type { Prisma } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { getPrisma } from "@/lib/prisma";
-import { hasPermission, type AdminPermission } from "./permissions";
+import { hasPermission, normalizePermissions, type AdminPermission } from "./permissions";
 
 export type AdminSessionUser = {
   id: string;
@@ -13,10 +13,25 @@ export type AdminSessionUser = {
   permissions: string[];
 };
 
-export async function getAdminSessionUser() {
+export async function getAdminSessionUser(): Promise<AdminSessionUser | null> {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email || !session.user.id) return null;
-  return session.user as AdminSessionUser;
+  const prisma = getPrisma();
+  if (!prisma) return null;
+
+  const user = await prisma.adminUser.findUnique({
+    where: { id: session.user.id },
+    include: { roleRef: true },
+  });
+  if (!user || user.status !== "ACTIVE" || !user.roleRef) return null;
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.roleRef.name,
+    roleLevel: user.roleRef.level,
+    permissions: normalizePermissions(user.roleRef.permissions),
+  };
 }
 
 export async function requireAdmin(permission?: AdminPermission) {

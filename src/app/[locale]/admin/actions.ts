@@ -2504,7 +2504,7 @@ function generatePortalCode(): string {
 }
 
 export async function generatePortalAccessAction(_prevState: unknown, formData: FormData) {
-  const actor = await requireAdmin();
+  const actor = await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -2530,7 +2530,7 @@ export async function generatePortalAccessAction(_prevState: unknown, formData: 
 }
 
 export async function revokePortalAccessAction(_prevState: unknown, formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -2543,7 +2543,7 @@ export async function revokePortalAccessAction(_prevState: unknown, formData: Fo
 }
 
 export async function sendPortalMessageAction(_prevState: unknown, formData: FormData) {
-  const actor = await requireAdmin();
+  const actor = await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -2580,7 +2580,7 @@ export async function sendPortalMessageAction(_prevState: unknown, formData: For
 }
 
 export async function sendPortalMessageReplyAction(formData: FormData) {
-  const actor = await requireAdmin();
+  const actor = await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -2629,7 +2629,7 @@ export async function sendPortalMessageReplyAction(formData: FormData) {
 }
 
 export async function markClientPortalThreadsReadAction(clientId: string) {
-  const actor = await requireAdmin();
+  const actor = await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
   if (!clientId) return { success: false, error: "Client ID required." };
@@ -2662,7 +2662,7 @@ export async function markClientPortalThreadsReadAction(clientId: string) {
 }
 
 export async function createPortalInvoiceAction(_prevState: unknown, formData: FormData) {
-  const actor = await requireAdmin();
+  const actor = await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -2726,7 +2726,7 @@ export async function createPortalInvoiceAction(_prevState: unknown, formData: F
 }
 
 export async function createPortalRequirementAction(_prevState: unknown, formData: FormData) {
-  const actor = await requireAdmin();
+  const actor = await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -2770,7 +2770,7 @@ export async function createPortalRequirementAction(_prevState: unknown, formDat
 }
 
 export async function updatePortalInvoiceStatusAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -2793,7 +2793,7 @@ export async function updatePortalInvoiceStatusAction(formData: FormData) {
 }
 
 export async function deletePortalInvoiceAction(formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -2818,7 +2818,7 @@ export async function deletePortalInvoiceAction(formData: FormData) {
 
 
 export async function createPortalPaymentAction(_prevState: unknown, formData: FormData) {
-  const actor = await requireAdmin();
+  const actor = await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -2878,7 +2878,7 @@ export async function createPortalPaymentAction(_prevState: unknown, formData: F
 }
 
 export async function updatePortalPaymentAction(_prevState: unknown, formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -2934,7 +2934,7 @@ export async function updatePortalPaymentAction(_prevState: unknown, formData: F
 }
 
 export async function deletePortalPaymentAction(_prevState: unknown, formData: FormData) {
-  const actor = await requireAdmin();
+  const actor = await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -2956,7 +2956,7 @@ export async function deletePortalPaymentAction(_prevState: unknown, formData: F
 }
 
 export async function confirmPortalInvoicePaymentAction(formData: FormData) {
-  const actor = await requireAdmin();
+  const actor = await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -3009,7 +3009,7 @@ export async function confirmPortalInvoicePaymentAction(formData: FormData) {
 }
 
 export async function queryPortalInvoicePaymentAction(formData: FormData) {
-  const actor = await requireAdmin();
+  const actor = await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -3054,7 +3054,7 @@ export async function queryPortalInvoicePaymentAction(formData: FormData) {
 }
 
 export async function uploadPortalFileAdminAction(formData: FormData) {
-  const actor = await requireAdmin();
+  const actor = await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -3105,7 +3105,7 @@ export async function uploadPortalFileAdminAction(formData: FormData) {
 }
 
 export async function reviewPortalFileAction(formData: FormData) {
-  const actor = await requireAdmin();
+  const actor = await requireAdmin("clients.manage");
   const prisma = getPrisma();
   if (!prisma) return { success: false, error: "Database unavailable." };
 
@@ -3154,7 +3154,7 @@ export async function reviewPortalFileAction(formData: FormData) {
 }
 
 export async function sendPortalInviteEmailAction(_prevState: unknown, formData: FormData) {
-  await requireAdmin();
+  await requireAdmin("clients.manage");
   const toEmail = String(formData.get("toEmail") || "").trim();
   const toName = String(formData.get("toName") || "").trim();
   const accessCode = String(formData.get("accessCode") || "").trim();

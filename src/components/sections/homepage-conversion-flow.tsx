@@ -18,6 +18,7 @@ import { buttonVariants } from "@/components/site/button";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { SwipeDotsCarousel } from "@/components/ui/swipe-dots-carousel";
 import { getLocalizedHref, type CardItem, type Locale } from "@/content/site";
+import { getBlogIndexPath, getBlogPostPath } from "@/lib/blog/slug";
 import { cn } from "@/lib/utils";
 
 const patternBackgroundSrc =
@@ -892,7 +893,7 @@ export function HomepageConversionFlow({
           {blogPosts.map((item, index) => (
             <Reveal key={item.slug} delay={index * 0.05}>
               <Link
-                href={getLocalizedHref(locale, `/blog/${item.slug}`)}
+                href={getBlogPostPath(locale, item.slug)}
                 className="group block"
               >
                 <article className="premium-card h-full min-w-0 overflow-hidden rounded-[1.75rem] p-5 transition duration-500 hover:-translate-y-1.5 hover:border-cyan-300/30 hover:shadow-[0_28px_80px_rgba(8,20,36,0.12)] sm:p-6">
@@ -916,7 +917,7 @@ export function HomepageConversionFlow({
         <Reveal delay={0.08}>
           <div className="mt-8 flex justify-center">
             <Link
-              href={getLocalizedHref(locale, "/blog")}
+              href={getBlogIndexPath(locale)}
               className={cn(
                 buttonVariants({ variant: "secondary", size: "lg" }),
                 "w-full justify-center sm:w-auto",

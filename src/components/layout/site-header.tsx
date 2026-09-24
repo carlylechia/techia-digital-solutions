@@ -9,6 +9,7 @@ import { Logo } from "@/components/brand/Logo";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { NavRail } from "./nav-rail";
+import { getBlogIndexPath } from "@/lib/blog/slug";
 
 type NavItem = {
   id: string;
@@ -56,6 +57,7 @@ export function SiteHeader({
   const coreNavOrder = [
     { href: getLocalizedHref(locale, "/services"), label: dict.nav.services },
     { href: getLocalizedHref(locale, "/courses"), label: dict.nav.courses },
+    { href: getBlogIndexPath(locale), label: dict.nav.blog },
     { href: getLocalizedHref(locale, "/demo-lab"), label: dict.nav.demoLab },
     {
       href: getLocalizedHref(locale, "/ai-consultant"),
@@ -108,7 +110,6 @@ export function SiteHeader({
       "/industries",
       "/portfolio",
       "/pricing",
-      "/blog",
     ]);
     const coreLinkByHref = new Map<
       string,
@@ -140,8 +141,9 @@ export function SiteHeader({
       const mergedPath =
         mergedPathMap.get(normalizedLocalPath) ?? normalizedLocalPath;
 
+      const corePath = normalizedLocalPath === "/blog" ? getBlogIndexPath(locale) : mergedPath;
       const matchingCore = coreNavOrder.find((coreItem) =>
-        matchesHref(coreItem.href, mergedPath),
+        matchesHref(coreItem.href, corePath),
       );
 
       if (matchingCore) {
