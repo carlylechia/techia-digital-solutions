@@ -34,6 +34,11 @@ export const metadata: Metadata = {
   },
   description:
     "teChia Digital Solutions helps businesses grow through social media management, digital marketing, branding, websites, SEO, automation, AI solutions, custom software, and digital transformation consulting.",
+  alternates: {
+    types: {
+      "application/rss+xml": "/blog/feed.xml",
+    },
+  },
   icons: {
     icon: [
       { url: brandIconAssets.faviconIco.src },

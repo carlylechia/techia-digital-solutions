@@ -176,7 +176,19 @@ const permissionLabels: Record<AdminPermission, string> = {
   "processes.manage": "Processes",
   "requests.manage": "Requests",
   "settings.manage": "Settings",
-  "audit.view": "Audit"
+  "audit.view": "Audit",
+  "blog.dashboard.view": "Blog dashboard",
+  "blog.posts.create": "Create blog posts",
+  "blog.posts.edit.own": "Edit own blog posts",
+  "blog.posts.submit.own": "Submit own blog posts",
+  "blog.media.upload": "Upload blog media",
+  "blog.profile.edit.own": "Edit own author profile",
+  "blog.posts.manage": "Manage all blog posts",
+  "blog.posts.publish": "Publish blog posts",
+  "blog.writers.manage": "Manage blog writers",
+  "blog.categories.manage": "Manage blog categories",
+  "blog.media.manage": "Manage blog media",
+  "blog.audit.view": "View blog audit history"
 };
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -675,6 +687,14 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
                 </span>
               </span>
               <Pill tone="default">{data.stats.pendingBonusClaims}</Pill>
+            </Link>
+          </div>
+        ) : null}
+        {can("blog.dashboard.view") ? (
+          <div className="mt-5 grid gap-2 border-t border-border pt-4">
+            <p className="px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-accent">Editorial</p>
+            <Link href="/admin/blog" className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-background">
+              <span className="flex min-w-0 items-start gap-3"><BookOpenText className="mt-0.5 size-4 shrink-0 text-accent" /><span className="min-w-0"><span className="block text-sm font-semibold text-primary">Editorial Studio</span><span className="mt-0.5 block text-xs text-muted">Review and publish teChia insights</span></span></span><ExternalLink className="mt-0.5 size-4 shrink-0 text-muted" />
             </Link>
           </div>
         ) : null}

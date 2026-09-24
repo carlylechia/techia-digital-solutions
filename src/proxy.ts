@@ -61,7 +61,17 @@ function getPreferredLocale(request: NextRequest): Locale {
 
   const acceptLanguage =
     request.headers.get("accept-language")?.toLowerCase() || "";
-  if (acceptLanguage.includes("fr")) return "fr";
+  const preferred = acceptLanguage
+    .split(",")
+    .map((part) => {
+      const [rawLanguage, ...parameters] = part.trim().split(";");
+      const qualityParameter = parameters.find((parameter) => parameter.trim().startsWith("q="));
+      const quality = qualityParameter ? Number.parseFloat(qualityParameter.trim().slice(2)) : 1;
+      return { language: rawLanguage.trim().split("-")[0], quality: Number.isFinite(quality) ? quality : 0 };
+    })
+    .filter((item) => item.language)
+    .sort((left, right) => right.quality - left.quality)[0];
+  if (preferred?.language === "fr") return "fr";
 
   return "en";
 }
@@ -83,6 +93,19 @@ export function proxy(request: NextRequest) {
   }
 
   const segments = pathname.split("/").filter(Boolean);
+  // Editorial pages need independently crawlable English and French URLs for
+  // reciprocal hreflang. Other site routes retain the language-neutral URL
+  // contract and continue through the locale redirect/rewrite below.
+  if (segments.length >= 2 && isLocale(segments[0]) && segments[1] === "blog") {
+    const response = NextResponse.next();
+    response.cookies.set("techia-locale", segments[0], {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+    return response;
+  }
+
   if (segments.length > 0 && isLocale(segments[0])) {
     const locale = segments[0];
     const localizedRemainder = pathname.slice(`/${locale}`.length) || "/";
@@ -112,6 +135,19 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
+  const locale = getPreferredLocale(request);
+  if (normalizedPath === "/blog" || normalizedPath.startsWith("/blog/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${locale}${normalizedPath}`;
+    const response = NextResponse.redirect(url, 308);
+    response.cookies.set("techia-locale", locale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+    return response;
+  }
+
   const mappedPath = legacyRouteMap[normalizedPath];
   if (
     mappedPath &&
@@ -123,7 +159,6 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
-  const locale = getPreferredLocale(request);
   const url = request.nextUrl.clone();
   url.pathname = `/${locale}${normalizedPath === "/" ? "" : normalizedPath}`;
   const response = NextResponse.rewrite(url);

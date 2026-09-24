@@ -5,6 +5,7 @@ import { ensureDefaultAdminRoles } from "@/lib/admin/bootstrap";
 import { DEFAULT_ADMIN_ROLES, normalizePermissions } from "@/lib/admin/permissions";
 import { getPrisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 
 function constantTimeEqual(left: string, right: string) {
   const leftBuffer = Buffer.from(left);
@@ -29,18 +30,21 @@ function toAuthUser(user: {
   role: string;
   roleRef: { name: string; level: number; permissions: string[] } | null;
 }): AdminAuthUser {
+  const isLegacySuperAdmin = user.role === "super_admin";
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     role: user.roleRef?.name || user.role,
-    roleLevel: user.roleRef?.level || (user.role === "super_admin" ? 100 : 70),
-    permissions: normalizePermissions(user.roleRef?.permissions || (user.role === "super_admin" ? DEFAULT_ADMIN_ROLES[0].permissions : DEFAULT_ADMIN_ROLES[1].permissions))
+    roleLevel: user.roleRef?.level || (isLegacySuperAdmin ? 100 : 0),
+    permissions: normalizePermissions(
+      user.roleRef?.permissions || (isLegacySuperAdmin ? DEFAULT_ADMIN_ROLES[0].permissions : []),
+    ),
   };
 }
 
 export const authOptions: NextAuthOptions = {
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: 8 * 60 * 60, updateAge: 60 * 60 },
   providers: [
     CredentialsProvider({
       name: "Admin credentials",
@@ -48,13 +52,15 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
         const adminPassword = process.env.ADMIN_PASSWORD_SEED;
         const email = credentials?.email?.trim().toLowerCase();
         const password = credentials?.password || "";
 
         if (!email || !password) return null;
+        const loginLimit = checkRateLimit(`staff-login:${email}:${requestIp(new Headers(request.headers as Record<string, string>))}`, 8, 15 * 60_000);
+        if (!loginLimit.ok) return null;
 
         const isBootstrapCredential =
           Boolean(adminEmail && adminPassword) &&
@@ -69,14 +75,14 @@ export const authOptions: NextAuthOptions = {
             include: { roleRef: true }
           });
 
-          if (existingUser?.status === "DISABLED") return null;
+          if (existingUser?.status !== "ACTIVE") return null;
 
           if (existingUser?.passwordHash && (await verifyPassword(password, existingUser.passwordHash))) {
             await prisma.adminUser.update({ where: { id: existingUser.id }, data: { lastLoginAt: new Date() } });
             return toAuthUser(existingUser);
           }
 
-          if (isBootstrapCredential) {
+          if (isBootstrapCredential && process.env.NODE_ENV !== "production") {
             const superRole = await prisma.adminRole.findUniqueOrThrow({ where: { name: "super_admin" } });
             const bootstrappedUser = await prisma.adminUser.upsert({
               where: { email },

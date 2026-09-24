@@ -712,3 +712,46 @@ IP addresses are SHA-256 hashed with `AI_IP_HASH_SALT` before storage — raw IP
 - Public users cannot select the AI model or override token limits.
 - All user inputs are validated with Zod before processing.
 - Raw stack traces are never returned in API responses.
+
+## Editorial blog CMS
+
+The blog now uses the existing NextAuth `AdminUser`/`AdminRole` system and the existing `BlogPost` table. The editorial migration is additive:
+
+```bash
+pnpm prisma migrate deploy
+```
+
+The public blog has independently indexable language paths:
+
+- `/en/blog` and `/fr/blog`
+- `/en/blog/:slug` and `/fr/blog/:slug`
+- `/en/blog/category/:slug` and `/fr/blog/category/:slug`
+- `/en/blog/author/:slug` and `/fr/blog/author/:slug`
+
+Neutral `/blog` URLs are compatibility redirects. CMS articles use reciprocal `hreflang`, canonical metadata, `BlogPosting`/`ProfilePage` JSON-LD, and published-only sitemap entries. Existing static starter articles remain available as a rolling-migration fallback until an editor has published the corresponding CMS version.
+
+### Editorial roles
+
+- `writer`: own drafts, own media uploads, own author profile, and review submissions only.
+- `admin`/`content_manager`: editorial review, publishing, taxonomy, and media controls according to their existing permissions.
+- `super_admin`: full existing administrative permissions.
+
+There is no public writer registration. An administrator creates an account from `/admin/blog/writers`; a temporary password is emailed and can be changed from the writer profile. Access can be deactivated or reset without exposing credentials in the dashboard.
+
+### Editorial routes
+
+- `/admin/blog` — editorial dashboard
+- `/admin/blog/posts` — review and publishing queue
+- `/admin/blog/writers` — invitations, roles, activation, and password reset
+- `/admin/blog/categories` — controlled category taxonomy
+- `/admin/blog/tags` — internal organization tags
+- `/admin/blog/media` — validated Cloudinary image library
+- `/writer` — restricted writer workspace
+
+Draft previews are authenticated and `noindex`; drafts, review submissions, scheduled posts, and archived posts are not public CMS content.
+
+### Scheduled publishing
+
+Set `CRON_SECRET` in the deployment environment. `vercel.json` invokes `/api/cron/blog/publish` hourly with a bearer secret. If the hosting plan does not permit the configured cron frequency, adjust the schedule or invoke the same authenticated route from the approved scheduler. Do not rely on an open browser timer.
+
+The migration rollback reference is in `docs/blog-cms-rollback.sql`; it is intentionally not executed automatically. Back up the database and review it against a restored copy before any rollback.

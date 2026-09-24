@@ -8,7 +8,19 @@ export const ADMIN_PERMISSIONS = [
   "processes.manage",
   "requests.manage",
   "settings.manage",
-  "audit.view"
+  "audit.view",
+  "blog.dashboard.view",
+  "blog.posts.create",
+  "blog.posts.edit.own",
+  "blog.posts.submit.own",
+  "blog.media.upload",
+  "blog.profile.edit.own",
+  "blog.posts.manage",
+  "blog.posts.publish",
+  "blog.writers.manage",
+  "blog.categories.manage",
+  "blog.media.manage",
+  "blog.audit.view"
 ] as const;
 
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
@@ -21,20 +33,46 @@ export type AdminRoleSeed = {
   permissions: AdminPermission[];
 };
 
+export const BLOG_WRITER_PERMISSIONS: AdminPermission[] = [
+  "blog.dashboard.view",
+  "blog.posts.create",
+  "blog.posts.edit.own",
+  "blog.posts.submit.own",
+  "blog.media.upload",
+  "blog.profile.edit.own"
+];
+
 export const DEFAULT_ADMIN_ROLES: AdminRoleSeed[] = [
   {
     name: "super_admin",
     label: "Super Admin",
-    description: "Full ownership of admins, roles, clients, content, processes, requests, settings, and audit history.",
+    description: "Full ownership of admins, roles, clients, content, editorial publishing, processes, requests, settings, and audit history.",
     level: 100,
     permissions: [...ADMIN_PERMISSIONS]
   },
   {
     name: "admin",
     label: "Admin",
-    description: "Runs the business workspace and can create/manage lower-level operational roles.",
+    description: "Runs the business workspace and can manage editorial publishing and lower-level operational roles.",
     level: 70,
-    permissions: ["dashboard.view", "admins.manage", "roles.manage", "clients.manage", "projects.manage", "content.manage", "processes.manage", "requests.manage", "audit.view"]
+    permissions: [
+      "dashboard.view",
+      "admins.manage",
+      "roles.manage",
+      "clients.manage",
+      "projects.manage",
+      "content.manage",
+      "processes.manage",
+      "requests.manage",
+      "audit.view",
+      ...BLOG_WRITER_PERMISSIONS,
+      "blog.posts.manage",
+      "blog.posts.publish",
+      "blog.writers.manage",
+      "blog.categories.manage",
+      "blog.media.manage",
+      "blog.audit.view"
+    ]
   },
   {
     name: "operations_manager",
@@ -46,9 +84,18 @@ export const DEFAULT_ADMIN_ROLES: AdminRoleSeed[] = [
   {
     name: "content_manager",
     label: "Content Manager",
-    description: "Maintains page content and locale translations.",
+    description: "Manages public content, editorial review, publishing, categories, and media without access to writer accounts.",
     level: 45,
-    permissions: ["dashboard.view", "content.manage"]
+    permissions: [
+      "dashboard.view",
+      "content.manage",
+      ...BLOG_WRITER_PERMISSIONS,
+      "blog.posts.manage",
+      "blog.posts.publish",
+      "blog.categories.manage",
+      "blog.media.manage",
+      "blog.audit.view"
+    ]
   },
   {
     name: "sales_manager",
@@ -56,6 +103,13 @@ export const DEFAULT_ADMIN_ROLES: AdminRoleSeed[] = [
     description: "Manages leads, client records, and project opportunities.",
     level: 45,
     permissions: ["dashboard.view", "clients.manage", "projects.manage", "requests.manage"]
+  },
+  {
+    name: "writer",
+    label: "Writer",
+    description: "Creates and manages only their own drafts, media, author profile, and review submissions.",
+    level: 20,
+    permissions: BLOG_WRITER_PERMISSIONS
   },
   {
     name: "viewer",

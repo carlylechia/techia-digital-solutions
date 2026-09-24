@@ -542,9 +542,9 @@ async function main() {
 
   for (const post of dictionaries.en.blog) {
     await prisma.blogPost.upsert({
-      where: { slug: post.slug },
-      update: { title: post.title, excerpt: post.description, content: post.description, locale: "en" },
-      create: { slug: post.slug, title: post.title, excerpt: post.description, content: post.description, locale: "en" }
+      where: { locale_slug: { locale: "en", slug: post.slug } },
+      update: {},
+      create: { slug: post.slug, title: post.title, excerpt: post.description, content: post.description, contentText: post.description, locale: "en", status: "DRAFT", published: false, version: 1, readingTime: 1 }
     });
   }
 

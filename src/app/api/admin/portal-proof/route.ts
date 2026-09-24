@@ -21,7 +21,7 @@ import { parseCloudinaryUrl, getCloudinaryPrivateDownloadUrl } from "@/lib/cloud
  */
 export async function GET(request: NextRequest) {
   try {
-    await requireAdmin();
+    await requireAdmin("clients.manage");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -52,8 +52,7 @@ export async function GET(request: NextRequest) {
   const parsed = parseCloudinaryUrl(invoice.proofOfPaymentUrl);
 
   if (!parsed) {
-    // Not a Cloudinary URL (e.g. direct S3 or other storage) — redirect as-is.
-    return NextResponse.redirect(invoice.proofOfPaymentUrl, { status: 302 });
+    return NextResponse.json({ error: "Proof storage is not configured securely" }, { status: 404, headers: { "Cache-Control": "private, no-store" } });
   }
 
   // Generate a signed, time-limited download URL that bypasses Cloudinary
@@ -65,9 +64,10 @@ export async function GET(request: NextRequest) {
   );
 
   if (!signedUrl) {
-    // Cloudinary not configured (local dev without credentials) — fallback to raw URL.
-    return NextResponse.redirect(invoice.proofOfPaymentUrl, { status: 302 });
+    return NextResponse.json({ error: "Proof storage is not configured securely" }, { status: 404, headers: { "Cache-Control": "private, no-store" } });
   }
 
-  return NextResponse.redirect(signedUrl, { status: 302 });
+  const response = NextResponse.redirect(signedUrl, { status: 302 });
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
 }

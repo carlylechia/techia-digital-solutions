@@ -9,6 +9,7 @@ import {
 } from "@/content/site";
 import { Logo } from "@/components/brand/Logo";
 import { NewsletterForm } from "@/components/forms/newsletter-form";
+import { getBlogIndexPath } from "@/lib/blog/slug";
 
 export function SiteFooter({ locale }: { locale: Locale }) {
   const dict = getDictionary(locale);
@@ -58,6 +59,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
         ],
         [dict.nav.demoLab, "/demo-lab"],
         [dict.nav.pricing, "/pricing"],
+        [dict.nav.blog, "/blog"],
         [dict.nav.aiConsultant, "/ai-consultant"],
         [dict.nav.contact, "/contact"],
       ],
@@ -147,7 +149,9 @@ export function SiteFooter({ locale }: { locale: Locale }) {
                       href={
                         href.startsWith("/client-portal")
                           ? href
-                          : getLocalizedHref(locale, href)
+                          : href === "/blog"
+                            ? getBlogIndexPath(locale)
+                            : getLocalizedHref(locale, href)
                       }
                       className="footer-link inline-flex"
                     >

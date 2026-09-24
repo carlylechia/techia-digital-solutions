@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   AILeadConvertForm,
   AILeadEmailForm,
@@ -11,6 +11,7 @@ import { Logo } from "@/components/brand/Logo";
 import { isLocale, type Locale } from "@/content/site";
 import { authOptions } from "@/lib/auth";
 import { getPrisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/admin/session";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +77,12 @@ export default async function AILeadDetailPage({
         <AdminLoginForm locale={locale} />
       </main>
     );
+  }
+
+  try {
+    await requireAdmin("requests.manage");
+  } catch {
+    redirect("/admin");
   }
 
   const prisma = getPrisma();

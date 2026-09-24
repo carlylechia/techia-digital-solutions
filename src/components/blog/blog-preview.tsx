@@ -1,0 +1,13 @@
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowLeft, Clock3, Eye } from "lucide-react";
+import { ArticleBody } from "./article-body";
+import { BlogBreadcrumbs } from "./blog-breadcrumbs";
+import { BlogCta } from "./blog-cta";
+import { type BlogLocale } from "@/lib/blog/slug";
+
+type PreviewPost = { title: string; slug: string; excerpt: string; content: string; locale: BlogLocale; status: string; featuredImageUrl: string | null; featuredImageAlt: string | null; readingTime: number; category: { name: string; slug: string } | null; author: { displayName: string; slug: string; jobTitle: string | null; imageUrl: string | null } | null; ctaTitle: string | null; ctaDescription: string | null; ctaHref: string | null; ctaLabel: string | null };
+
+export function BlogPreview({ locale, post, backHref }: { locale: BlogLocale; post: PreviewPost; backHref: string }) {
+  return <main className="min-h-screen bg-background pb-20 text-primary"><div className="border-b border-amber-400/20 bg-amber-400/5 px-4 py-3 text-center text-sm text-amber-200"><Eye className="mr-2 inline size-4" />Secure preview · This draft is not public or indexable.</div><div className="container pt-6 sm:pt-10"><BlogBreadcrumbs locale={locale} items={[{ label: "Editorial preview", href: backHref }, { label: post.category?.name || "Article" }, { label: post.title }]} /><article className="mx-auto max-w-4xl py-8 sm:py-12"><header><p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{post.category?.name || "teChia insight"}</p><h1 className="mt-4 text-balance text-4xl font-semibold tracking-tight sm:text-6xl">{post.title || "Untitled article"}</h1><p className="mt-5 text-lg leading-8 text-muted">{post.excerpt}</p><div className="mt-6 flex flex-wrap items-center gap-4 border-y border-border py-4 text-xs text-muted"><span className="inline-flex items-center gap-1.5"><Clock3 className="size-3.5" />{post.readingTime} min read</span>{post.author ? <span>By {post.author.displayName}{post.author.jobTitle ? ` · ${post.author.jobTitle}` : ""}</span> : null}<span className="status-pill">{post.status.replaceAll("_", " ")}</span></div></header>{post.featuredImageUrl ? <Image src={post.featuredImageUrl} alt={post.featuredImageAlt || post.title} width={1600} height={900} className="mt-8 h-auto w-full rounded-[2rem] object-cover" /> : null}<div className="mx-auto mt-10 max-w-3xl"><ArticleBody html={post.content} /><BlogCta locale={locale} title={post.ctaTitle} description={post.ctaDescription} href={post.ctaHref} label={post.ctaLabel} /><Link href={backHref} className="inline-flex items-center gap-2 text-sm font-semibold text-accent hover:underline"><ArrowLeft className="size-4" />Back to editor</Link></div></article></div></main>;
+}
