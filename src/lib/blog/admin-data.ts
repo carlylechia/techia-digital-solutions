@@ -100,6 +100,10 @@ export async function getBlogCategories(locale: BlogLocale) {
   return db().blogCategory.findMany({ where: { locale }, select: { id: true, name: true, slug: true, description: true, locale: true, seoTitle: true, seoDescription: true, isActive: true, _count: { select: { posts: true } } }, orderBy: { name: "asc" } });
 }
 
+export async function getBlogAuthors() {
+  return db().blogAuthor.findMany({ select: { id: true, displayName: true, slug: true, userId: true, isActive: true }, orderBy: { displayName: "asc" } });
+}
+
 export async function getBlogTags(locale: BlogLocale) {
   return db().blogTag.findMany({ where: { locale }, select: { id: true, name: true, slug: true, _count: { select: { posts: true } } }, orderBy: { name: "asc" } });
 }

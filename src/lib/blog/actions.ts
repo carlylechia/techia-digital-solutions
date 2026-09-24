@@ -13,7 +13,7 @@ import { blogAuthorProfileSchema, blogCategorySchema, blogMediaMetadataSchema, b
 import { BlogConflictError, BlogPublicationError, createBlogPost, deleteUnpublishedBlogPost, invalidateBlogCache, transitionBlogPost, updateBlogPost } from "./service";
 import { slugify } from "./slug";
 
-export type BlogActionResult = { ok: true; message: string; id?: string; version?: number } | { ok: false; error: string; issues?: Array<{ field: string; message: string; severity: "error" | "warning" }> };
+export type BlogActionResult = { ok: true; message: string; id?: string; version?: number; issues?: Array<{ field: string; message: string; severity: "error" | "warning" }> } | { ok: false; error: string; issues?: Array<{ field: string; message: string; severity: "error" | "warning" }> };
 
 function value(formData: FormData, key: string) {
   const entry = formData.get(key);
@@ -105,7 +105,7 @@ export async function transitionBlogPostAction(formData: FormData): Promise<Blog
     });
     const scheduledAt = raw.scheduledAt ? new Date(raw.scheduledAt) : null;
     const post = await transitionBlogPost({ actor, postId: raw.postId, action: raw.action, version: raw.version, scheduledAt, reviewNote: raw.reviewNote });
-    return { ok: true, id: post.id, version: post.version, message: "Editorial status updated." };
+    return { ok: true, id: post.id, version: post.version, message: "Editorial status updated.", issues: post.publicationIssues };
   } catch (error) {
     return messageFromError(error);
   }

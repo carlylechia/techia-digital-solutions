@@ -137,6 +137,8 @@ export function getSeoIssues(input: {
   const plainText = htmlToPlainText(input.content);
   const words = plainText.split(/\s+/).filter(Boolean).length;
 
+  if (!plainText) issues.push({ field: "content", message: "Add readable article text before publishing.", severity: "error" });
+
   if (title.length > 60) issues.push({ field: "seoTitle", message: "Keep the SEO title at 60 characters or fewer.", severity: "warning" });
   if (title.length < 25) issues.push({ field: "seoTitle", message: "Use a more descriptive SEO title.", severity: "warning" });
   if (description.length > 160) issues.push({ field: "seoDescription", message: "Keep the meta description at 160 characters or fewer.", severity: "warning" });

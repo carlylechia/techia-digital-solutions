@@ -9,7 +9,7 @@ import type { BlogSessionUser } from "./auth";
 import { type BlogPostStatusValue, type BlogWorkflowAction } from "./constants";
 import { normalizeCanonicalUrl, normalizeCtaHref, slugify, type BlogLocale } from "./slug";
 import { countArticleInternalLinks } from "./sanitize";
-import { prepareBlogPostPayload, getSeoIssues } from "./validation";
+import { prepareBlogPostPayload, getSeoIssues, type SeoIssue } from "./validation";
 import { canEditBlogPost, canTransitionBlogPost } from "./authorization";
 import { assertWorkflowTransition, statusForAction } from "./workflow";
 
@@ -24,7 +24,8 @@ export class BlogPublicationError extends Error {
   readonly issues: ReturnType<typeof getSeoIssues>;
 
   constructor(issues: ReturnType<typeof getSeoIssues>) {
-    const details = issues.map((issue) => `${issue.field}: ${issue.message}`).join(" ");
+    const blockingIssues = issues.filter((issue) => issue.severity === "error");
+    const details = blockingIssues.map((issue) => `${issue.field}: ${issue.message}`).join(" ");
     super(details ? `Publishing is blocked. ${details}` : "Publishing is blocked. Fix the listed article requirements before trying again.");
     this.name = "BlogPublicationError";
     this.issues = issues;
@@ -343,7 +344,7 @@ async function assertPublicationReady(prisma: PrismaClient, postId: string) {
     select: { id: true },
   });
   if (duplicate) throw new BlogPublicationError([{ field: "title", message: "A published article already uses this title in this language.", severity: "error" }]);
-  return post;
+  return issues.filter((issue) => issue.severity === "warning");
 }
 
 export async function transitionBlogPost(input: {
@@ -377,7 +378,10 @@ export async function transitionBlogPost(input: {
     scheduledAt: input.scheduledAt,
   });
 
-  if (input.action === "PUBLISH") await assertPublicationReady(prisma, post.id);
+  let publicationIssues: SeoIssue[] = [];
+  if (input.action === "PUBLISH" || input.action === "SCHEDULE") {
+    publicationIssues = await assertPublicationReady(prisma, post.id);
+  }
 
   const nextStatus = statusForAction(input.action);
   const now = new Date();
@@ -439,7 +443,7 @@ export async function transitionBlogPost(input: {
   });
   revalidatePath("/admin/blog");
   revalidatePath("/writer");
-  return updated;
+  return Object.assign(updated, { publicationIssues });
 }
 
 export async function deleteUnpublishedBlogPost(actor: BlogSessionUser, postId: string) {

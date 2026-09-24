@@ -1,4 +1,4 @@
-const HTML_TAG_PATTERN = /<\s*\/?\s*(?:a|article|blockquote|br|code|del|div|em|figcaption|figure|h[1-6]|hr|i|img|li|ol|p|pre|s|section|span|strong|table|tbody|td|th|thead|tr|ul|b)\b[^>]*>/i;
+const HTML_TAG_PATTERN = /<\s*\/?\s*(?:a|article|blockquote|br|code|del|div|em|embed|figcaption|figure|h[1-6]|hr|i|iframe|img|li|noscript|ol|object|p|pre|s|script|section|span|style|strong|table|tbody|td|th|thead|template|tr|ul|b)\b[^>]*>/i;
 
 function escapeHtml(value: string) {
   return value

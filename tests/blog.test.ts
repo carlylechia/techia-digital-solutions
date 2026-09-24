@@ -122,6 +122,17 @@ const post = {
     expect(countArticleInternalLinks(html)).toBe(1);
   });
 
+  it("rejects content that sanitizes to no readable text", () => {
+    const issues = getSeoIssues({ title: post.title, excerpt: post.excerpt, content: "<script>alert(1)</script>", featuredImageUrl: null, featuredImageAlt: null, hasAuthor: true, hasCategory: true, internalLinkCount: 1 });
+    expect(issues.some((issue) => issue.field === "content" && issue.severity === "error")).toBe(true);
+  });
+
+  it("allows a complete article to publish with only optional recommendations", () => {
+    const content = `<p>${Array.from({ length: 250 }, () => "word").join(" ")} <a href="/contact">Contact</a></p>`;
+    const issues = getSeoIssues({ title: "A complete and useful article title", excerpt: post.excerpt, content, featuredImageUrl: "https://res.cloudinary.com/demo/image/upload/a.jpg", featuredImageAlt: "A useful chart", hasAuthor: true, hasCategory: true, internalLinkCount: 1 });
+    expect(issues.some((issue) => issue.severity === "error")).toBe(false);
+  });
+
   it("creates stable localized public paths and safe slugs", () => {
     expect(slugify("  Digital Transformation & AI  ")).toBe("digital-transformation-and-ai");
     expect(getBlogPostPath("fr", "article-safe")).toBe("/fr/blog/article-safe");
