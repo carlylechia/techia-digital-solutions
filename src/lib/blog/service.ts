@@ -24,7 +24,8 @@ export class BlogPublicationError extends Error {
   readonly issues: ReturnType<typeof getSeoIssues>;
 
   constructor(issues: ReturnType<typeof getSeoIssues>) {
-    super("The article is not ready to publish.");
+    const details = issues.map((issue) => `${issue.field}: ${issue.message}`).join(" ");
+    super(details ? `Publishing is blocked. ${details}` : "Publishing is blocked. Fix the listed article requirements before trying again.");
     this.name = "BlogPublicationError";
     this.issues = issues;
   }

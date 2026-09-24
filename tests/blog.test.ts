@@ -146,6 +146,7 @@ const post = {
     const issues = getSeoIssues({ title: post.title, excerpt: post.excerpt, content: "<p>Too short</p>", featuredImageUrl: null, featuredImageAlt: null, hasAuthor: false, hasCategory: false, internalLinkCount: 0 });
     expect(issues.some((issue) => issue.field === "authorId" && issue.severity === "error")).toBe(true);
     expect(issues.some((issue) => issue.field === "categoryId" && issue.severity === "error")).toBe(true);
-    expect(issues.some((issue) => issue.field === "content" && issue.severity === "error")).toBe(true);
+    expect(issues.some((issue) => issue.field === "content" && issue.severity === "warning")).toBe(true);
+    expect(issues.some((issue) => issue.field === "featuredImageUrl" && issue.severity === "warning")).toBe(true);
   });
 });

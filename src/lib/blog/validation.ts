@@ -143,10 +143,10 @@ export function getSeoIssues(input: {
   if (description.length < 110) issues.push({ field: "seoDescription", message: "Aim for a focused meta description between 110 and 160 characters.", severity: "warning" });
   if (!input.hasAuthor) issues.push({ field: "authorId", message: "Assign an active author before publishing.", severity: "error" });
   if (!input.hasCategory) issues.push({ field: "categoryId", message: "Choose a category before publishing.", severity: "error" });
-  if (!input.featuredImageUrl) issues.push({ field: "featuredImageUrl", message: "Add a featured image before publishing.", severity: "error" });
-  if (input.featuredImageUrl && !input.featuredImageAlt?.trim()) issues.push({ field: "featuredImageAlt", message: "Describe the featured image for accessibility and image search.", severity: "error" });
-  if (words < 250) issues.push({ field: "content", message: "Aim for at least 250 useful words before publishing.", severity: "error" });
-  if (input.internalLinkCount < 1) issues.push({ field: "content", message: "Add at least one relevant link to a teChia service or resource.", severity: "error" });
+  if (!input.featuredImageUrl) issues.push({ field: "featuredImageUrl", message: "Add a featured image when available; it improves social sharing and article presentation.", severity: "warning" });
+  if (input.featuredImageUrl && !input.featuredImageAlt?.trim()) issues.push({ field: "featuredImageAlt", message: "Describe the featured image for accessibility and image search.", severity: "warning" });
+  if (words < 250) issues.push({ field: "content", message: "Consider expanding the article to at least 250 useful words for readers and search visibility.", severity: "warning" });
+  if (input.internalLinkCount < 1) issues.push({ field: "content", message: "Consider adding at least one relevant link to a teChia service or resource.", severity: "warning" });
   if (input.internalLinkCount > 0 && input.internalLinkCount > 12) issues.push({ field: "content", message: "Review the number of internal links; over-linking can reduce readability.", severity: "warning" });
 
   return issues;
