@@ -44,8 +44,16 @@ export default async function BlogPostPage({ params }: { params: Params }) {
   const post = await getPublishedPost(locale, slug);
   if (post) {
     const [related, adjacent] = await Promise.all([
-      getRelatedPosts(post),
-      post.publishedAt ? getAdjacentPosts(locale, post.publishedAt, post.id) : Promise.resolve({ previous: null, next: null }),
+      getRelatedPosts(post).catch((error) => {
+        console.error("blog_related_posts_failed", { slug: post.slug, message: error instanceof Error ? error.message : "Unknown error" });
+        return [];
+      }),
+      post.publishedAt
+        ? getAdjacentPosts(locale, post.publishedAt, post.id).catch((error) => {
+            console.error("blog_adjacent_posts_failed", { slug: post.slug, message: error instanceof Error ? error.message : "Unknown error" });
+            return { previous: null, next: null };
+          })
+        : Promise.resolve({ previous: null, next: null }),
     ]);
     return <BlogArticle locale={locale as Locale} post={post} related={related} adjacent={adjacent} />;
   }

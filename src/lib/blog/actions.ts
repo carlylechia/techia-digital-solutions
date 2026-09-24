@@ -130,7 +130,7 @@ export async function createBlogTagAction(formData: FormData): Promise<BlogActio
     const tag = await prisma.blogTag.create({ data });
     await writeAuditLog({ actorId: actor.id, action: "blog.tag_created", entityType: "BlogTag", entityId: tag.id, metadata: { locale: tag.locale, slug: tag.slug } });
     invalidateBlogCache();
-    revalidatePath("/admin/blog/tags");
+    revalidatePath(`/${data.locale}/admin/blog/tags`);
     return { ok: true, id: tag.id, message: "Tag created." };
   } catch (error) {
     return messageFromError(error);
@@ -157,7 +157,7 @@ export async function saveBlogCategoryAction(formData: FormData): Promise<BlogAc
       : await prisma.blogCategory.create({ data: { name: data.name, slug: data.slug, description: data.description || null, locale: data.locale, seoTitle: data.seoTitle || null, seoDescription: data.seoDescription || null, isActive: data.isActive } });
     await writeAuditLog({ actorId: actor.id, action: data.id ? "blog.category_updated" : "blog.category_created", entityType: "BlogCategory", entityId: category.id, metadata: { locale: category.locale, slug: category.slug } });
     invalidateBlogCache();
-    revalidatePath("/admin/blog/categories");
+    revalidatePath(`/${category.locale}/admin/blog/categories`);
     revalidatePath(`/${category.locale}/blog/category/${category.slug}`);
     return { ok: true, id: category.id, message: "Category saved." };
   } catch (error) {
@@ -173,7 +173,7 @@ export async function deactivateBlogCategoryAction(formData: FormData): Promise<
     const id = value(formData, "id");
     const category = await prisma.blogCategory.update({ where: { id }, data: { isActive: false } });
     await writeAuditLog({ actorId: actor.id, action: "blog.category_deactivated", entityType: "BlogCategory", entityId: id, metadata: { slug: category.slug } });
-    revalidatePath("/admin/blog/categories");
+    revalidatePath(`/${category.locale}/admin/blog/categories`);
     return { ok: true, id, message: "Category deactivated." };
   } catch (error) {
     return messageFromError(error);

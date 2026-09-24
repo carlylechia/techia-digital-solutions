@@ -1,6 +1,7 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
+import { getDictionary } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
 import { BLOG_PAGE_SIZE, type BlogLocale } from "./constants";
 
@@ -203,38 +204,79 @@ const queryPublishedPost = unstable_cache(
 const queryPublishedPostUncached = async (locale: BlogLocale, slug: string) => {
   const prisma = getPrisma();
   if (!prisma) return null;
-  return prisma.blogPost.findFirst({
+  const post = await prisma.blogPost.findFirst({
     where: { locale, slug, status: "PUBLISHED", publishedAt: { lte: new Date() }, author: { isActive: true }, category: { isActive: true } },
-    select: {
-      ...publicPostSelect,
-      translationGroup: {
-        select: {
-          posts: {
-            where: { status: "PUBLISHED", publishedAt: { lte: new Date() } },
-            select: { locale: true, slug: true },
-          },
+    select: publicPostSelect,
+  });
+  if (!post) return null;
+  if (!post.translationGroupId) return { ...post, translationGroup: null };
+
+  try {
+    const translationGroup = await prisma.blogTranslationGroup.findUnique({
+      where: { id: post.translationGroupId },
+      select: {
+        posts: {
+          where: { status: "PUBLISHED", publishedAt: { lte: new Date() } },
+          select: { locale: true, slug: true },
         },
       },
-    },
-  });
+    });
+    return { ...post, translationGroup };
+  } catch (error) {
+    console.error("blog_translation_group_query_failed", { postId: post.id, message: error instanceof Error ? error.message : "Unknown error" });
+    return { ...post, translationGroup: null };
+  }
 };
 
 export const getPublishedPost = queryPublishedPost;
+
+async function getLegacyCanonicalSlug(locale: BlogLocale, slug: string) {
+  const legacy = getDictionary(locale).blog.find((item) => item.slug === slug);
+  if (!legacy) return null;
+  const prisma = getPrisma();
+  if (!prisma) return null;
+  const variants = [slug, ...Array.from({ length: 50 }, (_, index) => `${slug}-${index + 2}`)];
+  try {
+    const candidate = await prisma.blogPost.findFirst({
+      where: {
+        locale,
+        status: "PUBLISHED",
+        publishedAt: { lte: new Date() },
+        author: { isActive: true },
+        category: { isActive: true },
+        OR: [
+          { title: { equals: legacy.title, mode: "insensitive" } },
+          { slug: { in: variants } },
+        ],
+      },
+      orderBy: [{ publishedAt: "desc" }, { updatedAt: "desc" }],
+      select: { slug: true },
+    });
+    return candidate && candidate.slug !== slug ? candidate.slug : null;
+  } catch (error) {
+    console.error("blog_legacy_canonical_query_failed", { locale, slug, message: error instanceof Error ? error.message : "Unknown error" });
+    return null;
+  }
+}
 
 export async function getPublishedPostRedirect(locale: BlogLocale, slug: string) {
   const prisma = getPrisma();
   if (!prisma) return null;
   try {
     const redirect = await prisma.blogSlugRedirect.findUnique({
-    where: { locale_slug: { locale, slug } },
-      select: { targetSlug: true, post: { select: { slug: true, locale: true, status: true, publishedAt: true } } },
+      where: { locale_slug: { locale, slug } },
+      select: {
+        targetSlug: true,
+        post: { select: { slug: true, locale: true, status: true, publishedAt: true, author: { select: { isActive: true } }, category: { select: { isActive: true } } } },
+      },
     });
-    if (!redirect?.post || redirect.post.status !== "PUBLISHED" || !redirect.post.publishedAt || redirect.post.publishedAt > new Date()) return null;
-    return redirect.targetSlug;
+    if (redirect?.post && redirect.post.locale === locale && redirect.post.status === "PUBLISHED" && redirect.post.publishedAt && redirect.post.publishedAt <= new Date() && redirect.post.author?.isActive && redirect.post.category?.isActive && redirect.targetSlug !== slug) {
+      return redirect.targetSlug;
+    }
   } catch (error) {
-    if (isBlogSchemaUnavailable(error)) return null;
-    throw error;
+    if (!isBlogSchemaUnavailable(error)) console.error("blog_slug_redirect_query_failed", { locale, slug, message: error instanceof Error ? error.message : "Unknown error" });
   }
+  return getLegacyCanonicalSlug(locale, slug);
 }
 
 const queryRelatedPosts = unstable_cache(
@@ -258,14 +300,16 @@ const queryRelatedPosts = unstable_cache(
     if (manual.length >= 3) return manual;
 
     const manualIds = new Set(manual.map((item) => item.id));
+    const automaticFilters = [
+      ...(post.categoryId ? [{ categoryId: post.categoryId }] : []),
+      ...(tagIds.length ? [{ tags: { some: { tagId: { in: tagIds } } } }] : []),
+    ];
+    if (!automaticFilters.length) return manual;
     const automatic = await prisma.blogPost.findMany({
       where: {
         id: { notIn: [post.id, ...manualIds] },
         ...languageAndPublished,
-        OR: [
-          ...(post.categoryId ? [{ categoryId: post.categoryId }] : []),
-          ...(tagIds.length ? [{ tags: { some: { tagId: { in: tagIds } } } }] : []),
-        ],
+        OR: automaticFilters,
       },
       select: publicCardSelect,
       orderBy: [{ categoryId: { sort: "desc", nulls: "last" } }, { publishedAt: "desc" }],

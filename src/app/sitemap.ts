@@ -7,6 +7,14 @@ import { getBlogAuthorPath, getBlogCategoryPath, getBlogIndexPath, getBlogPostPa
 
 export const revalidate = 300;
 
+function isCmsReplacementSlug(staticSlug: string, locale: BlogLocale, post: { locale: string; slug: string }) {
+  if (post.locale !== locale || post.slug === staticSlug) return false;
+  const prefix = `${staticSlug}-`;
+  if (!post.slug.startsWith(prefix)) return false;
+  const suffix = post.slug.slice(prefix.length);
+  return /^\d+$/.test(suffix) && Number(suffix) >= 2;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
   const base = [
@@ -46,17 +54,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  const localizedBlog: MetadataRoute.Sitemap = [
+  const blogIndexEntries: MetadataRoute.Sitemap = [
     { url: `${siteConfig.url}${getBlogIndexPath("en")}`, lastModified, changeFrequency: "weekly", priority: 0.8 },
     { url: `${siteConfig.url}${getBlogIndexPath("fr")}`, lastModified, changeFrequency: "weekly", priority: 0.8 },
-    ...dictionaries.en.blog.map((item) => ({ url: `${siteConfig.url}/en/blog/${item.slug}`, lastModified, changeFrequency: "monthly" as const, priority: 0.6 })),
-    ...dictionaries.fr.blog.map((item) => ({ url: `${siteConfig.url}/fr/blog/${item.slug}`, lastModified, changeFrequency: "monthly" as const, priority: 0.6 })),
   ];
   const cmsEntries: MetadataRoute.Sitemap = [];
   const seen = new Set<string>();
+  let cmsPosts: Awaited<ReturnType<typeof getSitemapPosts>> = [];
   try {
-    const posts = await getSitemapPosts();
-    for (const post of posts) {
+    cmsPosts = await getSitemapPosts();
+    for (const post of cmsPosts) {
       const locale = post.locale as BlogLocale;
       if (post.canonicalUrl) {
         try {
@@ -88,6 +95,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Sitemap remains useful during a rolling migration or temporary DB issue;
     // the editorial application surfaces the database error to authenticated users.
   }
+
+  const localizedBlog: MetadataRoute.Sitemap = [
+    ...blogIndexEntries,
+    ...dictionaries.en.blog
+      .filter((item) => !cmsPosts.some((post) => isCmsReplacementSlug(item.slug, "en", post)))
+      .map((item) => ({ url: `${siteConfig.url}/en/blog/${item.slug}`, lastModified, changeFrequency: "monthly" as const, priority: 0.6 })),
+    ...dictionaries.fr.blog
+      .filter((item) => !cmsPosts.some((post) => isCmsReplacementSlug(item.slug, "fr", post)))
+      .map((item) => ({ url: `${siteConfig.url}/fr/blog/${item.slug}`, lastModified, changeFrequency: "monthly" as const, priority: 0.6 })),
+  ];
 
   return [
     { url: `${siteConfig.url}/`, lastModified, changeFrequency: "weekly", priority: 1 },

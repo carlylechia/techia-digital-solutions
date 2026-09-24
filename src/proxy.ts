@@ -94,9 +94,13 @@ export function proxy(request: NextRequest) {
 
   const segments = pathname.split("/").filter(Boolean);
   // Editorial pages need independently crawlable English and French URLs for
-  // reciprocal hreflang. Other site routes retain the language-neutral URL
-  // contract and continue through the locale redirect/rewrite below.
-  if (segments.length >= 2 && isLocale(segments[0]) && segments[1] === "blog") {
+  // reciprocal hreflang. Admin and writer workspaces are also real App Router
+  // paths and must not be stripped to a neutral path that does not exist.
+  if (
+    segments.length >= 2 &&
+    isLocale(segments[0]) &&
+    ["blog", "admin", "writer"].includes(segments[1])
+  ) {
     const response = NextResponse.next();
     response.cookies.set("techia-locale", segments[0], {
       path: "/",
