@@ -136,14 +136,14 @@ export function BlogPostEditor({
       data.set("version", String(form.version));
       try {
         const response = await fetch(`/api/editorial/posts/${encodeURIComponent(form.id)}`, { method: "PATCH", body: data, credentials: "same-origin" });
-        const result = (await response.json()) as { ok: boolean; version?: number; error?: string };
+        const result = (await response.json()) as { ok: boolean; slug?: string; version?: number; error?: string };
         if (requestId !== latestRequest.current) return;
         if (!response.ok || !result.ok) {
           setSaveState("failed");
           setStatusMessage({ kind: "error", text: result.error || "Save failed. Reload before trying again." });
           return;
         }
-        if (result.version) setForm((current) => ({ ...current, version: result.version as number }));
+        if (result.slug || result.version) setForm((current) => ({ ...current, ...(result.slug ? { slug: result.slug } : {}), ...(result.version ? { version: result.version } : {}) }));
         setSaveState("saved");
       } catch {
         if (requestId === latestRequest.current) {
@@ -196,7 +196,7 @@ export function BlogPostEditor({
       window.location.assign(canManage ? `/${locale}/admin/blog/posts/${result.id}` : `/${locale}/writer/posts/${result.id}`);
       return;
     }
-    if (result.version) setForm((current) => ({ ...current, version: result.version as number }));
+    if (result.slug || result.version) setForm((current) => ({ ...current, ...(result.slug ? { slug: result.slug } : {}), ...(result.version ? { version: result.version } : {}) }));
     setSaveState("saved");
     setStatusMessage({ kind: "success", text: result.message, issues: result.issues });
   }
@@ -229,7 +229,7 @@ export function BlogPostEditor({
         setStatusMessage({ kind: "error", text: result.error, issues: result.issues });
         return;
       }
-      if (result.version) setForm((current) => ({ ...current, version: result.version as number, status: action === "SUBMIT" ? "IN_REVIEW" : action === "PUBLISH" ? "PUBLISHED" : action === "SCHEDULE" ? "SCHEDULED" : action === "REQUEST_CHANGES" ? "CHANGES_REQUESTED" : action === "ARCHIVE" ? "ARCHIVED" : "DRAFT" }));
+      if (result.slug || result.version) setForm((current) => ({ ...current, ...(result.slug ? { slug: result.slug } : {}), ...(result.version ? { version: result.version } : {}), status: action === "SUBMIT" ? "IN_REVIEW" : action === "PUBLISH" ? "PUBLISHED" : action === "SCHEDULE" ? "SCHEDULED" : action === "REQUEST_CHANGES" ? "CHANGES_REQUESTED" : action === "ARCHIVE" ? "ARCHIVED" : "DRAFT" }));
       setStatusMessage({ kind: "success", text: result.message, issues: result.issues });
       setSaveState("saved");
     });
@@ -246,7 +246,7 @@ export function BlogPostEditor({
           <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="eyebrow">Article editor</p><h2 id="editor-basics-title" className="mt-2 text-2xl font-semibold text-primary">Story foundations</h2></div><span className="status-pill">{form.status.replaceAll("_", " ")}</span></div>
           <label className="form-label">Title<input id="editor-title" className={inputClass} name="title" value={form.title} onChange={(event) => update("title", event.target.value)} disabled={!editable} required minLength={5} maxLength={180} /></label>
           <div className="grid gap-5 md:grid-cols-[1fr_15rem]">
-            <label className="form-label">URL slug<input className={inputClass} name="slug" value={form.slug} onChange={(event) => updateSlug(event.target.value)} disabled={!editable} required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" /></label>
+            <label className="form-label">URL slug<input className={inputClass} name="slug" value={form.slug} onChange={(event) => updateSlug(event.target.value)} disabled={!editable || form.status === "PUBLISHED"} required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" /><span className="text-xs text-muted">{form.status === "PUBLISHED" ? "Published URLs stay stable when you edit and republish." : "Use a permanent, lowercase, URL-safe slug."}</span></label>
             <label className="form-label">Language<select className={inputClass} name="localeSelect" value={form.locale} onChange={(event) => update("locale", event.target.value as BlogLocale)} disabled={!isNew || !editable}><option value="en">English</option><option value="fr">Français</option></select><input type="hidden" name="locale" value={form.locale} /></label>
           </div>
           <label className="form-label">Excerpt / summary<textarea className={`${inputClass} min-h-28`} name="excerpt" value={form.excerpt} onChange={(event) => update("excerpt", event.target.value)} disabled={!editable} required minLength={30} maxLength={320} /><span className="text-xs text-muted">{form.excerpt.length}/320 · Aim for a clear, useful summary.</span></label>

@@ -52,7 +52,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       version: Number(text(formData, "version")),
     });
     const post = await updateBlogPost({ actor, postId: id, payload });
-    return NextResponse.json({ ok: true, id: post.id, version: post.version }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ ok: true, id: post.id, slug: post.slug, version: post.version }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof BlogAuthorizationError) return NextResponse.json({ ok: false, error: error.message }, { status: error.status, headers: { "Cache-Control": "no-store" } });
     if (error instanceof BlogConflictError) return NextResponse.json({ ok: false, error: error.message }, { status: 409, headers: { "Cache-Control": "no-store" } });

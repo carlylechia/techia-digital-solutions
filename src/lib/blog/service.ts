@@ -4,6 +4,7 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { writeAuditLog } from "@/lib/admin/session";
 import { hasPermission } from "@/lib/admin/permissions";
+import { getDictionary } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
 import type { BlogSessionUser } from "./auth";
 import { type BlogPostStatusValue, type BlogWorkflowAction } from "./constants";
@@ -55,15 +56,27 @@ function assertSafeImageUrl(value: string | null | undefined, field: string) {
   }
 }
 
+// Numeric suffixes are not editorial versions. A collision must be resolved
+// explicitly instead of silently creating another public URL.
 async function uniqueSlug(prisma: PrismaClient, locale: BlogLocale, requestedSlug: string, excludeId?: string) {
   const base = slugify(requestedSlug) || `article-${Date.now()}`;
-  let candidate = base;
-  let suffix = 2;
-  while (await prisma.blogPost.findFirst({ where: { locale, slug: candidate, ...(excludeId ? { id: { not: excludeId } } : {}) }, select: { id: true } })) {
-    candidate = `${base.slice(0, 112)}-${suffix}`;
-    suffix += 1;
+  const existing = await prisma.blogPost.findFirst({ where: { locale, slug: base, ...(excludeId ? { id: { not: excludeId } } : {}) }, select: { id: true } });
+  if (existing) {
+    throw new Error(`The URL slug "${base}" is already used by another article in this language. Edit that article or choose a different slug; numeric suffixes are not created automatically.`);
   }
-  return candidate;
+  return base;
+}
+
+function getLegacyBaseSlug(locale: BlogLocale, slug: string) {
+  const base = slug.replace(/-\d+$/, "");
+  return base !== slug && getDictionary(locale).blog.some((item) => item.slug === base) ? base : null;
+}
+
+async function canonicalPublishedSlug(prisma: PrismaClient, post: { id: string; locale: BlogLocale; slug: string }) {
+  const legacyBase = getLegacyBaseSlug(post.locale, post.slug);
+  if (!legacyBase) return post.slug;
+  const conflict = await prisma.blogPost.findUnique({ where: { locale_slug: { locale: post.locale, slug: legacyBase } }, select: { id: true } });
+  return !conflict || conflict.id === post.id ? legacyBase : post.slug;
 }
 
 async function validateRelations(
@@ -266,7 +279,9 @@ export async function updateBlogPost(input: {
     Object.assign(data, { translationGroupId: existing.translationGroupId, canonicalUrl: existing.canonicalUrl, allowIndex: existing.allowIndex, nofollow: existing.nofollow, featured: existing.featured });
   }
   const oldSlug = existing.slug;
-  const slug = oldSlug === slugify(payload.slug) ? oldSlug : await uniqueSlug(prisma, payload.locale as BlogLocale, payload.slug, existing.id);
+  const slug = existing.status === "PUBLISHED"
+    ? await canonicalPublishedSlug(prisma, { ...existing, locale: existing.locale as BlogLocale })
+    : oldSlug === slugify(payload.slug) ? oldSlug : await uniqueSlug(prisma, payload.locale as BlogLocale, payload.slug, existing.id);
 
   const updated = await prisma.$transaction(async (tx) => {
     const result = await tx.blogPost.updateMany({
@@ -378,6 +393,10 @@ export async function transitionBlogPost(input: {
     scheduledAt: input.scheduledAt,
   });
 
+  const publicationSlug = input.action === "PUBLISH" || input.action === "SCHEDULE"
+    ? await canonicalPublishedSlug(prisma, { id: post.id, locale: post.locale as BlogLocale, slug: post.slug })
+    : post.slug;
+
   let publicationIssues: SeoIssue[] = [];
   if (input.action === "PUBLISH" || input.action === "SCHEDULE") {
     publicationIssues = await assertPublicationReady(prisma, post.id);
@@ -397,6 +416,7 @@ export async function transitionBlogPost(input: {
         scheduledAt: input.action === "SCHEDULE" ? input.scheduledAt : input.action === "PUBLISH" ? null : post.scheduledAt,
         archivedAt: input.action === "ARCHIVE" ? now : input.action === "RESTORE" ? null : post.archivedAt,
         lastEditedById: input.actor.id,
+        slug: publicationSlug,
         version: { increment: 1 },
       },
     });
@@ -418,6 +438,14 @@ export async function transitionBlogPost(input: {
       },
     });
 
+    if (publicationSlug !== post.slug && (post.publishedAt || input.action === "PUBLISH" || input.action === "SCHEDULE")) {
+      await tx.blogSlugRedirect.upsert({
+        where: { locale_slug: { locale: post.locale, slug: post.slug } },
+        create: { locale: post.locale, slug: post.slug, targetSlug: publicationSlug, postId: post.id },
+        update: { targetSlug: publicationSlug, postId: post.id },
+      });
+    }
+
     if (input.action === "REQUEST_CHANGES" && input.reviewNote?.trim()) {
       await tx.blogReviewNote.create({
         data: { postId: post.id, authorId: input.actor.id, body: input.reviewNote.trim() },
@@ -437,7 +465,8 @@ export async function transitionBlogPost(input: {
   revalidatePostRelations({
     locale: post.locale,
     postId: post.id,
-    slug: post.slug,
+    slug: updated.slug,
+    oldSlug: post.slug,
     categorySlug: post.category?.slug,
     authorSlug: post.author?.slug,
   });
