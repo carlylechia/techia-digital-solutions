@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { assertSameOrigin, requireBlogUser, BlogAuthorizationError } from "@/lib/blog/auth";
+import { getPrisma } from "@/lib/prisma";
 import { updateBlogPost, BlogConflictError } from "@/lib/blog/service";
 import { blogPostPayloadSchema } from "@/lib/blog/validation";
 
@@ -22,9 +23,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (!rate.ok) return NextResponse.json({ ok: false, error: "Too many save attempts. Try again shortly." }, { status: 429, headers: { "Retry-After": String(rate.retryAfter), "Cache-Control": "no-store" } });
     const { id } = await context.params;
     const formData = await request.formData();
+    const prisma = getPrisma();
+    const existing = prisma ? await prisma.blogPost.findUnique({ where: { id }, select: { slug: true } }) : null;
     const payload = blogPostPayloadSchema.parse({
       title: text(formData, "title"),
-      slug: text(formData, "slug"),
+      slug: text(formData, "slug") || existing?.slug || "",
       excerpt: text(formData, "excerpt"),
       content: text(formData, "content"),
       locale: text(formData, "locale") || "en",

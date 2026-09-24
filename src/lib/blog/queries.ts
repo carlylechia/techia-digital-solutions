@@ -228,14 +228,38 @@ const queryPublishedPostUncached = async (locale: BlogLocale, slug: string) => {
   }
 };
 
-export const getPublishedPost = queryPublishedPost;
+function normalizeCachedDate(value: Date | string | null | undefined) {
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function normalizeCachedPublicPost<T extends { publishedAt: Date | string | null; updatedAt: Date | string }>(post: T) {
+  return {
+    ...post,
+    publishedAt: normalizeCachedDate(post.publishedAt),
+    updatedAt: normalizeCachedDate(post.updatedAt) || new Date(0),
+  };
+}
+
+/**
+ * Next's data cache serializes Date values. Normalize the result at the
+ * boundary so article pages never receive cached ISO strings while expecting
+ * Date methods during rendering or metadata generation.
+ */
+export async function getPublishedPost(locale: BlogLocale, slug: string) {
+  const post = await queryPublishedPost(locale, slug);
+  return post ? normalizeCachedPublicPost(post) : null;
+}
 
 async function getLegacyCanonicalSlug(locale: BlogLocale, slug: string) {
-  const legacy = getDictionary(locale).blog.find((item) => item.slug === slug);
+  const legacyBase = slug.replace(/-\d+$/, "");
+  const legacy = getDictionary(locale).blog.find((item) => item.slug === legacyBase);
   if (!legacy) return null;
   const prisma = getPrisma();
   if (!prisma) return null;
-  const variants = [slug, ...Array.from({ length: 50 }, (_, index) => `${slug}-${index + 2}`)];
+  const variants = [legacyBase, ...Array.from({ length: 50 }, (_, index) => `${legacyBase}-${index + 2}`)];
   try {
     const candidate = await prisma.blogPost.findFirst({
       where: {
@@ -270,7 +294,7 @@ export async function getPublishedPostRedirect(locale: BlogLocale, slug: string)
         post: { select: { slug: true, locale: true, status: true, publishedAt: true, author: { select: { isActive: true } }, category: { select: { isActive: true } } } },
       },
     });
-    if (redirect?.post && redirect.post.locale === locale && redirect.post.status === "PUBLISHED" && redirect.post.publishedAt && redirect.post.publishedAt <= new Date() && redirect.post.author?.isActive && redirect.post.category?.isActive && redirect.targetSlug !== slug) {
+    if (redirect?.post && redirect.post.slug === redirect.targetSlug && redirect.post.locale === locale && redirect.post.status === "PUBLISHED" && redirect.post.publishedAt && redirect.post.publishedAt <= new Date() && redirect.post.author?.isActive && redirect.post.category?.isActive && redirect.targetSlug !== slug) {
       return redirect.targetSlug;
     }
   } catch (error) {

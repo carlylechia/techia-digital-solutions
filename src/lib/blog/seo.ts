@@ -15,8 +15,8 @@ type PublicPost = {
   featuredImageUrl: string | null;
   featuredImageAlt: string | null;
   ogImageUrl: string | null;
-  publishedAt: Date | null;
-  updatedAt: Date;
+  publishedAt: Date | string | null;
+  updatedAt: Date | string;
   allowIndex?: boolean;
   nofollow?: boolean;
   author: {
@@ -30,6 +30,12 @@ type PublicPost = {
 
 function absolute(path: string) {
   return `${siteConfig.url}${path}`;
+}
+
+function isoDate(value: Date | string | null | undefined) {
+  if (!value) return undefined;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
 function defaultLanguage(locale: BlogLocale) {
@@ -83,8 +89,8 @@ export function buildArticleMetadata(locale: Locale, post: PublicPost): Metadata
       url: canonical,
       siteName: siteConfig.name,
       locale: defaultLanguage(blogLocale),
-      publishedTime: post.publishedAt?.toISOString(),
-      modifiedTime: post.updatedAt.toISOString(),
+      publishedTime: isoDate(post.publishedAt),
+      modifiedTime: isoDate(post.updatedAt),
       authors: authorUrl ? [authorUrl] : undefined,
       section: post.category?.name,
       tags: post.tags.map(({ tag }) => tag.name),
@@ -114,8 +120,8 @@ export function articleJsonLd(locale: Locale, post: PublicPost) {
     headline: post.title,
     description: post.seoDescription?.trim() || post.excerpt,
     ...(image ? { image: [image] } : {}),
-    datePublished: post.publishedAt?.toISOString(),
-    dateModified: post.updatedAt.toISOString(),
+    datePublished: isoDate(post.publishedAt),
+    dateModified: isoDate(post.updatedAt),
     inLanguage: blogLocale,
     ...(authorUrl && post.author
       ? {

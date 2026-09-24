@@ -153,6 +153,13 @@ const post = {
     expect(schema.datePublished).toBe("2026-01-02T10:00:00.000Z");
   });
 
+  it("handles date values returned by the public data cache", () => {
+    const cachedPost = { ...post, publishedAt: "2026-01-02T10:00:00.000Z", updatedAt: "2026-01-03T10:00:00.000Z" };
+    expect(() => buildArticleMetadata("en", cachedPost)).not.toThrow();
+    const schema = articleJsonLd("en", cachedPost) as Record<string, unknown>;
+    expect(schema.dateModified).toBe("2026-01-03T10:00:00.000Z");
+  });
+
   it("reports publication blockers without inventing content", () => {
     const issues = getSeoIssues({ title: post.title, excerpt: post.excerpt, content: "<p>Too short</p>", featuredImageUrl: null, featuredImageAlt: null, hasAuthor: false, hasCategory: false, internalLinkCount: 0 });
     expect(issues.some((issue) => issue.field === "authorId" && issue.severity === "error")).toBe(true);

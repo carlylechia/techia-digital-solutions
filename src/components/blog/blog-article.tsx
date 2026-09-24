@@ -59,7 +59,9 @@ export function BlogArticle({
   const canonical = `${siteConfig.url}${getBlogPostPath(locale, post.slug)}`;
   const breadcrumbItems = getArticleBreadcrumbs(locale, post);
   const breadcrumbSchema = blogBreadcrumbJsonLd(locale, breadcrumbItems.filter((item) => item.href).map((item) => ({ name: item.label, path: item.href || "/" })));
-  const updated = post.updatedAt.getTime() - (post.publishedAt?.getTime() || 0) > 86_400_000;
+  const updatedAt = new Date(post.updatedAt).getTime();
+  const publishedAt = post.publishedAt ? new Date(post.publishedAt).getTime() : 0;
+  const updated = Number.isFinite(updatedAt) && Number.isFinite(publishedAt) && updatedAt - publishedAt > 86_400_000;
 
   return (
     <>

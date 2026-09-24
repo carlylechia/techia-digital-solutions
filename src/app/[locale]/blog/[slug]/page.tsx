@@ -13,10 +13,19 @@ export const dynamicParams = true;
 
 type Params = Promise<{ locale: string; slug: string }>;
 
+async function loadPublishedPost(locale: BlogLocale, slug: string) {
+  try {
+    return await getPublishedPost(locale, slug);
+  } catch (error) {
+    console.error("blog_public_post_query_failed", { locale, slug, message: error instanceof Error ? error.message : "Unknown error" });
+    return null;
+  }
+}
+
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : "en";
-  const post = await getPublishedPost(locale, slug);
+  const post = await loadPublishedPost(locale, slug);
   if (post) return buildArticleMetadata(locale, post);
   const redirectedSlug = await getPublishedPostRedirect(locale, slug);
   if (redirectedSlug) {
@@ -41,7 +50,7 @@ export default async function BlogPostPage({ params }: { params: Params }) {
   const { locale: rawLocale, slug } = await params;
   if (!isLocale(rawLocale) || !isBlogLocale(rawLocale)) notFound();
   const locale = rawLocale as BlogLocale;
-  const post = await getPublishedPost(locale, slug);
+  const post = await loadPublishedPost(locale, slug);
   if (post) {
     const [related, adjacent] = await Promise.all([
       getRelatedPosts(post).catch((error) => {

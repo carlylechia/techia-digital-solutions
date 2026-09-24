@@ -28,10 +28,10 @@ function tags(formData: FormData) {
   return formData.getAll("tagIds").filter((entry): entry is string => typeof entry === "string");
 }
 
-function payloadFromForm(formData: FormData): BlogPostPayload {
+function payloadFromForm(formData: FormData, options: { fallbackSlug?: string } = {}): BlogPostPayload {
   return blogPostPayloadSchema.parse({
     title: value(formData, "title"),
-    slug: value(formData, "slug"),
+    slug: value(formData, "slug") || options.fallbackSlug || "",
     excerpt: value(formData, "excerpt"),
     content: value(formData, "content"),
     locale: value(formData, "locale") || "en",
@@ -86,7 +86,9 @@ export async function saveBlogPostAction(formData: FormData): Promise<BlogAction
     const actor = await requireBlogUser();
     const id = value(formData, "id");
     if (!id) return { ok: false, error: "Article identifier is required." };
-    const post = await updateBlogPost({ actor, postId: id, payload: payloadFromForm(formData) });
+    const prisma = getPrisma();
+    const existing = prisma ? await prisma.blogPost.findUnique({ where: { id }, select: { slug: true } }) : null;
+    const post = await updateBlogPost({ actor, postId: id, payload: payloadFromForm(formData, { fallbackSlug: existing?.slug }) });
     return { ok: true, id: post.id, slug: post.slug, version: post.version, message: "Draft saved." };
   } catch (error) {
     return messageFromError(error);
