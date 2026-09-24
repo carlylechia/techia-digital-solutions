@@ -1,8 +1,9 @@
 import { siteConfig } from "@/content/site";
 import { BLOG_MAX_HTML_BYTES } from "./constants";
+import { normalizeRichTextSource } from "./rich-text";
 
 const allowedTags = new Set([
-  "p", "br", "strong", "b", "em", "i", "s", "blockquote", "h2", "h3", "h4", "ul", "ol", "li", "hr", "pre", "code", "a", "img", "figure", "figcaption", "table", "thead", "tbody", "tr", "th", "td", "del",
+  "p", "br", "strong", "b", "em", "i", "u", "s", "blockquote", "h2", "h3", "h4", "ul", "ol", "li", "hr", "pre", "code", "a", "img", "figure", "figcaption", "table", "thead", "tbody", "tr", "th", "td", "del",
 ]);
 const voidTags = new Set(["br", "hr", "img"]);
 const dropContentTags = new Set(["script", "style", "iframe", "object", "embed", "template", "noscript"]);
@@ -180,6 +181,10 @@ export function sanitizeArticleHtml(value: string) {
   return clean;
 }
 
+export function normalizeArticleHtml(value: string) {
+  return sanitizeArticleHtml(normalizeRichTextSource(value));
+}
+
 function decodeEntities(value: string) {
   return value
     .replace(/&amp;/g, "&")
@@ -191,7 +196,7 @@ function decodeEntities(value: string) {
 }
 
 export function htmlToPlainText(value: string) {
-  return decodeEntities(sanitizeArticleHtml(value).replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+  return decodeEntities(normalizeArticleHtml(value).replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
 }
 
 export function calculateReadingTime(html: string) {
@@ -199,7 +204,7 @@ export function calculateReadingTime(html: string) {
 }
 
 export function countArticleInternalLinks(html: string) {
-  const safe = sanitizeArticleHtml(html);
+  const safe = normalizeArticleHtml(html);
   const links = safe.match(/<a\b[^>]*href="([^"]+)"/gi) || [];
   return links.filter((link) => {
     const href = link.match(/href="([^"]+)"/i)?.[1] || "";

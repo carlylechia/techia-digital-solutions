@@ -2341,6 +2341,7 @@ textarea {
   .blog-prose th,
   .blog-prose td { border: 1px solid var(--border); padding: 0.7rem 0.8rem; text-align: left; vertical-align: top; }
   .blog-prose th { color: var(--foreground); background: var(--surface-strong); }
+  .blog-editor-section { overflow: visible; }
   .blog-editor:focus { outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: -2px; }
   .blog-editor > * + * { margin-top: 1rem; }
   .blog-editor h2,
@@ -2354,6 +2355,17 @@ textarea {
   .blog-editor table { width: 100%; border-collapse: collapse; }
   .blog-editor th,
   .blog-editor td { border: 1px solid var(--border); padding: 0.55rem; }
+  .blog-editor { overflow-wrap: anywhere; }
+  .blog-editor ul,
+  .blog-editor ol { padding-left: 1.5rem; }
+  .blog-editor li + li { margin-top: 0.45rem; }
+  .blog-editor code { border-radius: 0.35rem; background: color-mix(in srgb, var(--surface-strong) 85%, transparent); padding: 0.15rem 0.35rem; color: var(--foreground); font-size: 0.9em; }
+  .blog-editor pre code { background: transparent; padding: 0; }
+  .blog-editor img,
+  .blog-editor figure { max-width: 100%; }
+  .blog-editor img { height: auto; border-radius: 0.75rem; }
+  .blog-editor figcaption { margin-top: 0.5rem; color: var(--muted); font-size: 0.75rem; }
+  .blog-editor table { display: block; max-width: 100%; overflow-x: auto; }
 
   @media (max-width: 640px) {
     .blog-prose { font-size: 1rem; line-height: 1.8; }

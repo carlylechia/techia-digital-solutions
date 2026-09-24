@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { BlogLocale, BlogPostStatusValue } from "@/lib/blog/constants";
 import { createBlogPostAction, deleteBlogPostAction, saveBlogPostAction, transitionBlogPostAction, type BlogActionResult } from "@/lib/blog/actions";
 import { RichTextEditor } from "./rich-text-editor";
+import { normalizeRichTextSource } from "@/lib/blog/rich-text";
 import { BlogMediaUploader } from "./blog-media-uploader";
 
 type EditorPost = {
@@ -82,7 +83,7 @@ export function BlogPostEditor({
   const lastAutosaveSignature = useRef<string | null>(null);
 
   const editable = canManage || form.status === "DRAFT" || form.status === "CHANGES_REQUESTED";
-  const wordCount = useMemo(() => form.content.replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length, [form.content]);
+  const wordCount = useMemo(() => normalizeRichTextSource(form.content).replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length, [form.content]);
   const autosaveSignature = useMemo(() => JSON.stringify({ ...form, version: undefined, status: undefined, reviewNotes: undefined }), [form]);
   const seoTitleLength = (form.seoTitle || form.title).length;
   const seoDescriptionLength = (form.seoDescription || form.excerpt).length;
@@ -160,7 +161,7 @@ export function BlogPostEditor({
       return;
     }
     if (isNew && result.ok && result.id) {
-      window.location.assign(`/${locale}/writer/posts/${result.id}`);
+      window.location.assign(canManage ? `/${locale}/admin/blog/posts/${result.id}` : `/${locale}/writer/posts/${result.id}`);
       return;
     }
     if (result.version) setForm((current) => ({ ...current, version: result.version as number }));
@@ -219,7 +220,7 @@ export function BlogPostEditor({
           <label className="form-label">Excerpt / summary<textarea className={`${inputClass} min-h-28`} name="excerpt" value={form.excerpt} onChange={(event) => update("excerpt", event.target.value)} disabled={!editable} required minLength={30} maxLength={320} /><span className="text-xs text-muted">{form.excerpt.length}/320 · Aim for a clear, useful summary.</span></label>
         </section>
 
-        <section className="premium-card grid gap-4 p-5 sm:p-7" aria-labelledby="editor-content-title">
+        <section className="premium-card blog-editor-section grid gap-4 overflow-visible p-5 sm:p-7" aria-labelledby="editor-content-title">
           <div><p className="eyebrow">Long-form content</p><h2 id="editor-content-title" className="mt-2 text-2xl font-semibold text-primary">Build the article</h2><p className="mt-2 text-sm text-muted">Write for the reader. Add clear headings, useful examples, and relevant internal links to teChia services or resources.</p></div>
           <RichTextEditor initialHtml={form.content} onChange={(value) => update("content", value)} disabled={!editable} />
           <div className="flex flex-wrap gap-4 text-xs text-muted"><span>{wordCount} words</span><span>{form.content.length} HTML characters</span><span>Server allowlist sanitization on save</span></div>
@@ -253,7 +254,7 @@ export function BlogPostEditor({
         {form.reviewNotes.length ? <section className="premium-card grid gap-3 p-5"><h2 className="font-semibold text-primary">Review notes</h2>{form.reviewNotes.map((note) => <div key={note.id} className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs leading-5 text-muted"><p>{note.body}</p><p className="mt-2 text-[10px] uppercase tracking-wider text-amber-300">{note.authorName} · {new Date(note.createdAt).toLocaleDateString()}</p></div>)}</section> : null}
         {form.revisions.length ? <section className="premium-card grid gap-3 p-5"><h2 className="font-semibold text-primary">Revision checkpoints</h2><p className="text-xs leading-5 text-muted">Autosave protects against overwrites. Checkpoints are retained at workflow transitions.</p>{form.revisions.slice(0, 6).map((revision) => <div key={revision.id} className="flex items-center justify-between gap-3 border-t border-border pt-3 text-xs"><span className="min-w-0 truncate text-primary">v{revision.version} · {revision.title}</span><span className="shrink-0 text-muted">{new Date(revision.createdAt).toLocaleDateString()}</span></div>)}</section> : null}
         {canManage && (form.status === "DRAFT" || form.status === "CHANGES_REQUESTED") ? <button type="button" className="btn-ghost justify-center text-xs text-red-300" onClick={deleteDraft} disabled={isPending}>Delete unpublished draft</button> : null}
-        <p className="flex items-start gap-2 px-1 text-xs leading-5 text-muted"><AlertCircle className="mt-0.5 size-4 shrink-0 text-accent" />Only an administrator can publish, schedule, archive, assign another author, or change indexing controls.</p>
+        <p className="flex items-start gap-2 px-1 text-xs leading-5 text-muted"><AlertCircle className="mt-0.5 size-4 shrink-0 text-accent" />{canPublish ? "You can publish, schedule, archive, assign another author, or change indexing controls." : "An editorial manager must publish, schedule, archive, assign another author, or change indexing controls."}</p>
       </aside>
     </form>
   );

@@ -733,10 +733,11 @@ Neutral `/blog` URLs are compatibility redirects. CMS articles use reciprocal `h
 ### Editorial roles
 
 - `writer`: own drafts, own media uploads, own author profile, and review submissions only.
+- `editor`: all blog posts, publishing, taxonomy, media, and editorial audit controls; no business operations, role management, or writer invitations.
 - `admin`/`content_manager`: editorial review, publishing, taxonomy, and media controls according to their existing permissions.
 - `super_admin`: full existing administrative permissions.
 
-There is no public writer registration. An administrator creates an account from `/admin/blog/writers`; a temporary password is emailed and can be changed from the writer profile. Access can be deactivated or reset without exposing credentials in the dashboard.
+There is no public writer registration. An administrator creates writer accounts from `/admin/blog/writers`; Blog Editor accounts are assigned the `editor` role through the existing admin access controls. Temporary passwords are emailed and can be changed from the writer profile. Access can be deactivated or reset without exposing credentials in the dashboard.
 
 ### Editorial routes
 
@@ -748,7 +749,7 @@ There is no public writer registration. An administrator creates an account from
 - `/admin/blog/media` — validated Cloudinary image library
 - `/writer` — restricted writer workspace
 
-Draft previews are authenticated and `noindex`; drafts, review submissions, scheduled posts, and archived posts are not public CMS content.
+Draft previews are authenticated and `noindex`; drafts, review submissions, scheduled posts, and archived posts are not public CMS content. Article content is stored as sanitized HTML; HTML/Markdown pasted or imported in the editor is normalized to that format before preview, save, and public rendering.
 
 ### Scheduled publishing
 

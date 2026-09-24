@@ -109,7 +109,7 @@ export async function getBlogMedia(limit = 60) {
 }
 
 export async function getBlogRoles() {
-  return db().adminRole.findMany({ where: { name: { in: ["writer", "content_manager", "admin"] } }, select: { id: true, name: true, label: true, level: true }, orderBy: { level: "desc" } });
+  return db().adminRole.findMany({ where: { name: { in: ["writer", "editor", "content_manager", "admin"] } }, select: { id: true, name: true, label: true, level: true }, orderBy: { level: "desc" } });
 }
 
 export async function getBlogWriters() {

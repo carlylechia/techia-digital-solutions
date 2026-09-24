@@ -1,8 +1,8 @@
 import Image from "next/image";
-import { sanitizeArticleHtml } from "@/lib/blog/sanitize";
+import { normalizeArticleHtml } from "@/lib/blog/sanitize";
 
 export function ArticleBody({ html }: { html: string }) {
-  const safeHtml = sanitizeArticleHtml(html);
+  const safeHtml = normalizeArticleHtml(html);
   return (
     <div
       className="blog-prose prose prose-invert max-w-none text-base leading-8 text-muted sm:text-lg"

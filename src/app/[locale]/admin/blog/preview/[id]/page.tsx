@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { hasPermission } from "@/lib/admin/permissions";
 import { BlogPreview } from "@/components/blog/blog-preview";
 import { getBlogPostForEditor } from "@/lib/blog/admin-data";
 import { getBlogSessionUser } from "@/lib/blog/auth";
@@ -13,7 +14,7 @@ export default async function AdminBlogPreviewPage({ params }: { params: Promise
   if (rawLocale !== "en" && rawLocale !== "fr") notFound();
   const locale = rawLocale as BlogLocale;
   const user = await getBlogSessionUser();
-  if (!user) notFound();
+  if (!user || !hasPermission(user.permissions, "blog.posts.manage")) notFound();
   const result = await getBlogPostForEditor(user, id);
   if (!result) notFound();
   const post = result.post;

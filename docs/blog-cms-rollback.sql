@@ -72,5 +72,7 @@ DROP TYPE IF EXISTS "BlogPostStatus";
 -- Remove only the navigation row created by the companion migration after
 -- confirming its deterministic ID is present:
 -- DELETE FROM "NavMenuItem" WHERE "id" = 'blog_navigation_default';
+-- The blog editor role is data-only. Do not delete it while any AdminUser is
+-- assigned to it; reassign those users before removing the role if required.
 
 COMMIT;

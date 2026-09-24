@@ -42,6 +42,17 @@ export const BLOG_WRITER_PERMISSIONS: AdminPermission[] = [
   "blog.profile.edit.own"
 ];
 
+export const BLOG_EDITOR_PERMISSIONS: AdminPermission[] = [
+  "blog.dashboard.view",
+  "blog.posts.create",
+  "blog.posts.manage",
+  "blog.posts.publish",
+  "blog.categories.manage",
+  "blog.media.upload",
+  "blog.media.manage",
+  "blog.audit.view"
+];
+
 export const DEFAULT_ADMIN_ROLES: AdminRoleSeed[] = [
   {
     name: "super_admin",
@@ -103,6 +114,13 @@ export const DEFAULT_ADMIN_ROLES: AdminRoleSeed[] = [
     description: "Manages leads, client records, and project opportunities.",
     level: 45,
     permissions: ["dashboard.view", "clients.manage", "projects.manage", "requests.manage"]
+  },
+  {
+    name: "editor",
+    label: "Blog Editor",
+    description: "Reviews and manages all blog posts, taxonomy, media, and editorial audit history without access to business operations.",
+    level: 40,
+    permissions: [...BLOG_EDITOR_PERMISSIONS]
   },
   {
     name: "writer",

@@ -147,8 +147,11 @@ export default async function AdminPage({
   }
 
   const currentAdmin = await getAdminSessionUser();
-  if (!currentAdmin || !hasPermission(currentAdmin.permissions, "dashboard.view")) {
-    redirect("/writer");
+  if (!currentAdmin) {
+    redirect(`/${locale}/writer`);
+  }
+  if (!hasPermission(currentAdmin.permissions, "dashboard.view")) {
+    redirect(hasPermission(currentAdmin.permissions, "blog.posts.manage") ? `/${locale}/admin/blog` : `/${locale}/writer`);
   }
 
   const prisma = getPrisma();

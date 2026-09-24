@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { detectImageMime, isAllowedBlogImageMime } from "@/lib/blog/media-validation";
-import { hasPermission, BLOG_WRITER_PERMISSIONS, DEFAULT_ADMIN_ROLES } from "@/lib/admin/permissions";
-import { sanitizeArticleHtml, htmlToPlainText, countArticleInternalLinks, calculateReadingTime } from "@/lib/blog/sanitize";
+import { hasPermission, BLOG_EDITOR_PERMISSIONS, BLOG_WRITER_PERMISSIONS, DEFAULT_ADMIN_ROLES } from "@/lib/admin/permissions";
+import { normalizeArticleHtml, sanitizeArticleHtml, htmlToPlainText, countArticleInternalLinks, calculateReadingTime } from "@/lib/blog/sanitize";
+import { markdownToHtml, normalizeRichTextSource } from "@/lib/blog/rich-text";
 import { getBlogPostPath, getBlogCategoryPath, getBlogAuthorPath, normalizeCtaHref, slugify } from "@/lib/blog/slug";
 import { getSeoIssues } from "@/lib/blog/validation";
 import { canEditBlogPost, canTransitionBlogPost } from "@/lib/blog/authorization";
@@ -49,6 +50,19 @@ const post = {
     expect(hasPermission(writer?.permissions || [], "blog.posts.edit.own")).toBe(true);
   });
 
+  it("defines a blog-only editor role with all-post editorial access", () => {
+    const editor = DEFAULT_ADMIN_ROLES.find((role) => role.name === "editor");
+    expect(editor?.permissions).toEqual(BLOG_EDITOR_PERMISSIONS);
+    expect(editor?.label).toBe("Blog Editor");
+    expect(hasPermission(editor?.permissions || [], "blog.posts.manage")).toBe(true);
+    expect(hasPermission(editor?.permissions || [], "blog.posts.publish")).toBe(true);
+    expect(hasPermission(editor?.permissions || [], "dashboard.view")).toBe(false);
+    expect(hasPermission(editor?.permissions || [], "content.manage")).toBe(false);
+    expect(hasPermission(editor?.permissions || [], "clients.manage")).toBe(false);
+    expect(hasPermission(editor?.permissions || [], "blog.writers.manage")).toBe(false);
+    expect(canEditBlogPost({ permissions: BLOG_EDITOR_PERMISSIONS, actorId: "editor-1", authorUserId: "writer-2", status: "PUBLISHED" })).toBe(true);
+  });
+
   it("enforces ownership and role boundaries independently of the UI", () => {
     const writer = { permissions: BLOG_WRITER_PERMISSIONS, actorId: "writer-1" };
     expect(canEditBlogPost({ ...writer, authorUserId: "writer-1", status: "DRAFT" })).toBe(true);
@@ -78,6 +92,27 @@ const post = {
     expect(clean).not.toContain("onerror");
     expect(clean).not.toContain("javascript:");
     expect(clean).not.toContain("data:image");
+  });
+
+  it("converts Markdown and normalizes imported HTML before display", () => {
+    const markdown = "# Main heading\n\nA **useful** paragraph with a [service link](/services).\n\n- First point\n- Second point\n\n> A reader quote\n\n```ts\nconst ready = true;\n```";
+    const html = normalizeArticleHtml(markdown);
+    expect(html).toContain("<h2>Main heading</h2>");
+    expect(html).toContain("<strong>useful</strong>");
+    expect(html).toContain('href="/services"');
+    expect(html).toContain("<ul><li>First point</li><li>Second point</li></ul>");
+    expect(html).toContain("<blockquote>A reader quote</blockquote>");
+    expect(html).toContain("<pre><code>const ready = true;</code></pre>");
+    expect(markdownToHtml("| Name | Value |\n| --- | --- |\n| One | Two |")).toContain("<th scope=\"col\">Name</th>");
+    expect(htmlToPlainText(markdown)).not.toContain("#");
+    expect(countArticleInternalLinks(markdown)).toBe(1);
+    expect(normalizeArticleHtml('<h1 style="color:red">Imported</h1><div><p>Body</p></div>')).toContain("<h2>Imported</h2>");
+    expect(normalizeRichTextSource("<h1>Imported</h1>")).toContain("<h2>Imported</h2>");
+  });
+
+  it("keeps Markdown conversion deterministic and readable", () => {
+    expect(markdownToHtml("## Section\n\nPlain text")).toBe("<h3>Section</h3><p>Plain text</p>");
+    expect(sanitizeArticleHtml("<div><p>Nested <strong>safe</strong></p></div>")).toContain("<strong>safe</strong>");
   });
 
   it("calculates readable text and internal-link signals", () => {

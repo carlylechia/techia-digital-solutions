@@ -97,7 +97,7 @@ export function isBlogPublisher(user: BlogSessionUser) {
 }
 
 export function canUseGeneralAdmin(user: BlogSessionUser) {
-  return hasPermission(user.permissions, "dashboard.view") && !hasPermission(user.permissions, "blog.profile.edit.own");
+  return hasPermission(user.permissions, "dashboard.view");
 }
 
 export function assertSameOrigin(request: Request) {

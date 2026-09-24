@@ -11,6 +11,7 @@ export default async function WriterWorkspaceLayout({ children, params }: { chil
   if (!isLocale(locale)) notFound();
   const user = await getBlogSessionUser();
   if (!user) redirect(`/${locale}/writer/login`);
+  if (hasPermission(user.permissions, "blog.posts.manage")) redirect(`/${locale}/admin/blog`);
   if (!hasPermission(user.permissions, "blog.dashboard.view")) redirect(`/${locale}/writer/login`);
   return <>{children}</>;
 }

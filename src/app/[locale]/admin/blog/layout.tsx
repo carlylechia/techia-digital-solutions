@@ -10,7 +10,7 @@ export default async function AdminBlogLayout({ children, params }: { children: 
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const user = await getBlogSessionUser();
-  if (!user) redirect("/admin");
-  if (!hasPermission(user.permissions, "blog.dashboard.view")) redirect(`/${locale}/writer`);
+  if (!user) redirect(`/${locale}/admin`);
+  if (!hasPermission(user.permissions, "blog.posts.manage")) redirect(`/${locale}/writer`);
   return <>{children}</>;
 }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { BLOG_MAX_HTML_BYTES } from "./constants";
-import { htmlToPlainText, sanitizeArticleHtml } from "./sanitize";
+import { htmlToPlainText, normalizeArticleHtml } from "./sanitize";
 
 const optionalText = (max: number) => z.string().trim().max(max).optional().or(z.literal(""));
 const optionalUrl = z.string().trim().max(1000).optional().or(z.literal(""));
@@ -154,7 +154,7 @@ export function getSeoIssues(input: {
 
 export function prepareBlogPostPayload(input: unknown) {
   const parsed = blogPostPayloadSchema.parse(input);
-  const content = sanitizeArticleHtml(parsed.content);
+  const content = normalizeArticleHtml(parsed.content);
   return {
     ...parsed,
     content,
