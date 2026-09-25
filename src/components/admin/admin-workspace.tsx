@@ -104,6 +104,7 @@ import {
 } from "@/app/[locale]/admin/actions";
 import { AdminKanbanBoard } from "@/components/admin/admin-kanban-board";
 import { DatePicker } from "@/components/admin/date-picker";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useTheme } from "@/components/theme/theme-provider";
 import { ADMIN_PERMISSIONS, type AdminPermission } from "@/lib/admin/permissions";
 import { SECTION_LABELS, createDefaultSection, parseSections, type PageSection, type SectionType } from "@/types/sections";
@@ -4626,7 +4627,7 @@ function Access({ data, locale, roles, currentUser, canManageRoles }: { data: Ad
             <input type="hidden" name="locale" value={locale} />
             <Field label="Name"><Input name="name" required /></Field>
             <Field label="Email"><Input name="email" type="email" required /></Field>
-            <Field label="Temporary password"><Input name="password" type="password" minLength={10} required /></Field>
+            <Field label="Temporary password"><PasswordInput name="password" autoComplete="new-password" minLength={10} required inputClassName="min-w-0 w-full rounded-lg text-sm" /></Field>
             <Field label="Role">
               <Select name="roleId" required>
                 <option value="">Select role</option>

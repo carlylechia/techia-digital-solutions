@@ -3,6 +3,7 @@
 import { LockKeyhole, Mail, ShieldCheck } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
+import { PasswordInput } from "@/components/ui/password-input";
 import type { Locale } from "@/content/site";
 
 const copy = {
@@ -15,6 +16,8 @@ const copy = {
     emailPlaceholder: "name@techiadigital.com",
     password: "Password",
     passwordPlaceholder: "Enter your password",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
     button: "Continue",
     loading: "Signing in...",
     error:
@@ -30,6 +33,8 @@ const copy = {
     emailPlaceholder: "nom@techiadigital.com",
     password: "Mot de passe",
     passwordPlaceholder: "Saisissez votre mot de passe",
+    showPassword: "Afficher le mot de passe",
+    hidePassword: "Masquer le mot de passe",
     button: "Continuer",
     loading: "Connexion...",
     error:
@@ -95,20 +100,15 @@ export function AdminLoginForm({ locale }: { locale: Locale }) {
           />
         </span>
       </label>
-      <label className="form-label">
-        {formCopy.password}
-        <span className="relative">
-          <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-          <input
-            className="form-input pl-10"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            placeholder={formCopy.passwordPlaceholder}
-            required
-          />
-        </span>
-      </label>
+      <PasswordInput
+        name="password"
+        label={formCopy.password}
+        autoComplete="current-password"
+        placeholder={formCopy.passwordPlaceholder}
+        required
+        icon={<LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />}
+        toggleLabels={{ show: formCopy.showPassword, hide: formCopy.hidePassword }}
+      />
       <button
         className="btn-primary justify-center"
         type="submit"
