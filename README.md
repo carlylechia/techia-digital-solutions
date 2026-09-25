@@ -753,6 +753,6 @@ Draft previews are authenticated and `noindex`; drafts, review submissions, sche
 
 ### Scheduled publishing
 
-Set `CRON_SECRET` in the deployment environment. `vercel.json` invokes `/api/cron/blog/publish` hourly with a bearer secret. If the hosting plan does not permit the configured cron frequency, adjust the schedule or invoke the same authenticated route from the approved scheduler. Do not rely on an open browser timer.
+Set `CRON_SECRET` in the Vercel deployment environment. The Vercel Hobby plan rejects cron expressions that run more than once per day, so `vercel.json` keeps a daily safety-net invocation of `/api/cron/blog/publish`. The `Publish scheduled blog posts` GitHub Actions workflow runs hourly and calls the same bearer-authenticated route; add `CRON_SECRET` as a GitHub Actions repository secret to enable it. If the project is upgraded to a Vercel plan that permits hourly crons, the workflow can be retired and the `vercel.json` schedule changed to `0 * * * *`. Do not rely on an open browser timer.
 
 The migration rollback reference is in `docs/blog-cms-rollback.sql`; it is intentionally not executed automatically. Back up the database and review it against a restored copy before any rollback.

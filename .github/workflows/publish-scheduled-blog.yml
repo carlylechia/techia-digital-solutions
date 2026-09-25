@@ -1,0 +1,29 @@
+name: Publish scheduled blog posts
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-blog-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger scheduled editorial publishing
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET is not configured; the daily Vercel fallback remains active."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error --retry 3 --retry-delay 5 --max-time 30 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "https://www.techiadigital.com/api/cron/blog/publish"
