@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/blog/publish",
-      "schedule": "0 14 * * *"
+      "schedule": "0 14 * * * (Vercel Hobby fallback)"
     }
   ]
 }
