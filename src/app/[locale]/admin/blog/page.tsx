@@ -56,7 +56,7 @@ export default async function AdminBlogDashboardPage({ params }: { params: Promi
                 <Link key={post.id} href={`/${locale}/admin/blog/posts/${post.id}`} className="flex flex-wrap items-center justify-between gap-3 p-5 transition hover:bg-surface-strong/60">
                   <div>
                     <p className="font-semibold text-primary">{post.title}</p>
-                    <p className="mt-1 text-xs text-muted">{post.author?.displayName || "Unassigned"} · {post.category?.name || "Uncategorised"}</p>
+                    <p className="mt-1 text-xs text-muted">{post.author?.displayName || "Unassigned"} · {post.category?.name || "Uncategorised"}{post.status === "SCHEDULED" && post.scheduledAt ? <> · Scheduled for {new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(post.scheduledAt))}</> : null}</p>
                   </div>
                   <span className="status-pill">{BLOG_STATUS_LABELS[locale][post.status as keyof typeof BLOG_STATUS_LABELS[BlogLocale]]}</span>
                 </Link>

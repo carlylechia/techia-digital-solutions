@@ -24,7 +24,7 @@ export async function getBlogDashboard(user: BlogSessionUser, locale: BlogLocale
     prisma.blogPost.groupBy({ by: ["status"], where: { ...scope, locale }, orderBy: { status: "asc" }, _count: { _all: true } }),
     prisma.blogPost.findMany({
       where: { ...scope, locale },
-      select: { id: true, title: true, slug: true, status: true, updatedAt: true, publishedAt: true, author: { select: { displayName: true, slug: true } }, category: { select: { name: true } } },
+      select: { id: true, title: true, slug: true, status: true, updatedAt: true, publishedAt: true, scheduledAt: true, author: { select: { displayName: true, slug: true } }, category: { select: { name: true } } },
       orderBy: { updatedAt: "desc" },
       take: BLOG_ADMIN_PAGE_SIZE,
     }),
@@ -66,7 +66,7 @@ export async function getBlogPostsForList(user: BlogSessionUser, locale: BlogLoc
     ...(query ? { OR: [{ title: { contains: query, mode: "insensitive" } }, { excerpt: { contains: query, mode: "insensitive" } }, { slug: { contains: query, mode: "insensitive" } }, { contentText: { contains: query, mode: "insensitive" } }] } : {}),
   };
   const [posts, total] = await prisma.$transaction([
-    prisma.blogPost.findMany({ where, select: { id: true, title: true, slug: true, status: true, updatedAt: true, publishedAt: true, author: { select: { displayName: true, slug: true } }, category: { select: { name: true } } }, orderBy: { updatedAt: "desc" }, skip: (page - 1) * BLOG_ADMIN_PAGE_SIZE, take: BLOG_ADMIN_PAGE_SIZE }),
+    prisma.blogPost.findMany({ where, select: { id: true, title: true, slug: true, status: true, updatedAt: true, publishedAt: true, scheduledAt: true, author: { select: { displayName: true, slug: true } }, category: { select: { name: true } } }, orderBy: { updatedAt: "desc" }, skip: (page - 1) * BLOG_ADMIN_PAGE_SIZE, take: BLOG_ADMIN_PAGE_SIZE }),
     prisma.blogPost.count({ where }),
   ]);
   return { posts, total, page, pageCount: Math.max(1, Math.ceil(total / BLOG_ADMIN_PAGE_SIZE)) };

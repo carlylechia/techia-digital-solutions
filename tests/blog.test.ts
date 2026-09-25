@@ -6,7 +6,7 @@ import { markdownToHtml, normalizeRichTextSource } from "@/lib/blog/rich-text";
 import { getBlogPostPath, getBlogCategoryPath, getBlogAuthorPath, normalizeCtaHref, slugify } from "@/lib/blog/slug";
 import { getSeoIssues } from "@/lib/blog/validation";
 import { canEditBlogPost, canTransitionBlogPost } from "@/lib/blog/authorization";
-import { assertWorkflowTransition, canWriterEditPost, canWriterTransition } from "@/lib/blog/workflow";
+import { assertWorkflowTransition, canAdminTransition, canWriterEditPost, canWriterTransition } from "@/lib/blog/workflow";
 import { buildArticleMetadata, articleJsonLd } from "@/lib/blog/seo";
 
 const post = {
@@ -40,6 +40,14 @@ const post = {
     expect(canWriterTransition("DRAFT", "PUBLISH")).toBe(false);
     expect(() => assertWorkflowTransition({ status: "DRAFT", action: "PUBLISH", isAdmin: false })).toThrow();
     expect(() => assertWorkflowTransition({ status: "IN_REVIEW", action: "PUBLISH", isAdmin: true })).not.toThrow();
+  });
+
+  it("allows authorized editors to reschedule an already scheduled article", () => {
+    const future = new Date(Date.now() + 86_400_000);
+    expect(canAdminTransition("SCHEDULED", "SCHEDULE")).toBe(true);
+    expect(() => assertWorkflowTransition({ status: "SCHEDULED", action: "SCHEDULE", isAdmin: true, scheduledAt: future })).not.toThrow();
+    expect(() => assertWorkflowTransition({ status: "SCHEDULED", action: "SCHEDULE", isAdmin: true, scheduledAt: new Date("2020-01-01T10:00:00.000Z") })).toThrow();
+    expect(canWriterTransition("SCHEDULED", "SCHEDULE")).toBe(false);
   });
 
   it("keeps the writer role separate from operational permissions", () => {
