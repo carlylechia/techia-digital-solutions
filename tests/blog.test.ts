@@ -50,6 +50,12 @@ const post = {
     expect(canWriterTransition("SCHEDULED", "SCHEDULE")).toBe(false);
   });
 
+  it("allows authorized editors to publish a scheduled article immediately", () => {
+    expect(canAdminTransition("SCHEDULED", "PUBLISH")).toBe(true);
+    expect(() => assertWorkflowTransition({ status: "SCHEDULED", action: "PUBLISH", isAdmin: true })).not.toThrow();
+    expect(canWriterTransition("SCHEDULED", "PUBLISH")).toBe(false);
+  });
+
   it("keeps the writer role separate from operational permissions", () => {
     const writer = DEFAULT_ADMIN_ROLES.find((role) => role.name === "writer");
     expect(writer?.permissions).toEqual(BLOG_WRITER_PERMISSIONS);
