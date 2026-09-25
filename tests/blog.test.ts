@@ -4,6 +4,8 @@ import { hasPermission, BLOG_EDITOR_PERMISSIONS, BLOG_WRITER_PERMISSIONS, DEFAUL
 import { normalizeArticleHtml, sanitizeArticleHtml, htmlToPlainText, countArticleInternalLinks, calculateReadingTime } from "@/lib/blog/sanitize";
 import { markdownToHtml, normalizeRichTextSource } from "@/lib/blog/rich-text";
 import { getBlogPostPath, getBlogCategoryPath, getBlogAuthorPath, normalizeCtaHref, slugify } from "@/lib/blog/slug";
+import { buildPublicPostWhere, homepagePostVisibility, normalizeHomepagePicks, normalizePublicSearch, publicPostVisibility, PUBLIC_SEARCH_MAX_LENGTH } from "@/lib/blog/public-feed";
+import { BLOG_HOMEPAGE_PICKS_LIMIT } from "@/lib/blog/constants";
 import { getSeoIssues } from "@/lib/blog/validation";
 import { canEditBlogPost, canTransitionBlogPost } from "@/lib/blog/authorization";
 import { assertWorkflowTransition, canAdminTransition, canWriterEditPost, canWriterTransition } from "@/lib/blog/workflow";
@@ -185,5 +187,65 @@ const post = {
     expect(issues.some((issue) => issue.field === "categoryId" && issue.severity === "error")).toBe(true);
     expect(issues.some((issue) => issue.field === "content" && issue.severity === "warning")).toBe(true);
     expect(issues.some((issue) => issue.field === "featuredImageUrl" && issue.severity === "warning")).toBe(true);
+  });
+
+  it("only hides the single article already rendered as the editor's pick", () => {
+    const where = buildPublicPostWhere({ locale: "en", excludePostId: "post-editor-pick" });
+    expect(where).toMatchObject({ id: { not: "post-editor-pick" } });
+    // Hiding the editor's pick must never hide every other featured article.
+    expect(where).not.toHaveProperty("featured");
+  });
+
+  it("keeps the featured article searchable and never filters on featured when unfiltered", () => {
+    expect(buildPublicPostWhere({ locale: "en" })).not.toHaveProperty("id");
+    expect(buildPublicPostWhere({ locale: "en" })).not.toHaveProperty("featured");
+    expect(buildPublicPostWhere({ locale: "en", query: "seo" })).not.toHaveProperty("id");
+    expect(buildPublicPostWhere({ locale: "fr", excludePostId: "post-1", query: "seo" })).toMatchObject({ id: { not: "post-1" } });
+  });
+
+  it("treats an article as public only when published, dated, and attached to an active author and category", () => {
+    const now = new Date("2026-05-01T00:00:00.000Z");
+    expect(publicPostVisibility("en", now)).toEqual({
+      locale: "en",
+      status: "PUBLISHED",
+      publishedAt: { lte: now },
+      author: { isActive: true },
+      category: { isActive: true },
+    });
+  });
+
+  it("narrows topic and author listings without dropping the shared visibility rules", () => {
+    const where = buildPublicPostWhere({ locale: "fr", categorySlug: "seo", authorSlug: "jane-doe" });
+    expect(where).toMatchObject({
+      locale: "fr",
+      status: "PUBLISHED",
+      category: { slug: "seo", locale: "fr", isActive: true },
+      author: { slug: "jane-doe", isActive: true },
+    });
+  });
+
+  it("ignores blank searches and caps the searched term", () => {
+    expect(normalizePublicSearch("   ")).toBe("");
+    expect(buildPublicPostWhere({ locale: "en", query: "  " })).not.toHaveProperty("OR");
+    expect(normalizePublicSearch("  seo  ")).toBe("seo");
+    expect(normalizePublicSearch("a".repeat(200))).toHaveLength(PUBLIC_SEARCH_MAX_LENGTH);
+    const where = buildPublicPostWhere({ locale: "en", query: "seo" });
+    expect(where.OR).toHaveLength(5);
+  });
+
+  it("keeps the homepage lineup public, promoted, and language scoped", () => {
+    const now = new Date("2026-05-01T00:00:00.000Z");
+    expect(homepagePostVisibility("fr", now)).toEqual({
+      ...publicPostVisibility("fr", now),
+      showOnHomepage: true,
+    });
+  });
+
+  it("caps the homepage lineup and keeps the editor's order", () => {
+    expect(normalizeHomepagePicks({ ids: ["a", "b", "c", "d"] })).toEqual(["a", "b", "c"]);
+    expect(normalizeHomepagePicks({ ids: ["b", "a", "b"] })).toEqual(["b", "a"]);
+    expect(normalizeHomepagePicks({ ids: [" ", "", "a", null, 7, "b"] })).toEqual(["a", "b"]);
+    expect(normalizeHomepagePicks({ ids: undefined })).toEqual([]);
+    expect(BLOG_HOMEPAGE_PICKS_LIMIT).toBeGreaterThan(0);
   });
 });

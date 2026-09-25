@@ -9,6 +9,7 @@ import { getPrisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { sendWriterInviteEmail, sendWriterPasswordResetEmail } from "@/lib/email";
 import { requireBlogUser, BlogAuthorizationError } from "./auth";
+import { normalizeHomepagePicks } from "./public-feed";
 import { blogAuthorProfileSchema, blogCategorySchema, blogMediaMetadataSchema, blogPostPayloadSchema, blogTagSchema, blogTransitionSchema, writerInviteSchema, writerPasswordSchema, type BlogPostPayload } from "./validation";
 import { BlogConflictError, BlogPublicationError, createBlogPost, deleteUnpublishedBlogPost, invalidateBlogCache, transitionBlogPost, updateBlogPost } from "./service";
 import { slugify } from "./slug";
@@ -326,6 +327,60 @@ export async function changeWriterPasswordAction(formData: FormData): Promise<Bl
     await prisma.adminUser.update({ where: { id: actor.id }, data: { passwordHash: await hashPassword(data.newPassword) } });
     await writeAuditLog({ actorId: actor.id, action: "blog.writer_password_changed", entityType: "AdminUser", entityId: actor.id });
     return { ok: true, message: "Password changed. Use the new password for your next sign-in." };
+  } catch (error) {
+    return messageFromError(error);
+  }
+}
+
+export async function saveHomepageBlogPicksAction(formData: FormData): Promise<BlogActionResult> {
+  try {
+    const actor = await requireBlogUser("blog.posts.manage");
+    const prisma = getPrisma();
+    if (!prisma) return { ok: false, error: "Editorial database is unavailable." };
+    const locale = value(formData, "locale");
+    if (locale !== "en" && locale !== "fr") return { ok: false, error: "Choose a valid language." };
+    const pickIds = normalizeHomepagePicks({ ids: formData.getAll("pickIds") });
+
+    // Only published articles of this language can be promoted, so a stale or
+    // hand-crafted id can never place a draft or archived article on the
+    // homepage.
+    const eligible = await prisma.blogPost.findMany({
+      where: { id: { in: pickIds }, locale, status: "PUBLISHED", publishedAt: { lte: new Date() } },
+      select: { id: true },
+    });
+    const eligibleIds = new Set(eligible.map((post) => post.id));
+    const orderedIds = pickIds.filter((id) => eligibleIds.has(id));
+    const rejected = pickIds.length - orderedIds.length;
+
+    const [, cleared] = await Promise.all([
+      prisma.$transaction(
+        orderedIds.map((id, index) => prisma.blogPost.update({ where: { id }, data: { showOnHomepage: true, homepageOrder: index } })),
+      ),
+      prisma.blogPost.updateMany({
+        where: { locale, showOnHomepage: true, ...(orderedIds.length ? { id: { notIn: orderedIds } } : {}) },
+        data: { showOnHomepage: false, homepageOrder: 0 },
+      }),
+    ]);
+
+    await writeAuditLog({
+      actorId: actor.id,
+      action: "blog.homepage_picks_updated",
+      entityType: "BlogPost",
+      entityId: orderedIds[0] || locale,
+      metadata: { locale, order: orderedIds, cleared: cleared.count, rejected },
+    });
+    invalidateBlogCache();
+    revalidatePath(`/${locale}/admin/blog/homepage`);
+    revalidatePath(`/${locale}`);
+    revalidatePath("/");
+    return {
+      ok: true,
+      message: rejected
+        ? `Homepage lineup saved. ${rejected} unavailable ${rejected > 1 ? "articles were" : "article was"} skipped.`
+        : orderedIds.length
+          ? "Homepage lineup saved."
+          : "Homepage lineup cleared. The section will show the most recent articles.",
+    };
   } catch (error) {
     return messageFromError(error);
   }

@@ -5,15 +5,17 @@ import { LegacyBlogCard } from "./legacy-blog-card";
 import { getBlogHome, getPublishedPosts } from "@/lib/blog/queries";
 import type { BlogLocale } from "@/lib/blog/slug";
 import { getBlogCategoryPath, getBlogIndexPath } from "@/lib/blog/slug";
+import { BLOG_PAGE_SIZE } from "@/lib/blog/constants";
 import { getDictionary, siteConfig, type Locale } from "@/content/site";
 import { PremiumPageCta } from "@/components/ui/premium-page-cta";
 import { PremiumPageHero } from "@/components/ui/premium-page-hero";
 import { JsonLd } from "@/components/ui/json-ld";
 
-function withQuery(path: string, page: number, query: string) {
+function withQuery(path: string, page: number, query: string, category: string) {
   const params = new URLSearchParams();
   if (page > 1) params.set("page", String(page));
   if (query) params.set("q", query);
+  if (category) params.set("category", category);
   const suffix = params.toString();
   return suffix ? `${path}?${suffix}` : path;
 }
@@ -31,14 +33,23 @@ export async function BlogIndex({
 }) {
   const locale = siteLocale as BlogLocale;
   const dict = getDictionary(siteLocale);
-  const [home, filtered] = await Promise.all([
-    getBlogHome(locale),
-    getPublishedPosts({ locale, page, query: query || undefined, categorySlug: category || undefined, excludeFeatured: !query && !category }),
-  ]);
+  const isFiltered = Boolean(query || category);
+  const home = await getBlogHome(locale);
+  const filtered = await getPublishedPosts({
+    locale,
+    page,
+    query: query || undefined,
+    categorySlug: category || undefined,
+    // Hide only the article already rendered as the editor's pick. The rest of
+    // the published blog must stay visible, including other featured articles.
+    excludePostId: isFiltered ? undefined : home.featured?.id,
+  });
   const hasCmsContent = Boolean(home.featured || home.latest.length);
   const posts = filtered.posts;
   const total = filtered.total;
-  const pageCount = Math.max(1, Math.ceil(total / 9));
+  const pageCount = Math.max(1, Math.ceil(total / BLOG_PAGE_SIZE));
+  // When the featured article is the only published one, the grid is redundant.
+  const showLatestSection = isFiltered || !home.featured || posts.length > 0;
 
   const collectionItems = [
     ...(home.featured ? [home.featured] : []),
@@ -86,17 +97,19 @@ export async function BlogIndex({
 
       {hasCmsContent ? (
         <>
-          {home.featured && !query && !category ? (
+          {home.featured && !isFiltered ? (
             <section className="container pb-12" aria-labelledby="featured-article">
               <div className="mb-6 flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Editor&apos;s pick</p><h2 id="featured-article" className="mt-2 text-3xl font-semibold tracking-tight text-primary">Featured insight</h2></div></div>
               <BlogCard post={home.featured} featured />
             </section>
           ) : null}
-          <section className="container pb-12" aria-labelledby="latest-articles">
-            <div className="mb-6 flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{query || category ? "Filtered reading" : "Fresh thinking"}</p><h2 id="latest-articles" className="mt-2 text-3xl font-semibold tracking-tight text-primary">{query ? `Results for “${query}”` : "Latest articles"}</h2></div><span className="text-sm text-muted">{total} {locale === "fr" ? "articles" : "articles"}</span></div>
-            {posts.length ? <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">{posts.map((post) => <BlogCard key={post.id} post={post} />)}</div> : <div className="rounded-[1.5rem] border border-dashed border-border p-10 text-center"><p className="text-lg font-semibold text-primary">No published articles match that search.</p><p className="mt-2 text-sm text-muted">Try a broader topic or explore all articles.</p></div>}
-            {pageCount > 1 ? <nav className="mt-8 flex justify-center gap-2" aria-label="Blog pagination">{Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => <Link key={number} href={withQuery(getBlogIndexPath(locale), number, query)} className={`grid size-10 place-items-center rounded-full border text-sm font-semibold ${number === page ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:border-accent"}`} aria-current={number === page ? "page" : undefined}>{number}</Link>)}</nav> : null}
-          </section>
+          {showLatestSection && (
+            <section className="container pb-12" aria-labelledby="latest-articles">
+              <div className="mb-6 flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{isFiltered ? "Filtered reading" : "Fresh thinking"}</p><h2 id="latest-articles" className="mt-2 text-3xl font-semibold tracking-tight text-primary">{query ? `Results for “${query}”` : "Latest articles"}</h2></div><span className="text-sm text-muted">{total} articles</span></div>
+              {posts.length ? <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">{posts.map((post) => <BlogCard key={post.id} post={post} />)}</div> : <div className="rounded-[1.5rem] border border-dashed border-border p-10 text-center"><p className="text-lg font-semibold text-primary">{locale === "fr" ? "Aucun article ne correspond à cette recherche." : "No published articles match that search."}</p><p className="mt-2 text-sm text-muted">{locale === "fr" ? "Essayez un thème plus large ou explorez tous les articles." : "Try a broader topic or explore all articles."}</p><Link href={getBlogIndexPath(locale)} className="mt-4 inline-flex text-sm font-semibold text-accent hover:underline">{locale === "fr" ? "Explorer tous les articles" : "Explore all articles"}</Link></div>}
+              {pageCount > 1 ? <nav className="mt-8 flex justify-center gap-2" aria-label="Blog pagination">{Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => <Link key={number} href={withQuery(getBlogIndexPath(locale), number, query, category)} className={`grid size-10 place-items-center rounded-full border text-sm font-semibold ${number === page ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:border-accent"}`} aria-current={number === page ? "page" : undefined}>{number}</Link>)}</nav> : null}
+            </section>
+          )}
         </>
       ) : (
         <section className="container pb-12" aria-labelledby="legacy-articles">

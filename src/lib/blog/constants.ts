@@ -23,6 +23,7 @@ export type BlogWorkflowAction =
 
 export const BLOG_PAGE_SIZE = 9;
 export const BLOG_ADMIN_PAGE_SIZE = 20;
+export const BLOG_HOMEPAGE_PICKS_LIMIT = 3;
 export const BLOG_MAX_HTML_BYTES = 350_000;
 export const BLOG_MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 export const BLOG_ALLOWED_IMAGE_MIME_TYPES = [

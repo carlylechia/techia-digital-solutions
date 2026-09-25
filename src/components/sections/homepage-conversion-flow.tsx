@@ -31,6 +31,18 @@ const problemIllustrationSrc = {
   fr: "/images/homepage/02-section-illustrations/problem-to-solution-illustration-fr.svg",
 } as const;
 
+/**
+ * Homepage reading card. The blog lineup is curated by editors in the blog
+ * workspace, so it also carries the article image, topic, and reading time.
+ * Static dictionary articles still satisfy this shape because every extra
+ * field is optional.
+ */
+type ReadingCard = CardItem & {
+  imageUrl?: string | null;
+  imageAlt?: string | null;
+  readingTime?: number;
+};
+
 function Reveal({
   children,
   className,
@@ -219,10 +231,10 @@ const copy = {
     faqTitle: "Questions businesses usually ask before they begin.",
     faqDescription:
       "If you want a quicker recommendation, the AI consultant can help you understand what your business likely needs first.",
-    blogEyebrow: "Helpful reading",
-    blogTitle: "A few practical reads before you decide.",
+    blogEyebrow: "Featured insights",
+    blogTitle: "The reads our clients keep coming back to.",
     blogDescription:
-      "Short articles for leaders who want more clarity around visibility, branding, operations, and digital growth.",
+      "A curated selection of practical teChia articles, chosen by our editorial team to help you make your next digital decision with confidence.",
     blogCta: "Read article",
     blogMore: "Visit the blog",
     finalEyebrow: "Your next step",
@@ -347,10 +359,10 @@ const copy = {
       "Les questions que les entreprises posent le plus souvent avant de commencer.",
     faqDescription:
       "Si vous voulez une recommandation plus rapide, l'agent IA peut vous aider à comprendre ce dont votre entreprise a probablement besoin en premier.",
-    blogEyebrow: "Lectures utiles",
-    blogTitle: "Quelques articles pratiques avant de vous décider.",
+    blogEyebrow: "À la une",
+    blogTitle: "Les articles que nos clients relisent le plus.",
     blogDescription:
-      "De courts articles pour les dirigeants qui veulent plus de clarté sur la visibilité, la marque, les opérations et la croissance digitale.",
+      "Une sélection d'articles pratiques teChia, choisis par notre équipe éditoriale pour vous aider à décider clairement de votre prochaine étape digitale.",
     blogCta: "Lire l'article",
     blogMore: "Voir le blog",
     finalEyebrow: "Votre prochaine étape",
@@ -581,7 +593,7 @@ export function HomepageConversionFlow({
   locale: Locale;
   feedbackItems: PublicFeedbackItem[];
   faqItems: PublicFaqItem[];
-  blogPosts: CardItem[];
+  blogPosts: ReadingCard[];
 }) {
   const pageCopy = copy[locale];
   const serviceCards = services[locale];
@@ -894,20 +906,43 @@ export function HomepageConversionFlow({
             <Reveal key={item.slug} delay={index * 0.05}>
               <Link
                 href={getBlogPostPath(locale, item.slug)}
-                className="group block"
+                className="group block h-full"
               >
-                <article className="premium-card h-full min-w-0 overflow-hidden rounded-[1.75rem] p-5 transition duration-500 hover:-translate-y-1.5 hover:border-cyan-300/30 hover:shadow-[0_28px_80px_rgba(8,20,36,0.12)] sm:p-6">
-                  <p className="eyebrow">{pageCopy.blogEyebrow}</p>
-                  <h3 className="mt-4 text-[1.42rem] font-semibold text-primary sm:text-[1.55rem]">
-                    {item.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-[1.72] text-muted sm:text-[0.98rem] sm:leading-7">
-                    {item.description}
-                  </p>
-                  <span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-accent">
-                    {pageCopy.blogCta}
-                    <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
-                  </span>
+                <article className="premium-card flex h-full min-w-0 flex-col overflow-hidden rounded-[1.75rem] transition duration-500 hover:-translate-y-1.5 hover:border-cyan-300/30 hover:shadow-[0_28px_80px_rgba(8,20,36,0.12)]">
+                  <div className="relative aspect-[16/9] overflow-hidden bg-surface-strong">
+                    {item.imageUrl ? (
+                      <Image
+                        src={item.imageUrl}
+                        alt={item.imageAlt || item.title}
+                        fill
+                        sizes="(min-width: 1024px) 33vw, 100vw"
+                        className="object-cover transition duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(6,182,212,0.22),transparent_45%),linear-gradient(135deg,rgba(6,182,212,0.14),rgba(59,130,246,0.08))]" />
+                    )}
+                    <span className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/45 to-transparent" />
+                  </div>
+                  <div className="flex flex-1 flex-col p-5 sm:p-6">
+                    <p className="eyebrow">{item.eyebrow || pageCopy.blogEyebrow}</p>
+                    <h3 className="mt-4 text-[1.42rem] font-semibold text-primary sm:text-[1.55rem]">
+                      {item.title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-[1.72] text-muted sm:text-[0.98rem] sm:leading-7">
+                      {item.description}
+                    </p>
+                    <span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-accent">
+                      {item.readingTime ? (
+                        <span className="text-xs font-medium text-muted">
+                          {locale === "fr"
+                            ? `${item.readingTime} min de lecture`
+                            : `${item.readingTime} min read`}
+                        </span>
+                      ) : null}
+                      {pageCopy.blogCta}
+                      <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
+                    </span>
+                  </div>
                 </article>
               </Link>
             </Reveal>

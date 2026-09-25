@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, FilePlus2, FolderKanban, Images, Settings, Users } from "lucide-react";
+import { ArrowRight, FilePlus2, FolderKanban, Images, LayoutTemplate, Settings, Users } from "lucide-react";
 import { notFound } from "next/navigation";
 import { BlogWorkspaceShell } from "@/components/blog/blog-workspace-shell";
 import { getBlogDashboard } from "@/lib/blog/admin-data";
@@ -17,6 +17,7 @@ export default async function AdminBlogDashboardPage({ params }: { params: Promi
   if (!user) notFound();
   const data = await getBlogDashboard(user, locale);
   const canWriters = hasPermission(user.permissions, "blog.writers.manage");
+  const canManagePosts = hasPermission(user.permissions, "blog.posts.manage");
   const canCategories = hasPermission(user.permissions, "blog.categories.manage");
   const canMedia = hasPermission(user.permissions, "blog.media.manage");
   const canAudit = hasPermission(user.permissions, "blog.audit.view");
@@ -68,6 +69,7 @@ export default async function AdminBlogDashboardPage({ params }: { params: Promi
         </section>
         <aside className="grid content-start gap-4">
           <QuickLink href={`/${locale}/admin/blog/posts`} icon={FilePlus2} title="Review queue" body="Open drafts, submissions, and scheduled work." />
+          {canManagePosts ? <QuickLink href={`/${locale}/admin/blog/homepage`} icon={LayoutTemplate} title="Homepage lineup" body="Choose the articles that lead the homepage." /> : null}
           {canWriters ? <QuickLink href={`/${locale}/admin/blog/writers`} icon={Users} title="Writer access" body="Invite writers, review activity, and revoke access." /> : null}
           {canCategories ? <QuickLink href={`/${locale}/admin/blog/categories`} icon={FolderKanban} title="Taxonomy" body="Keep categories focused and useful." /> : null}
           {canMedia ? <QuickLink href={`/${locale}/admin/blog/media`} icon={Images} title="Media library" body="Manage alt text and editorial images." /> : null}

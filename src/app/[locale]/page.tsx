@@ -9,7 +9,8 @@ import {
   loadHomepageFeedback,
 } from "@/lib/public-showcase";
 import { createMetadata, organizationJsonLd } from "@/lib/seo";
-import { getBlogHome } from "@/lib/blog/queries";
+import { getHomepageBlogPosts } from "@/lib/blog/queries";
+import type { BlogLocale } from "@/lib/blog/slug";
 
 export async function generateMetadata({
   params,
@@ -37,14 +38,20 @@ export default async function HomePage({
   if (!isLocale(rawLocale)) notFound();
   const locale = rawLocale as Locale;
   const dict = getDictionary(locale);
-  const [feedbackItems, faqItems, blogHome] = await Promise.all([
+  const [feedbackItems, faqItems, featuredPosts] = await Promise.all([
     loadHomepageFeedback(locale),
     loadHomepageFaqs(locale),
-    getBlogHome(locale).catch(() => null),
+    getHomepageBlogPosts(locale as BlogLocale).catch(() => null),
   ]);
-  const latestBlogCards = (blogHome?.latest || [])
-    .slice(0, 3)
-    .map((post) => ({ slug: post.slug, title: post.title, description: post.excerpt }));
+  const latestBlogCards = (featuredPosts || []).map((post) => ({
+    slug: post.slug,
+    title: post.title,
+    description: post.excerpt,
+    eyebrow: post.category?.name || undefined,
+    imageUrl: post.featuredImageUrl,
+    imageAlt: post.featuredImageAlt || post.title,
+    readingTime: post.readingTime,
+  }));
 
   return (
     <main id="main-content">

@@ -197,6 +197,8 @@ model BlogPost {
   published             Boolean        @default(true)
   status                BlogPostStatus @default(DRAFT)
   featured              Boolean        @default(false)
+  showOnHomepage        Boolean        @default(false)
+  homepageOrder         Int            @default(0)
   allowIndex            Boolean        @default(true)
   nofollow              Boolean        @default(false)
   seoTitle              String?
@@ -250,6 +252,7 @@ model BlogPost {
   @@index([publishedById])
   @@index([categoryId, status, publishedAt(sort: Desc)])
   @@index([featured, status, publishedAt(sort: Desc)])
+  @@index([locale, showOnHomepage, homepageOrder])
   @@index([scheduledAt, status])
   @@index([translationGroupId])
 }

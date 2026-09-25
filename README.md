@@ -227,6 +227,8 @@ pnpm prisma:studio
 pnpm seed
 ```
 
+Read-only queries that used to be batched with `prisma.$transaction([...])` now run with `Promise.all` instead. Pooled Postgres deployments can refuse to start a transaction under concurrent build workers and server requests (`P2028: Transaction API error`), which failed the production build while prerendering `/blog/feed.xml`; a listing has no rollback semantics, so batching bought nothing. Keep `prisma.$transaction` for writes that must succeed or fail together, such as article publishing and slug redirects.
+
 Models included:
 
 - Lead
@@ -730,6 +732,10 @@ The public blog has independently indexable language paths:
 
 Neutral `/blog` URLs are compatibility redirects. CMS articles use reciprocal `hreflang`, canonical metadata, `BlogPosting`/`ProfilePage` JSON-LD, and published-only sitemap entries. Existing static starter articles remain available as a rolling-migration fallback until an editor has published the corresponding CMS version.
 
+The blog index renders the most recent featured article as the "Editor's pick" and then lists every other published article, featured or not. Only that single card is excluded from the grid, so flagging several articles as featured never hides the rest of the published blog. `src/lib/blog/public-feed.ts` owns the shared rule for what counts as a public article (published, dated in the past, active author, active category); the index, topic pages, author pages, sitemap, and feed all build on it so they cannot disagree.
+
+The homepage reading section is curated rather than automatic. An editor with `blog.posts.manage` opens `/admin/blog/homepage`, promotes up to three published articles per language, and reorders them; the homepage then shows exactly those articles, in that order, with their topic, image, and reading time. `BlogPost.showOnHomepage` and `BlogPost.homepageOrder` store the lineup, saving it writes an audit entry, clears the `blog` cache tag, and revalidates the homepage. Only published articles of the selected language can be promoted, and when no promotion exists the section falls back to the most recent published articles so the homepage is never empty after a migration or a fresh install.
+
 ### Editorial roles
 
 - `writer`: own drafts, own media uploads, own author profile, and review submissions only.
@@ -743,6 +749,7 @@ There is no public writer registration. An administrator creates writer accounts
 
 - `/admin/blog` — editorial dashboard
 - `/admin/blog/posts` — review and publishing queue
+- `/admin/blog/homepage` — choose and order the articles shown in the homepage featured insights section
 - `/admin/blog/writers` — invitations, roles, activation, and password reset
 - `/admin/blog/categories` — controlled category taxonomy
 - `/admin/blog/tags` — internal organization tags

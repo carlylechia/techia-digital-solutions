@@ -3,7 +3,8 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { getDictionary } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
-import { BLOG_PAGE_SIZE, type BlogLocale } from "./constants";
+import { BLOG_HOMEPAGE_PICKS_LIMIT, BLOG_PAGE_SIZE, type BlogLocale } from "./constants";
+import { buildPublicPostWhere, homepagePostVisibility, publicPostVisibility } from "./public-feed";
 
 function isBlogSchemaUnavailable(error: unknown) {
   if (!error || typeof error !== "object") return false;
@@ -78,35 +79,17 @@ async function queryPublishedPosts(input: {
   query?: string;
   categorySlug?: string;
   authorSlug?: string;
-  excludeFeatured?: boolean;
+  excludePostId?: string;
 }) {
   const prisma = getPrisma();
   if (!prisma) return { posts: [], total: 0 };
 
-  const search = input.query?.trim().slice(0, 100);
-  const where = {
-    locale: input.locale,
-    status: "PUBLISHED" as const,
-    publishedAt: { lte: new Date() },
-    author: { isActive: true },
-    category: { isActive: true },
-    ...(input.excludeFeatured ? { featured: false } : {}),
-    ...(input.categorySlug ? { category: { slug: input.categorySlug, locale: input.locale, isActive: true } } : {}),
-    ...(input.authorSlug ? { author: { slug: input.authorSlug, isActive: true } } : {}),
-    ...(search
-      ? {
-          OR: [
-            { title: { contains: search, mode: "insensitive" as const } },
-            { excerpt: { contains: search, mode: "insensitive" as const } },
-            { contentText: { contains: search, mode: "insensitive" as const } },
-            { category: { name: { contains: search, mode: "insensitive" as const } } },
-            { tags: { some: { tag: { name: { contains: search, mode: "insensitive" as const } } } } },
-          ],
-        }
-      : {}),
-  };
+  const where = buildPublicPostWhere(input);
 
-  const [posts, total] = await prisma.$transaction([
+  // Read-only queries run in parallel instead of inside a transaction: pooled
+  // Postgres deployments can fail to start a transaction under concurrent
+  // build and server workers, and a listing never needs rollback semantics.
+  const [posts, total] = await Promise.all([
     prisma.blogPost.findMany({
       where,
       select: publicCardSelect,
@@ -139,7 +122,7 @@ export async function getPublishedPosts(input: {
   query?: string;
   categorySlug?: string;
   authorSlug?: string;
-  excludeFeatured?: boolean;
+  excludePostId?: string;
 }) {
   return cachedPublishedPosts({
     ...input,
@@ -163,21 +146,26 @@ const queryBlogHome = unstable_cache(
 const queryBlogHomeUncached = async (locale: BlogLocale) => {
   const prisma = getPrisma();
   if (!prisma) return { featured: null, latest: [], total: 0, categories: [] };
-  const [featured, latest, total, categories] = await prisma.$transaction([
-    prisma.blogPost.findFirst({
-      where: { locale, status: "PUBLISHED", publishedAt: { lte: new Date() }, featured: true, author: { isActive: true }, category: { isActive: true } },
-      select: publicCardSelect,
-      orderBy: { publishedAt: "desc" },
-    }),
+  const now = new Date();
+  const visible = publicPostVisibility(locale, now);
+  const featured = await prisma.blogPost.findFirst({
+    where: { ...visible, featured: true },
+    select: publicCardSelect,
+    orderBy: { publishedAt: "desc" },
+  });
+  const [latest, total, categories] = await Promise.all([
+    // Every published article except the single editor's pick, featured or
+    // not, so a blog whose articles are all flagged featured still has a
+    // populated grid, structured data and homepage cards.
     prisma.blogPost.findMany({
-      where: { locale, status: "PUBLISHED", publishedAt: { lte: new Date() }, featured: false, author: { isActive: true }, category: { isActive: true } },
+      where: { ...visible, ...(featured ? { id: { not: featured.id } } : {}) },
       select: publicCardSelect,
       orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
       take: BLOG_PAGE_SIZE,
     }),
-    prisma.blogPost.count({ where: { locale, status: "PUBLISHED", publishedAt: { lte: new Date() } } }),
+    prisma.blogPost.count({ where: visible }),
     prisma.blogCategory.findMany({
-      where: { locale, isActive: true, posts: { some: { status: "PUBLISHED", publishedAt: { lte: new Date() } } } },
+      where: { locale, isActive: true, posts: { some: { status: "PUBLISHED", publishedAt: { lte: now } } } },
       select: { id: true, name: true, slug: true, description: true },
       orderBy: { name: "asc" },
       take: 12,
@@ -187,6 +175,48 @@ const queryBlogHomeUncached = async (locale: BlogLocale) => {
 };
 
 export const getBlogHome = queryBlogHome;
+
+const queryHomepageBlogPosts = unstable_cache(
+  async (locale: BlogLocale, take: number) => {
+    try {
+      return await queryHomepageBlogPostsUncached(locale, take);
+    } catch (error) {
+      if (isBlogSchemaUnavailable(error)) return [];
+      throw error;
+    }
+  },
+  ["blog-homepage-picks"],
+  { revalidate: 300, tags: ["blog"] },
+);
+
+/**
+ * The homepage featured insights lineup. Editors pick the articles and their
+ * order from the blog workspace; when no pick has been made the section falls
+ * back to the most recent published articles so the homepage is never empty
+ * after a migration or a fresh install.
+ */
+export async function getHomepageBlogPosts(locale: BlogLocale, take: number = BLOG_HOMEPAGE_PICKS_LIMIT) {
+  const limit = Math.max(1, Math.min(take, BLOG_HOMEPAGE_PICKS_LIMIT));
+  return queryHomepageBlogPosts(locale, limit);
+}
+
+const queryHomepageBlogPostsUncached = async (locale: BlogLocale, take: number) => {
+  const prisma = getPrisma();
+  if (!prisma) return [];
+  const picks = await prisma.blogPost.findMany({
+    where: homepagePostVisibility(locale),
+    select: publicCardSelect,
+    orderBy: [{ homepageOrder: "asc" }, { publishedAt: "desc" }, { createdAt: "desc" }],
+    take,
+  });
+  if (picks.length) return picks;
+  return prisma.blogPost.findMany({
+    where: publicPostVisibility(locale),
+    select: publicCardSelect,
+    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+    take,
+  });
+};
 
 const queryPublishedPost = unstable_cache(
   async (locale: BlogLocale, slug: string) => {
@@ -358,7 +388,7 @@ const queryAdjacentPosts = unstable_cache(
     const prisma = getPrisma();
     if (!prisma) return { previous: null, next: null };
     const base = { locale, status: "PUBLISHED" as const, publishedAt: { lte: new Date() } };
-    const [previous, next] = await prisma.$transaction([
+    const [previous, next] = await Promise.all([
       prisma.blogPost.findFirst({
         where: { ...base, OR: [{ publishedAt: { lt: publishedAt } }, { publishedAt, id: { lt: id } }] },
         select: { slug: true, title: true, publishedAt: true },

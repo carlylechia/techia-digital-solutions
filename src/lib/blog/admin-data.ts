@@ -65,7 +65,7 @@ export async function getBlogPostsForList(user: BlogSessionUser, locale: BlogLoc
     ...(status ? { status } : {}),
     ...(query ? { OR: [{ title: { contains: query, mode: "insensitive" } }, { excerpt: { contains: query, mode: "insensitive" } }, { slug: { contains: query, mode: "insensitive" } }, { contentText: { contains: query, mode: "insensitive" } }] } : {}),
   };
-  const [posts, total] = await prisma.$transaction([
+  const [posts, total] = await Promise.all([
     prisma.blogPost.findMany({ where, select: { id: true, title: true, slug: true, status: true, updatedAt: true, publishedAt: true, scheduledAt: true, author: { select: { displayName: true, slug: true } }, category: { select: { name: true } } }, orderBy: { updatedAt: "desc" }, skip: (page - 1) * BLOG_ADMIN_PAGE_SIZE, take: BLOG_ADMIN_PAGE_SIZE }),
     prisma.blogPost.count({ where }),
   ]);
@@ -110,6 +110,29 @@ export async function getBlogTags(locale: BlogLocale) {
 
 export async function getBlogMedia(limit = 60) {
   return db().blogMedia.findMany({ select: { id: true, publicId: true, url: true, format: true, mimeType: true, width: true, height: true, bytes: true, altText: true, createdAt: true, uploadedBy: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: Math.min(100, Math.max(1, limit)) });
+}
+
+/**
+ * Lineup editor for the homepage featured insights section: the current picks
+ * in display order, plus every published article of the locale that an editor
+ * can still add.
+ */
+export async function getHomepagePickOptions(locale: BlogLocale) {
+  return db().blogPost.findMany({
+    where: { locale, status: "PUBLISHED", publishedAt: { lte: new Date() } },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      showOnHomepage: true,
+      homepageOrder: true,
+      publishedAt: true,
+      readingTime: true,
+      category: { select: { name: true } },
+    },
+    orderBy: [{ showOnHomepage: "desc" }, { homepageOrder: "asc" }, { publishedAt: "desc" }],
+    take: 100,
+  });
 }
 
 export async function getBlogRoles() {
