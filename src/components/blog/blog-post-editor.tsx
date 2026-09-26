@@ -315,7 +315,7 @@ export function BlogPostEditor({
         </section>
 
         <section className="premium-card grid gap-5 p-5 sm:p-7" aria-labelledby="editor-media-title">
-          <div><p className="eyebrow">Presentation</p><h2 id="editor-media-title" className="mt-2 text-2xl font-semibold text-primary">Image and conversion</h2></div><BlogMediaUploader onUploaded={(media) => { update("featuredImageUrl", media.url); update("featuredImagePublicId", media.publicId); }} />
+          <div><p className="eyebrow">Presentation</p><h2 id="editor-media-title" className="mt-2 text-2xl font-semibold text-primary">Image and conversion</h2></div><BlogMediaUploader disabled={!editable} selectedUrl={form.featuredImageUrl} onCleared={() => { update("featuredImageUrl", ""); update("featuredImagePublicId", ""); }} onUploaded={(media) => { update("featuredImageUrl", media.url); update("featuredImagePublicId", media.publicId); if (!form.featuredImageAlt.trim() && media.altText) update("featuredImageAlt", media.altText); }} />
           <div className="grid gap-5 md:grid-cols-2">
             <label className="form-label">Featured image URL<input id="editor-featured-image" className={inputClass} name="featuredImageUrl" value={form.featuredImageUrl} onChange={(event) => update("featuredImageUrl", event.target.value)} disabled={!editable} placeholder="https://res.cloudinary.com/..." /></label>
             <label className="form-label">Featured image alt text<input id="editor-featured-image-alt" className={inputClass} name="featuredImageAlt" value={form.featuredImageAlt} onChange={(event) => update("featuredImageAlt", event.target.value)} disabled={!editable} maxLength={300} /></label>

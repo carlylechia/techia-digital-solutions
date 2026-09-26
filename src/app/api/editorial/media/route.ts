@@ -6,6 +6,37 @@ import { BLOG_MAX_IMAGE_BYTES } from "@/lib/blog/constants";
 import { detectImageMime, isAllowedBlogImageMime } from "@/lib/blog/media-validation";
 import { assertSameOrigin, requireBlogUser, BlogAuthorizationError } from "@/lib/blog/auth";
 
+const MEDIA_PICKER_LIMIT = 120;
+
+/**
+ * Lists validated editorial images so an author can reuse an asset that is
+ * already in the library instead of uploading the same file again. Read-only,
+ * and available to anyone who may upload media.
+ */
+export async function GET(request: Request) {
+  try {
+    assertSameOrigin(request);
+    const actor = await requireBlogUser("blog.media.upload");
+    const rate = checkRateLimit(`blog-media-list:${actor.id}:${requestIp(request.headers)}`, 60, 60_000);
+    if (!rate.ok) return NextResponse.json({ ok: false, error: "Too many requests. Try again shortly." }, { status: 429, headers: { "Retry-After": String(rate.retryAfter), "Cache-Control": "no-store" } });
+    const prisma = getPrisma();
+    if (!prisma) return NextResponse.json({ ok: false, error: "Media storage is unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    const media = await prisma.blogMedia.findMany({
+      select: { id: true, url: true, publicId: true, format: true, mimeType: true, width: true, height: true, bytes: true, altText: true, createdAt: true },
+      orderBy: { createdAt: "desc" },
+      take: MEDIA_PICKER_LIMIT,
+    });
+    return NextResponse.json(
+      { ok: true, media: media.map((item) => ({ ...item, createdAt: item.createdAt.toISOString() })) },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (error) {
+    if (error instanceof BlogAuthorizationError) return NextResponse.json({ ok: false, error: error.message }, { status: error.status, headers: { "Cache-Control": "no-store" } });
+    console.error("blog_media_list_failed", error instanceof Error ? error.message : "Unknown error");
+    return NextResponse.json({ ok: false, error: "The media library could not be loaded." }, { status: 500, headers: { "Cache-Control": "no-store" } });
+  }
+}
+
 export async function POST(request: Request) {
   let uploadedPublicId: string | null = null;
   try {

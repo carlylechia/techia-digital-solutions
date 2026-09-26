@@ -762,6 +762,8 @@ There is no public writer registration. An administrator creates writer accounts
 - `/admin/blog/media` — validated Cloudinary image library
 - `/writer` — restricted writer workspace
 
+The article editor's **Featured image** control asks where the image should come from: pick an image that is already in the editorial media library, or upload a new file from the device. Reusing a library asset avoids uploading the same picture twice and keeps the library the one place alt text is maintained; picking an image that has a description fills the article's alt text when that field is still empty. The library list is read through `GET /api/editorial/media`, which is available to anyone who may upload media, rate limited, and only ever returns already-validated assets. Uploaded files still go through the signature, size, and MIME checks in `POST /api/editorial/media`, and an attached image can be removed again from the same panel.
+
 Draft previews are authenticated and `noindex`; drafts, review submissions, scheduled posts, and archived posts are not public CMS content. Article content is stored as sanitized HTML; HTML/Markdown pasted or imported in the editor is normalized to that format before preview, save, and public rendering.
 
 ### Scheduled publishing
