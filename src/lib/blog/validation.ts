@@ -32,7 +32,9 @@ export const blogPostPayloadSchema = z.object({
   locale: z.enum(["en", "fr"]),
   categoryId: z.string().trim().max(64).optional().or(z.literal("")),
   authorId: z.string().trim().max(64).optional().or(z.literal("")),
-  translationGroupId: z.string().trim().max(64).optional().or(z.literal("")),
+  // The published article in the other language that this one translates. The
+  // translation group itself is resolved on the server.
+  translationSourcePostId: z.string().trim().max(64).optional().or(z.literal("")),
   tagIds: z.array(z.string().trim().min(1).max(64)).max(12).default([]),
   relatedPostIds: z.array(z.string().trim().min(1).max(64)).max(6).default([]),
   seoTitle: optionalText(70),

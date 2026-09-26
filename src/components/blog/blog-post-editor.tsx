@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, Check, Eye, Save, Send, Settings2 } from "lucide-react";
+import { AlertCircle, ArrowUpRight, Check, Eye, Save, Send, Settings2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import type { BlogLocale, BlogPostStatusValue } from "@/lib/blog/constants";
+import { getBlogPostPath, type BlogLocale } from "@/lib/blog/slug";
+import type { BlogPostStatusValue } from "@/lib/blog/constants";
 import { createBlogPostAction, deleteBlogPostAction, saveBlogPostAction, transitionBlogPostAction, type BlogActionResult } from "@/lib/blog/actions";
 import { RichTextEditor } from "./rich-text-editor";
 import { normalizeRichTextSource } from "@/lib/blog/rich-text";
@@ -21,6 +22,7 @@ type EditorPost = {
   categoryId: string | null;
   authorId: string | null;
   translationGroupId: string;
+  translationSourcePostId: string;
   tagIds: string[];
   relatedPostIds: string[];
   seoTitle: string;
@@ -47,6 +49,8 @@ type EditorPost = {
 };
 
 type Option = { id: string; name: string; slug?: string; displayName?: string; userId?: string | null; isActive?: boolean };
+type TranslationCandidate = { id: string; title: string; slug: string; locale: BlogLocale; publishedAt: string | null; authorName: string };
+type LinkedTranslation = { id: string; title: string; slug: string; locale: BlogLocale; status: string; authorName: string };
 type EditorIssue = { field: string; message: string; severity: "error" | "warning" };
 type StatusMessage = { kind: "success" | "error"; text: string; issues?: EditorIssue[] };
 
@@ -107,6 +111,8 @@ export function BlogPostEditor({
   canPublish,
   isNew = false,
   previewBase,
+  translationCandidates = [],
+  linkedTranslation = null,
 }: {
   locale: BlogLocale;
   post: EditorPost;
@@ -117,6 +123,8 @@ export function BlogPostEditor({
   canPublish: boolean;
   isNew?: boolean;
   previewBase?: string;
+  translationCandidates?: TranslationCandidate[];
+  linkedTranslation?: LinkedTranslation | null;
 }) {
   const [form, setForm] = useState(post);
   const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null);
@@ -278,7 +286,7 @@ export function BlogPostEditor({
           <label className="form-label">Title<input id="editor-title" className={inputClass} name="title" value={form.title} onChange={(event) => update("title", event.target.value)} disabled={!editable} required minLength={5} maxLength={180} /></label>
           <div className="grid gap-5 md:grid-cols-[1fr_15rem]">
             <label className="form-label">URL slug<input className={inputClass} name="slug" value={form.slug} onChange={(event) => updateSlug(event.target.value)} readOnly={form.status === "PUBLISHED"} disabled={!editable} required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" /><span className="text-xs text-muted">{form.status === "PUBLISHED" ? "Published URLs stay stable when you edit and republish." : "Use a permanent, lowercase, URL-safe slug."}</span></label>
-            <label className="form-label">Language<select className={inputClass} name="localeSelect" value={form.locale} onChange={(event) => update("locale", event.target.value as BlogLocale)} disabled={!isNew || !editable}><option value="en">English</option><option value="fr">Français</option></select><input type="hidden" name="locale" value={form.locale} /></label>
+            <label className="form-label">Language<select className={inputClass} name="localeSelect" value={form.locale} onChange={(event) => update("locale", event.target.value as BlogLocale)} disabled={!isNew || !editable}><option value="en">English</option><option value="fr">Français</option></select><input type="hidden" name="locale" value={form.locale} /><span className="text-xs text-muted">{isNew ? "This is the language the article is written in. You can change it until the draft is created." : "The language of a saved article never changes, so its public URL stays stable. To write the other language, start a new article and link the two below."}</span></label>
           </div>
           <label className="form-label">Excerpt / summary<textarea className={`${inputClass} min-h-28`} name="excerpt" value={form.excerpt} onChange={(event) => update("excerpt", event.target.value)} disabled={!editable} required minLength={30} maxLength={320} /><span className="text-xs text-muted">{form.excerpt.length}/320 · Aim for a clear, useful summary.</span></label>
         </section>
@@ -295,7 +303,15 @@ export function BlogPostEditor({
           <label className="form-label">Meta description<textarea className={`${inputClass} min-h-24`} name="seoDescription" value={form.seoDescription} onChange={(event) => update("seoDescription", event.target.value)} disabled={!editable} maxLength={180} /><span className={seoDescriptionLength > 160 ? "text-xs text-amber-500" : "text-xs text-muted"}>{seoDescriptionLength}/160 recommended</span></label>
           <label className="form-label">Focus topic / keyword<input className={inputClass} name="focusKeyword" value={form.focusKeyword} onChange={(event) => update("focusKeyword", event.target.value)} disabled={!editable} maxLength={120} placeholder="A natural topic, not a keyword list" /></label>
           <label className="form-label">Canonical URL <span className="text-xs text-muted">(optional)</span><input className={inputClass} name="canonicalUrl" value={form.canonicalUrl} onChange={(event) => update("canonicalUrl", event.target.value)} disabled={!editable || !canPublish} placeholder="https://techiadigital.com/en/blog/..." /></label>
-          {canManage ? <label className="form-label">Translation group ID <span className="text-xs text-muted">(optional; links equivalent language versions)</span><input className={inputClass} name="translationGroupId" value={form.translationGroupId} onChange={(event) => update("translationGroupId", event.target.value)} disabled={!editable} /></label> : null}
+          {linkedTranslation ? (
+            <div className="rounded-xl border border-border bg-surface-strong/60 p-3 text-xs leading-5 text-muted">
+              <p className="font-semibold text-primary">Linked {linkedTranslation.locale === "fr" ? "French" : "English"} version</p>
+              <p className="mt-1">{linkedTranslation.title}</p>
+              <p className="mt-1 text-muted">By {linkedTranslation.authorName}{linkedTranslation.status === "PUBLISHED" ? "" : ` · ${linkedTranslation.status.replaceAll("_", " ").toLowerCase()}`}</p>
+              <Link href={getBlogPostPath(linkedTranslation.locale, linkedTranslation.slug)} className="mt-2 inline-flex items-center gap-1 font-semibold text-accent hover:underline" target="_blank">Open the {linkedTranslation.locale === "fr" ? "French" : "English"} article<ArrowUpRight className="size-3.5" /></Link>
+            </div>
+          ) : null}
+          <label className="form-label">{locale === "fr" ? "Translate an English article" : "Translate a French article"}<select className={inputClass} name="translationSourcePostId" value={form.translationSourcePostId} onChange={(event) => update("translationSourcePostId", event.target.value)} disabled={!editable}><option value="">{locale === "fr" ? "This article is not a translation" : "This article is not a translation"}</option>{translationCandidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.title} · {candidate.authorName}</option>)}</select><span className="text-xs text-muted">Pick the published {locale === "fr" ? "English" : "French"} article this one translates, written by anyone. teChia then links both languages together for search engines.</span>{locale === "fr" && !translationCandidates.length ? <span className="text-xs text-amber-300">No published English article is available to translate yet. Ask an editor to publish one first.</span> : null}</label>
         </section>
 
         <section className="premium-card grid gap-5 p-5 sm:p-7" aria-labelledby="editor-media-title">

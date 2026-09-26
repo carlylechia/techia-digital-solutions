@@ -6,6 +6,7 @@ import { BlogCard } from "@/components/blog/blog-card";
 import { JsonLd } from "@/components/ui/json-ld";
 import { getDictionary, isLocale, siteConfig, type Locale } from "@/content/site";
 import { getPublishedCategory, getPublishedPosts } from "@/lib/blog/queries";
+import { getBlogUiCopy } from "@/lib/blog/copy";
 import { getBlogCategoryPath, getBlogIndexPath, type BlogLocale } from "@/lib/blog/slug";
 import { createMetadata } from "@/lib/seo";
 
@@ -41,6 +42,7 @@ export default async function BlogCategoryPage({ params, searchParams }: { param
   const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const { posts, total } = await getPublishedPosts({ locale, page, categorySlug: category.slug });
   const dict = getDictionary(rawLocale as Locale);
+  const ui = getBlogUiCopy(locale);
   const pageCount = Math.max(1, Math.ceil(total / 9));
   const canonical = `${siteConfig.url}${getBlogCategoryPath(locale, category.slug)}`;
 
@@ -50,12 +52,12 @@ export default async function BlogCategoryPage({ params, searchParams }: { param
       <div className="container pt-6 sm:pt-10">
         <BlogBreadcrumbs locale={locale} items={[{ label: "Home", href: "/" }, { label: dict.nav.blog, href: getBlogIndexPath(locale) }, { label: category.name }]} />
         <header className="max-w-3xl py-8 sm:py-12">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{dict.nav.blog} · Topic</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">{dict.nav.blog} · {locale === "fr" ? "Thème" : "Topic"}</p>
           <h1 className="mt-4 text-balance text-4xl font-semibold tracking-tight text-primary sm:text-6xl">{category.name}</h1>
           {category.description ? <p className="mt-5 text-lg leading-8 text-muted">{category.description}</p> : null}
         </header>
-        {posts.length ? <div className="grid gap-5 pb-12 md:grid-cols-2 lg:grid-cols-3">{posts.map((post) => <BlogCard key={post.id} post={post} />)}</div> : <div className="rounded-[1.5rem] border border-dashed border-border p-10 text-center"><p className="text-lg font-semibold text-primary">No published articles in this topic yet.</p><Link href={getBlogIndexPath(locale)} className="mt-4 inline-flex text-sm font-semibold text-accent hover:underline">Explore all insights</Link></div>}
-        {pageCount > 1 ? <nav className="flex justify-center gap-2 pb-16" aria-label="Category pagination">{Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => <Link key={number} href={`${getBlogCategoryPath(locale, category.slug)}?page=${number}`} className={`grid size-10 place-items-center rounded-full border text-sm font-semibold ${number === page ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:border-accent"}`} aria-current={number === page ? "page" : undefined}>{number}</Link>)}</nav> : null}
+        {posts.length ? <div className="grid gap-5 pb-12 md:grid-cols-2 lg:grid-cols-3">{posts.map((post) => <BlogCard key={post.id} post={post} />)}</div> : <div className="rounded-[1.5rem] border border-dashed border-border p-10 text-center"><p className="text-lg font-semibold text-primary">{ui.noResultsTitle}</p><Link href={getBlogIndexPath(locale)} className="mt-4 inline-flex text-sm font-semibold text-accent hover:underline">{ui.exploreAll}</Link></div>}
+        {pageCount > 1 ? <nav className="flex justify-center gap-2 pb-16" aria-label={ui.topicPaginationLabel}>{Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => <Link key={number} href={`${getBlogCategoryPath(locale, category.slug)}?page=${number}`} className={`grid size-10 place-items-center rounded-full border text-sm font-semibold ${number === page ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:border-accent"}`} aria-current={number === page ? "page" : undefined}>{number}</Link>)}</nav> : null}
       </div>
     </main>
   );

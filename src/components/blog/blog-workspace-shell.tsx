@@ -45,6 +45,21 @@ export function BlogWorkspaceShell({
           <div className="flex items-center justify-between gap-3 lg:block"><Link href={base} className="flex items-center gap-2 text-lg font-semibold tracking-tight"><span className="grid size-9 place-items-center rounded-xl bg-cyan-400/10 text-accent"><BookOpen className="size-5" /></span>Editorial Studio</Link><div className="lg:hidden"><BlogSignOutButton callbackUrl={mode === "admin" ? `/${locale}/admin` : `/${locale}/writer`} /></div></div>
           <p className="mt-3 hidden text-xs leading-5 text-muted lg:block">teChia Digital Solutions<br />Digitalize. Simplify. Grow.</p>
           <nav className="mt-5 grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-1" aria-label="Editorial navigation">{links.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition hover:bg-accent/10 hover:text-primary"><Icon className="size-4" />{label}</Link>)}</nav>
+          <nav className="mt-5 border-t border-border pt-5" aria-label="Workspace language">
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Workspace language</p>
+            <div className="flex gap-1">
+              {(["en", "fr"] as const).map((value) => (
+                <Link
+                  key={value}
+                  href={base.replace(`/${locale}/`, `/${value}/`)}
+                  aria-current={value === locale ? "true" : undefined}
+                  className={`flex-1 rounded-xl px-3 py-2 text-center text-xs font-semibold transition ${value === locale ? "bg-accent/10 text-accent" : "text-muted hover:bg-accent/10 hover:text-primary"}`}
+                >
+                  {value === "fr" ? "Français" : "English"}
+                </Link>
+              ))}
+            </div>
+          </nav>
           <div className="mt-6 hidden border-t border-border pt-5 lg:block"><p className="truncate text-sm font-semibold text-primary">{user.name}</p><p className="mt-1 truncate text-xs text-muted">{user.email}</p><p className="mt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-accent">{isBlogOnly ? "Blog editor access" : mode === "admin" ? "Editorial admin" : "Writer access"}</p><div className="mt-4"><BlogSignOutButton callbackUrl={mode === "admin" ? `/${locale}/admin` : `/${locale}/writer`} /></div></div>
           {mode === "admin" && canAccessOperations ? <Link href={`/${locale}/admin`} className="mt-5 hidden items-center gap-2 text-xs text-muted hover:text-accent lg:inline-flex"><LogIn className="size-3.5" />Operations workspace</Link> : null}
         </aside>

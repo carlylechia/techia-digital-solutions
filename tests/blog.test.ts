@@ -5,6 +5,7 @@ import { normalizeArticleHtml, sanitizeArticleHtml, htmlToPlainText, countArticl
 import { markdownToHtml, normalizeRichTextSource } from "@/lib/blog/rich-text";
 import { getBlogPostPath, getBlogCategoryPath, getBlogAuthorPath, normalizeCtaHref, slugify } from "@/lib/blog/slug";
 import { buildPublicPostWhere, homepagePostVisibility, normalizeHomepagePicks, normalizePublicSearch, publicPostVisibility, PUBLIC_SEARCH_MAX_LENGTH } from "@/lib/blog/public-feed";
+import { getBlogUiCopy } from "@/lib/blog/copy";
 import { BLOG_HOMEPAGE_PICKS_LIMIT } from "@/lib/blog/constants";
 import { getSeoIssues } from "@/lib/blog/validation";
 import { canEditBlogPost, canTransitionBlogPost } from "@/lib/blog/authorization";
@@ -239,6 +240,23 @@ const post = {
       ...publicPostVisibility("fr", now),
       showOnHomepage: true,
     });
+  });
+
+  it("translates the blog interface copy for both languages", () => {
+    const en = getBlogUiCopy("en");
+    const fr = getBlogUiCopy("fr");
+    expect(fr.readArticle).not.toBe(en.readArticle);
+    expect(fr.latestTitle).not.toBe(en.latestTitle);
+    expect(fr.featuredEyebrow).not.toBe(en.featuredEyebrow);
+    expect(fr.exploreByTopic).not.toBe(en.exploreByTopic);
+    expect(fr.allTopics).toBe("Tous");
+    expect(fr.articleCount(1)).toBe("1 article");
+    expect(fr.articleCount(3)).toBe("3 articles");
+    expect(fr.resultsFor("seo")).toBe("Résultats pour « seo »");
+    // Every public blog string must exist in both languages.
+    for (const key of Object.keys(en) as Array<keyof typeof en>) {
+      expect(fr[key], `missing French copy for ${key}`).toBeTruthy();
+    }
   });
 
   it("caps the homepage lineup and keeps the editor's order", () => {

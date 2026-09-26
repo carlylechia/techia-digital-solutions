@@ -143,6 +143,35 @@ export async function getBlogWriters() {
   return db().adminUser.findMany({ where: { roleRef: { name: "writer" } }, select: { id: true, name: true, email: true, status: true, lastLoginAt: true, createdAt: true, blogAuthor: { select: { id: true, displayName: true, slug: true, isActive: true } }, _count: { select: { blogPostsCreated: true } } }, orderBy: { createdAt: "desc" } });
 }
 
+/**
+ * Published articles in the other language that this article can be linked to
+ * as its translation. Any author may pick one, including an article written by
+ * someone else, which is how a French writer produces the French version of an
+ * English article.
+ */
+export async function getTranslationCandidates(locale: BlogLocale, options: { excludePostId?: string } = {}) {
+  const otherLocale: BlogLocale = locale === "fr" ? "en" : "fr";
+  return db().blogPost.findMany({
+    where: { locale: otherLocale, status: "PUBLISHED", publishedAt: { lte: new Date() }, ...(options.excludePostId ? { id: { not: options.excludePostId } } : {}) },
+    select: { id: true, title: true, slug: true, publishedAt: true, locale: true, translationGroupId: true, author: { select: { displayName: true } } },
+    orderBy: { publishedAt: "desc" },
+    take: 60,
+  });
+}
+
+/**
+ * The counterpart already linked to this article, so the editor can show and
+ * open the version in the other language.
+ */
+export async function getLinkedTranslation(locale: BlogLocale, translationGroupId: string | null | undefined) {
+  if (!translationGroupId) return null;
+  const otherLocale: BlogLocale = locale === "fr" ? "en" : "fr";
+  return db().blogPost.findFirst({
+    where: { translationGroupId, locale: otherLocale },
+    select: { id: true, title: true, slug: true, locale: true, status: true, publishedAt: true, author: { select: { displayName: true } } },
+  });
+}
+
 export function canUseBlogPermission(user: BlogSessionUser, permission: AdminPermission) {
   return hasPermission(user.permissions, permission);
 }

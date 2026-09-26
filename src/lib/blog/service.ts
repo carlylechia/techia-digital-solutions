@@ -82,7 +82,7 @@ async function canonicalPublishedSlug(prisma: PrismaClient, post: { id: string; 
 async function validateRelations(
   prisma: PrismaClient,
   payload: ReturnType<typeof prepareBlogPostPayload>,
-  options: { actor: BlogSessionUser; authorId: string | null; postId?: string },
+  options: { actor: BlogSessionUser; authorId: string | null; postId?: string; existingTranslationGroupId?: string | null },
 ) {
   const authorId = hasPermission(options.actor.permissions, "blog.posts.manage")
     ? nullable(payload.authorId) || options.authorId
@@ -123,21 +123,46 @@ async function validateRelations(
     relatedPostIds = existingRelations.map(({ toPostId }) => toPostId);
   }
 
-  let translationGroupId: string | null = null;
-  if (hasPermission(options.actor.permissions, "blog.posts.manage") && payload.translationGroupId) {
-    const group = await prisma.blogTranslationGroup.findUnique({ where: { id: payload.translationGroupId }, select: { id: true } });
-    if (!group) throw new Error("Translation group not found.");
-    const duplicateTranslation = await prisma.blogPost.findFirst({ where: { translationGroupId: group.id, locale: payload.locale, ...(options.postId ? { id: { not: options.postId } } : {}) }, select: { id: true } });
-    if (duplicateTranslation) throw new Error("This translation group already has an article in that language.");
+  // Translation link. Any author may link their own article to the published
+  // article it translates, including an article written by someone else, so the
+  // group is resolved from that counterpart instead of trusting a raw group id.
+  // When nothing is selected the existing link is kept, so saving an article
+  // never silently drops its translation.
+  let translationGroupId: string | null = options.existingTranslationGroupId ?? null;
+  let linkedSourcePostId: string | null = null;
+  const sourcePostId = nullable(payload.translationSourcePostId);
+
+  if (sourcePostId) {
+    if (options.postId && sourcePostId === options.postId) throw new Error("An article cannot be linked to itself as a translation.");
+    const otherLocale: BlogLocale = payload.locale === "fr" ? "en" : "fr";
+    const source = await prisma.blogPost.findFirst({
+      where: { id: sourcePostId, locale: otherLocale, status: "PUBLISHED", publishedAt: { lte: new Date() } },
+      select: { id: true, translationGroupId: true },
+    });
+    if (!source) throw new Error("Choose a published article in the other language to link.");
+
+    const group = source.translationGroupId
+      ? await prisma.blogTranslationGroup.findUnique({ where: { id: source.translationGroupId }, select: { id: true } })
+      : await prisma.blogTranslationGroup.create({ data: {}, select: { id: true } });
+    if (!group) throw new Error("The translation group for that article no longer exists.");
+
+    // Join the source to the group so both language versions reference it.
+    if (!source.translationGroupId) await prisma.blogPost.update({ where: { id: source.id }, data: { translationGroupId: group.id } });
+    const duplicateTranslation = await prisma.blogPost.findFirst({
+      where: { translationGroupId: group.id, locale: payload.locale, ...(options.postId ? { id: { not: options.postId } } : {}) },
+      select: { id: true },
+    });
+    if (duplicateTranslation) throw new Error("That article is already linked to a published article in this language.");
     translationGroupId = group.id;
+    linkedSourcePostId = source.id;
   }
 
-  return { authorId, categoryId, tagIds, relatedPostIds, translationGroupId };
+  return { authorId, categoryId, tagIds, relatedPostIds, translationGroupId, linkedSourcePostId };
 }
 
 function normalizedPostData(
   payload: ReturnType<typeof prepareBlogPostPayload>,
-  relations: { authorId: string; categoryId: string | null; tagIds: string[]; relatedPostIds: string[]; translationGroupId: string | null },
+  relations: { authorId: string; categoryId: string | null; tagIds: string[]; relatedPostIds: string[]; translationGroupId: string | null; linkedSourcePostId?: string | null },
   actor: BlogSessionUser,
 ) {
   assertSafeImageUrl(payload.featuredImageUrl || null, "Featured image");
@@ -273,10 +298,12 @@ export async function updateBlogPost(input: {
     throw new Error("You can edit only your own draft or requested changes.");
   }
 
-  const relations = await validateRelations(prisma, payload, { actor, authorId: ownsPost ? actor.authorId : null, postId: existing.id });
+  const relations = await validateRelations(prisma, payload, { actor, authorId: ownsPost ? actor.authorId : null, postId: existing.id, existingTranslationGroupId: existing.translationGroupId });
   const data = normalizedPostData(payload, relations, actor);
   if (!hasPermission(actor.permissions, "blog.posts.publish")) {
-    Object.assign(data, { translationGroupId: existing.translationGroupId, canonicalUrl: existing.canonicalUrl, allowIndex: existing.allowIndex, nofollow: existing.nofollow, featured: existing.featured });
+    // The language of a saved article never changes, and the editorial controls
+    // stay with the person who can publish.
+    Object.assign(data, { canonicalUrl: existing.canonicalUrl, allowIndex: existing.allowIndex, nofollow: existing.nofollow, featured: existing.featured });
   }
   const oldSlug = existing.slug;
   const slug = existing.status === "PUBLISHED"
@@ -318,7 +345,7 @@ export async function updateBlogPost(input: {
     action: "blog.article_edited",
     entityType: "BlogPost",
     entityId: existing.id,
-    metadata: { version: updated.version, locale: updated.locale },
+    metadata: { version: updated.version, locale: updated.locale, ...(relations.linkedSourcePostId ? { linkedTranslationId: relations.linkedSourcePostId } : {}) },
   });
   revalidatePublicBlog({ postId: updated.id, locale: updated.locale, oldSlug });
   revalidatePath(`/${updated.locale}/blog/${updated.slug}`);
@@ -326,6 +353,15 @@ export async function updateBlogPost(input: {
     const full = await prisma.blogPost.findUnique({ where: { id: updated.id }, include: { category: true, author: true } });
     if (full?.category) revalidatePath(`/${updated.locale}/blog/category/${full.category.slug}`);
     if (full?.author) revalidatePath(`/${updated.locale}/blog/author/${full.author.slug}`);
+  }
+  // The other language version now points at this article, so both pages need
+  // fresh hreflang alternates.
+  if (relations.linkedSourcePostId) {
+    const source = await prisma.blogPost.findUnique({ where: { id: relations.linkedSourcePostId }, select: { locale: true, slug: true } });
+    if (source) {
+      revalidatePath(`/${source.locale}/blog/${source.slug}`);
+      revalidatePath(`/${source.locale}/blog`);
+    }
   }
   return updated;
 }

@@ -38,7 +38,7 @@ function payloadFromForm(formData: FormData, options: { fallbackSlug?: string } 
     locale: value(formData, "locale") || "en",
     categoryId: value(formData, "categoryId"),
     authorId: value(formData, "authorId"),
-    translationGroupId: value(formData, "translationGroupId"),
+    translationSourcePostId: value(formData, "translationSourcePostId"),
     tagIds: tags(formData),
     relatedPostIds: value(formData, "relatedPostIds").split(",").map((item) => item.trim()).filter(Boolean),
     seoTitle: value(formData, "seoTitle"),

@@ -33,7 +33,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       locale: text(formData, "locale") || "en",
       categoryId: text(formData, "categoryId"),
       authorId: text(formData, "authorId"),
-      translationGroupId: text(formData, "translationGroupId"),
+      translationSourcePostId: text(formData, "translationSourcePostId"),
       tagIds: formData.getAll("tagIds").filter((value): value is string => typeof value === "string"),
       relatedPostIds: text(formData, "relatedPostIds").split(",").map((item) => item.trim()).filter(Boolean),
       seoTitle: text(formData, "seoTitle"),
