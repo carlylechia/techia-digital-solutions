@@ -35,6 +35,7 @@ import {
   ShieldCheck,
   Sparkles,
   Sun,
+  Target,
   Trash2,
   UserPlus,
   Users,
@@ -189,7 +190,10 @@ const permissionLabels: Record<AdminPermission, string> = {
   "blog.writers.manage": "Manage blog writers",
   "blog.categories.manage": "Manage blog categories",
   "blog.media.manage": "Manage blog media",
-  "blog.audit.view": "View blog audit history"
+  "blog.audit.view": "View blog audit history",
+  "outreach.view": "View outreach engine",
+  "outreach.manage": "Manage outreach campaigns",
+  "outreach.send": "Send outreach email"
 };
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -691,6 +695,26 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
             </Link>
           </div>
         ) : null}
+        {can("outreach.view") ? (
+          <div className="mt-5 grid gap-2 border-t border-border pt-4">
+            <p className="px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-accent">Growth</p>
+            <Link
+              href="/admin/outreach"
+              className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-background"
+            >
+              <span className="flex min-w-0 items-start gap-3">
+                <Target className="mt-0.5 size-4 shrink-0 text-accent" />
+                <span className="min-w-0">
+                  <span className="block break-words text-sm font-semibold text-primary">SME Outreach</span>
+                  <span className="mt-0.5 block break-words text-xs text-muted">
+                    Discover, score, review and track outreach
+                  </span>
+                </span>
+              </span>
+              <ExternalLink className="mt-0.5 size-4 shrink-0 text-muted" />
+            </Link>
+          </div>
+        ) : null}
         {can("blog.dashboard.view") ? (
           <div className="mt-5 grid gap-2 border-t border-border pt-4">
             <p className="px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-accent">Editorial</p>
@@ -901,6 +925,29 @@ function Overview({ data, can }: { data: AdminDashboardData; can: (permission: A
               );
             })}
           </div>
+        </Panel>
+      ) : null}
+
+      {can("outreach.view") ? (
+        <Panel title="Growth Engine" eyebrow="Outreach">
+          <Link
+            href="/admin/outreach"
+            className="group flex flex-col gap-3 rounded-lg border border-border bg-background p-4 transition hover:border-accent/40 hover:bg-surface"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent">
+                <Target className="size-5" />
+              </div>
+              <ExternalLink className="mt-0.5 size-4 shrink-0 text-muted" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-primary">SME Outreach console</h3>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                Discover local businesses, score their digital opportunity from evidence, review every message before it
+                is sent, and track replies, meetings and conversions.
+              </p>
+            </div>
+          </Link>
         </Panel>
       ) : null}
 
