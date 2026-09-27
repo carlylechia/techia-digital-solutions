@@ -72,6 +72,27 @@ const DEFAULTS: CampaignDefaults = {
   senderNameOverride: "",
 };
 
+/**
+ * Fields the operator types as free text, separated by commas.
+ *
+ * These are deliberately NOT bound to the parsed `string[]` in `state`. Re-deriving
+ * the input's value from the parsed list on every keystroke rewrites what the user
+ * typed: the separator just pressed is parsed away and re-rendered as a trimmed
+ * join, so a comma appears to do nothing at all while a period (not a separator)
+ * appears normally. The raw text is kept as-is while typing and parsed once, on
+ * submit.
+ */
+const LIST_TEXT_FIELDS = [
+  "regions",
+  "cities",
+  "industries",
+  "businessTypes",
+  "excludedIndustries",
+  "excludedKeywords",
+] as const;
+
+type ListTextField = (typeof LIST_TEXT_FIELDS)[number];
+
 function toList(value: string) {
   return value
     .split(",")
@@ -83,11 +104,25 @@ function toList(value: string) {
 export function OutreachCampaignForm({ campaign }: { campaign?: Partial<CampaignDefaults> }) {
   const router = useRouter();
   const [state, setState] = useState<CampaignDefaults>({ ...DEFAULTS, ...(campaign ?? {}) });
+  // Raw, unparsed text for the comma separated fields, seeded from the saved
+  // campaign. This is what the inputs show, so a comma stays visible.
+  const [listDrafts, setListDrafts] = useState<Record<ListTextField, string>>(() => {
+    const seeded = {} as Record<ListTextField, string>;
+    for (const field of LIST_TEXT_FIELDS) {
+      const saved = campaign?.[field];
+      seeded[field] = Array.isArray(saved) ? saved.join(", ") : "";
+    }
+    return seeded;
+  });
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ tone: "good" | "danger"; text: string } | null>(null);
 
   function set<K extends keyof CampaignDefaults>(key: K, value: CampaignDefaults[K]) {
     setState((current) => ({ ...current, [key]: value }));
+  }
+
+  function setListDraft(field: ListTextField, value: string) {
+    setListDrafts((current) => ({ ...current, [field]: value }));
   }
 
   function submit() {
@@ -100,13 +135,13 @@ export function OutreachCampaignForm({ campaign }: { campaign?: Partial<Campaign
         status: state.status,
         mode: state.mode,
         country: state.country,
-        regions: toList(state.regions.join(",")),
-        cities: toList(state.cities.join(",")),
-        industries: toList(state.industries.join(",")),
-        businessTypes: toList(state.businessTypes.join(",")),
+        regions: toList(listDrafts.regions),
+        cities: toList(listDrafts.cities),
+        industries: toList(listDrafts.industries),
+        businessTypes: toList(listDrafts.businessTypes),
         targetServices: toList(state.targetServices.join(",")),
-        excludedIndustries: toList(state.excludedIndustries.join(",")),
-        excludedKeywords: toList(state.excludedKeywords.join(",")),
+        excludedIndustries: toList(listDrafts.excludedIndustries),
+        excludedKeywords: toList(listDrafts.excludedKeywords),
         dailyDiscoveryLimit: state.dailyDiscoveryLimit,
         dailySendLimit: state.dailySendLimit,
         minOpportunityScore: state.minOpportunityScore,
@@ -189,16 +224,16 @@ export function OutreachCampaignForm({ campaign }: { campaign?: Partial<Campaign
           <OutreachField label="Regions" hint="Comma separated.">
             <input
               className={outreachInputClass}
-              value={state.regions.join(", ")}
-              onChange={(event) => set("regions", toList(event.target.value))}
+              value={listDrafts.regions}
+              onChange={(event) => setListDraft("regions", event.target.value)}
               placeholder="Littoral"
             />
           </OutreachField>
           <OutreachField label="Cities" hint="Comma separated. The first city leads the search query.">
             <input
               className={outreachInputClass}
-              value={state.cities.join(", ")}
-              onChange={(event) => set("cities", toList(event.target.value))}
+              value={listDrafts.cities}
+              onChange={(event) => setListDraft("cities", event.target.value)}
               placeholder="Douala"
             />
           </OutreachField>
@@ -207,16 +242,16 @@ export function OutreachCampaignForm({ campaign }: { campaign?: Partial<Campaign
           <OutreachField label="Industries" hint="Comma separated. The first industry leads the search query.">
             <input
               className={outreachInputClass}
-              value={state.industries.join(", ")}
-              onChange={(event) => set("industries", toList(event.target.value))}
+              value={listDrafts.industries}
+              onChange={(event) => setListDraft("industries", event.target.value)}
               placeholder="Restaurants"
             />
           </OutreachField>
           <OutreachField label="Business types" hint="Comma separated.">
             <input
               className={outreachInputClass}
-              value={state.businessTypes.join(", ")}
-              onChange={(event) => set("businessTypes", toList(event.target.value))}
+              value={listDrafts.businessTypes}
+              onChange={(event) => setListDraft("businessTypes", event.target.value)}
               placeholder="Restaurant"
             />
           </OutreachField>
@@ -249,16 +284,16 @@ export function OutreachCampaignForm({ campaign }: { campaign?: Partial<Campaign
           <OutreachField label="Excluded industries" hint="Matched against name, address and type.">
             <input
               className={outreachInputClass}
-              value={state.excludedIndustries.join(", ")}
-              onChange={(event) => set("excludedIndustries", toList(event.target.value))}
+              value={listDrafts.excludedIndustries}
+              onChange={(event) => setListDraft("excludedIndustries", event.target.value)}
               placeholder="bank, insurance"
             />
           </OutreachField>
           <OutreachField label="Excluded keywords" hint="Any match in a business name is skipped.">
             <input
               className={outreachInputClass}
-              value={state.excludedKeywords.join(", ")}
-              onChange={(event) => set("excludedKeywords", toList(event.target.value))}
+              value={listDrafts.excludedKeywords}
+              onChange={(event) => setListDraft("excludedKeywords", event.target.value)}
               placeholder="franchise, chain"
             />
           </OutreachField>
