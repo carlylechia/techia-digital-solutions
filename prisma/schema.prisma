@@ -498,6 +498,7 @@ model AdminUser {
   blogMedia             BlogMedia[]                @relation("BlogMediaUploader")
   blogReviewNotes       BlogReviewNote[]           @relation("BlogReviewNoteAuthor")
   blogRevisions         BlogPostRevision[]         @relation("BlogRevisionCreator")
+  outreachMessagesApproved OutreachMessage[]        @relation("OutreachMessageApprover")
   createdAt             DateTime                   @default(now())
   updatedAt             DateTime                   @updatedAt
 
@@ -1215,4 +1216,416 @@ model AIAbuseEvent {
   @@index([sessionId])
   @@index([reason])
   @@index([createdAt])
+}
+
+// ─── SME Outreach Engine ──────────────────────────────────────────────────────
+// Fully additive. No existing model, column, index or relationship is altered so
+// that the public website, AI agent, academy, newsletter and CRM continue to
+// behave exactly as before. Every table below is namespaced with "Outreach".
+
+enum OutreachCampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum OutreachCampaignMode {
+  MANUAL
+  SEMI_AUTOMATIC
+  AUTOMATIC
+}
+
+enum OutreachProspectStatus {
+  DISCOVERED
+  ENRICHING
+  QUALIFIED
+  DISQUALIFIED
+  READY_FOR_REVIEW
+  APPROVED
+  OUTREACH_ACTIVE
+  REPLIED
+  INTERESTED
+  MEETING_BOOKED
+  PROPOSAL
+  WON
+  LOST
+  UNSUBSCRIBED
+  BOUNCED
+  PAUSED
+}
+
+enum OutreachMessageType {
+  INITIAL
+  FOLLOW_UP_1
+  FOLLOW_UP_2
+  MANUAL
+  REPLY
+}
+
+enum OutreachMessageStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  QUEUED
+  SENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  REPLIED
+  BOUNCED
+  FAILED
+  CANCELLED
+}
+
+enum OutreachEventType {
+  DISCOVERED
+  ENRICHED
+  QUALIFIED
+  DISQUALIFIED
+  EMAIL_GENERATED
+  EMAIL_APPROVED
+  EMAIL_SENT
+  EMAIL_DELIVERED
+  EMAIL_OPENED
+  EMAIL_CLICKED
+  EMAIL_REPLIED
+  FOLLOW_UP_SCHEDULED
+  FOLLOW_UP_SENT
+  MEETING_BOOKED
+  UNSUBSCRIBED
+  BOUNCED
+  MANUAL_NOTE
+  STATUS_CHANGED
+}
+
+enum OutreachJobType {
+  DISCOVER
+  ENRICH
+  ASSESS
+  GENERATE_EMAIL
+  SEND_EMAIL
+  SCHEDULE_FOLLOWUP
+  PROCESS_REPLY
+  REFRESH_PLACE
+}
+
+enum OutreachJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum OutreachSuppressionReason {
+  UNSUBSCRIBED
+  BOUNCED
+  SPAM_COMPLAINT
+  MANUAL
+  DO_NOT_CONTACT
+}
+
+enum OutreachMeetingStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model OutreachCampaign {
+  id          String                  @id @default(cuid())
+  name        String
+  description String?                 @db.Text
+  status      OutreachCampaignStatus  @default(DRAFT)
+  mode        OutreachCampaignMode    @default(SEMI_AUTOMATIC)
+  country     String
+  regions     String[]                @default([])
+  cities      String[]                @default([])
+  industries  String[]                @default([])
+  // Business type and target service are stored as plain lists so the discovery
+  // query builder never has to join a taxonomy table that does not exist yet.
+  businessTypes          String[] @default([])
+  targetServices         String[] @default([])
+  excludedIndustries     String[] @default([])
+  excludedKeywords       String[] @default([])
+
+  dailyDiscoveryLimit Int     @default(25)
+  dailySendLimit      Int     @default(10)
+  minOpportunityScore Int     @default(40)
+  dailyAiAssessLimit  Int     @default(25)
+  requireApproval     Boolean @default(true)
+  followUpEnabled     Boolean @default(true)
+  maxFollowUps        Int     @default(2)
+  sendingWindowStart  String  @default("09:00")
+  sendingWindowEnd    String  @default("17:00")
+  timezone            String  @default("Africa/Douala")
+
+  // Campaign level compliance configuration. Marketing email law differs per
+  // jurisdiction, so the operator states the basis for contacting this market
+  // instead of the system assuming one global rule.
+  complianceBasis    String? @db.Text
+  complianceNote     String? @db.Text
+  unsubscribeNote    String? @db.Text
+  senderNameOverride String?
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  prospects  OutreachProspect[]
+  messages   OutreachMessage[]
+  events     OutreachEvent[]
+  jobs       OutreachJob[]
+  dailyStats OutreachDailyStats[]
+
+  @@index([status])
+  @@index([status, updatedAt(sort: Desc)])
+}
+
+model OutreachProspect {
+  id        String                 @id @default(cuid())
+  campaignId String
+  campaign  OutreachCampaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  status    OutreachProspectStatus @default(DISCOVERED)
+
+  businessName    String
+  country         String?
+  region          String?
+  city            String?
+  industry        String?
+  websiteUrl      String?
+  contactPageUrl  String?
+  // Only ever populated from evidence the business published itself.
+  publicEmail     String?
+  publicPhone     String?
+  contactName     String?
+  contactRole     String?
+
+  // Google place ID is the primary external deduplication key.
+  googlePlaceId String?
+  googleMapsUri String?
+
+  source String @default("google_places")
+
+  // Structured evidence only. Raw third-party page bodies are never persisted.
+  websiteSnapshot  Json?
+  digitalAssessment Json?
+  opportunityScore Int                @default(0)
+  recommendedServices String[]        @default([])
+  aiSummary        String?            @db.Text
+  aiReasoning      String?            @db.Text
+
+  // Follow-up state machine checkpoint. Automation stops whenever this is set.
+  automationStoppedReason String?
+  emailsSentCount         Int       @default(0)
+  lastErrorMessage        String?   @db.Text
+
+  discoveredAt    DateTime  @default(now())
+  lastEnrichedAt  DateTime?
+  lastContactedAt DateTime?
+  nextActionAt    DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  assessments  OutreachAssessment[]
+  messages     OutreachMessage[]
+  events       OutreachEvent[]
+  jobs         OutreachJob[]
+  meetings     OutreachMeeting[]
+
+  @@unique([campaignId, googlePlaceId])
+  @@index([googlePlaceId])
+  @@index([campaignId, status])
+  @@index([campaignId, discoveredAt(sort: Desc)])
+  @@index([status, nextActionAt])
+  @@index([publicEmail])
+  @@index([opportunityScore(sort: Desc)])
+}
+
+model OutreachAssessment {
+  id         String   @id @default(cuid())
+  prospectId String
+  prospect   OutreachProspect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+
+  // Audit trail: every qualification is attributable to a model, a prompt
+  // revision and the exact evidence snapshot that produced it. Historical rows
+  // are appended, never overwritten.
+  model            String
+  promptVersion    String
+  sourceData       Json
+  opportunityScore Int
+  confidence       Float
+  findings         Json
+  recommendations  Json
+  summary          String?  @db.Text
+  primaryService   String?
+  doNotContactReason String?
+  isCurrent        Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  @@index([prospectId, createdAt(sort: Desc)])
+  @@index([promptVersion])
+}
+
+model OutreachMessage {
+  id         String   @id @default(cuid())
+  prospectId String
+  prospect   OutreachProspect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  campaignId String
+  campaign   OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  type   OutreachMessageType
+  status OutreachMessageStatus @default(DRAFT)
+  subject  String
+  bodyText String  @db.Text
+  bodyHtml String? @db.Text
+
+  aiGenerated     Boolean  @default(false)
+  aiPromptVersion String?
+
+  // Provider-level idempotency. A retried send job reuses the same key so the
+  // provider can never deliver the same message twice.
+  idempotencyKey   String?  @unique
+  providerMessageId String? @unique
+  threadId         String?
+
+  scheduledAt  DateTime?
+  approvedAt   DateTime?
+  approvedById String?
+  approvedBy   AdminUser? @relation("OutreachMessageApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  sentAt       DateTime?
+  deliveredAt  DateTime?
+  failureReason String?   @db.Text
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  events OutreachEvent[]
+
+  @@unique([prospectId, type])
+  @@index([prospectId, createdAt(sort: Desc)])
+  @@index([status, scheduledAt])
+  @@index([campaignId, status])
+  @@index([type, status])
+}
+
+model OutreachEvent {
+  id         String   @id @default(cuid())
+  campaignId String?
+  prospectId String?
+  messageId  String?
+  type       OutreachEventType
+  summary    String?
+  metadata   Json?
+  actorId    String?
+  createdAt  DateTime @default(now())
+
+  campaign OutreachCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  prospect OutreachProspect? @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  message  OutreachMessage?  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([prospectId, createdAt(sort: Desc)])
+  @@index([campaignId, createdAt(sort: Desc)])
+  @@index([type, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+model OutreachJob {
+  id     String            @id @default(cuid())
+  type   OutreachJobType
+  status OutreachJobStatus @default(PENDING)
+
+  campaignId String?
+  prospectId String?
+
+  // Guarantees at most one live job of a type per target.
+  dedupeKey String? @unique
+
+  scheduledFor DateTime  @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+  // Optimistic lock. A claim only succeeds while the row is still PENDING and
+  // unowned, so two workers can never process the same job.
+  lockedAt  DateTime?
+  lockToken String?
+
+  attempts     Int     @default(0)
+  maxAttempts  Int     @default(3)
+  errorMessage String? @db.Text
+  payload      Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campaign OutreachCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  prospect OutreachProspect? @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+
+  @@index([status, scheduledFor])
+  @@index([type, status, scheduledFor])
+  @@index([campaignId, status])
+  @@index([prospectId, type])
+}
+
+model OutreachSuppression {
+  id     String                   @id @default(cuid())
+  email  String?
+  domain String?
+  reason OutreachSuppressionReason
+  source String                   @default("system")
+  notes  String?                  @db.Text
+  createdAt DateTime              @default(now())
+
+  // Nullable columns so a single suppression row can target either an exact
+  // address or an entire domain, never both lists at once.
+  @@unique([email])
+  @@unique([domain])
+  @@index([reason])
+  @@index([createdAt(sort: Desc)])
+}
+
+model OutreachMeeting {
+  id          String               @id @default(cuid())
+  prospectId  String
+  prospect    OutreachProspect     @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  status      OutreachMeetingStatus @default(SCHEDULED)
+  scheduledAt DateTime
+  duration    Int                  @default(30)
+  bookingUrl  String?
+  meetingUrl  String?
+  notes       String?              @db.Text
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([prospectId, scheduledAt(sort: Desc)])
+  @@index([status, scheduledAt])
+}
+
+model OutreachDailyStats {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  // Date column so one row exists per campaign per calendar day.
+  date DateTime @db.Date
+
+  discovered  Int @default(0)
+  disqualified Int @default(0)
+  qualified   Int @default(0)
+  approved    Int @default(0)
+  emailsSent  Int @default(0)
+  delivered   Int @default(0)
+  opened      Int @default(0)
+  clicked     Int @default(0)
+  replies     Int @default(0)
+  interested  Int @default(0)
+  meetings    Int @default(0)
+  proposals   Int @default(0)
+  won         Int @default(0)
+  lost        Int @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([campaignId, date])
+  @@index([date])
 }

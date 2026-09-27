@@ -3,6 +3,22 @@
     {
       "path": "/api/cron/blog/publish",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/outreach/discover",
+      "schedule": "15 7 * * *"
+    },
+    {
+      "path": "/api/cron/outreach/process",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/outreach/follow-ups",
+      "schedule": "*/20 * * * *"
+    },
+    {
+      "path": "/api/cron/outreach/stats",
+      "schedule": "30 2 * * *"
     }
   ]
 }

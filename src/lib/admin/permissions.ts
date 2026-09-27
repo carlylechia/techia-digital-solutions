@@ -20,10 +20,21 @@ export const ADMIN_PERMISSIONS = [
   "blog.writers.manage",
   "blog.categories.manage",
   "blog.media.manage",
-  "blog.audit.view"
+  "blog.audit.view",
+  "outreach.view",
+  "outreach.manage",
+  "outreach.send"
 ] as const;
 
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
+
+/**
+ * SME Outreach Engine permissions. `view` reads the console, `manage` changes
+ * campaigns/prospects/messages, and `send` is the only permission that can arm a
+ * real send. Sales roles get view and manage so they can work the pipeline, while
+ * the ability to send stays with a smaller set.
+ */
+export const OUTREACH_PERMISSIONS: AdminPermission[] = ["outreach.view", "outreach.manage", "outreach.send"];
 
 export type AdminRoleSeed = {
   name: string;
@@ -82,7 +93,8 @@ export const DEFAULT_ADMIN_ROLES: AdminRoleSeed[] = [
       "blog.writers.manage",
       "blog.categories.manage",
       "blog.media.manage",
-      "blog.audit.view"
+      "blog.audit.view",
+      ...OUTREACH_PERMISSIONS
     ]
   },
   {
@@ -90,7 +102,7 @@ export const DEFAULT_ADMIN_ROLES: AdminRoleSeed[] = [
     label: "Operations Manager",
     description: "Manages clients, projects, delivery boards, and inbound requests.",
     level: 55,
-    permissions: ["dashboard.view", "clients.manage", "projects.manage", "processes.manage", "requests.manage"]
+    permissions: ["dashboard.view", "clients.manage", "projects.manage", "processes.manage", "requests.manage", "outreach.view", "outreach.manage"]
   },
   {
     name: "content_manager",
@@ -113,7 +125,7 @@ export const DEFAULT_ADMIN_ROLES: AdminRoleSeed[] = [
     label: "Sales Manager",
     description: "Manages leads, client records, and project opportunities.",
     level: 45,
-    permissions: ["dashboard.view", "clients.manage", "projects.manage", "requests.manage"]
+    permissions: ["dashboard.view", "clients.manage", "projects.manage", "requests.manage", "outreach.view", "outreach.manage"]
   },
   {
     name: "editor",
