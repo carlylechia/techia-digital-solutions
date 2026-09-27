@@ -313,7 +313,21 @@ export async function runAssessmentStage(prospectId: string) {
   return { skipped: null, status: nextStatus, service: reconciled.primaryService };
 }
 
-export async function runEmailGenerationStage(prospectId: string, messageType: "INITIAL" | "FOLLOW_UP_1" | "FOLLOW_UP_2") {
+/**
+ * Generate one message for a prospect.
+ *
+ * `testRun` is set only by an administrator's Test Run. It changes two things and
+ * nothing else: the message is stored as a DRAFT and labelled as a test artefact,
+ * and no SEND_EMAIL job is created. Every other part of the stage — the AI call,
+ * the evidence gathering, the prompt-injection and character guards — is the same
+ * code the scheduled run uses, so a Test Run genuinely exercises the pipeline.
+ */
+export async function runEmailGenerationStage(
+  prospectId: string,
+  messageType: "INITIAL" | "FOLLOW_UP_1" | "FOLLOW_UP_2",
+  options: { testRun?: boolean } = {}
+) {
+  const testRun = options.testRun ?? false;
   const prisma = getPrisma();
   if (!prisma) throw new OutreachJobError("Database unavailable", { retryable: false });
 
@@ -360,7 +374,10 @@ export async function runEmailGenerationStage(prospectId: string, messageType: "
     senderName: prospect.campaign.senderNameOverride ?? "Chia Carlyle",
   });
 
-  const status = prospect.campaign.requireApproval ? "PENDING_APPROVAL" : "APPROVED";
+  // A test run never produces a sendable message. Forcing DRAFT here means the
+  // message is not merely unsent by convention: `deliverOutreachMessage` requires
+  // an approval timestamp, so even a later scheduled run cannot deliver it.
+  const status = testRun ? "DRAFT" : prospect.campaign.requireApproval ? "PENDING_APPROVAL" : "APPROVED";
   const message = existing
     ? await prisma.outreachMessage.update({
         where: { id: existing.id },
@@ -395,12 +412,15 @@ export async function runEmailGenerationStage(prospectId: string, messageType: "
     prospectId,
     messageId: message.id,
     summary: result.data.subject.slice(0, 160),
-    metadata: { messageType, model: result.model, promptVersion: result.promptVersion, status },
+    // `testRun` is recorded so a test artefact is identifiable in the event log
+    // and in the run history, rather than looking like ordinary output.
+    metadata: { messageType, model: result.model, promptVersion: result.promptVersion, status, testRun },
   });
 
   // A campaign that opted out of human review moves straight to the queue. The
-  // send gate still has the final word.
-  if (status === "APPROVED") {
+  // send gate still has the final word. A test run stops here: no send job is
+  // created at all, so there is nothing for any later run to deliver.
+  if (status === "APPROVED" && !testRun) {
     await enqueueJob({ type: "SEND_EMAIL", campaignId: prospect.campaignId, prospectId, dedupeKey: `SEND_EMAIL:${message.id}` });
   }
 

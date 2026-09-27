@@ -248,14 +248,14 @@ describe("job queue is idempotent under repeated runs (requirements 4 and 10, J)
       expect(await db.outreachJob.count({ where: { campaignId: id } })).toBe(1);
 
       // Two concurrent claims: exactly one wins the row.
-      const [first, second] = [await claimJobs(10), await claimJobs(10)];
+      const [first, second] = [await claimJobs(10, new Date(), id), await claimJobs(10, new Date(), id)];
       const claimedIds = [...first, ...second].map((job) => job.id);
       expect(claimedIds).toEqual([jobId]);
       expect(new Set(claimedIds).size).toBe(claimedIds.length);
 
       // A completed job is not claimable again.
       await completeJob(jobId, first[0].lockToken);
-      const third = await claimJobs(10);
+      const third = await claimJobs(10, new Date(), id);
       expect(third.map((job) => job.id)).not.toContain(jobId);
     } finally {
       await db.outreachCampaign.delete({ where: { id } }).catch(() => undefined);
@@ -281,7 +281,7 @@ describe("job queue is idempotent under repeated runs (requirements 4 and 10, J)
         scheduledFor: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
       });
 
-      const claimed = await claimJobs(10);
+      const claimed = await claimJobs(10, new Date(), id);
       const keys = claimed.map((job) => job.id);
       // Exactly the due job is picked up; the future one is left for its day.
       expect(keys).toHaveLength(1);
@@ -302,8 +302,8 @@ describe("job queue is idempotent under repeated runs (requirements 4 and 10, J)
     const id = await createCampaign();
     try {
       // Nothing due for this campaign, so claiming returns nothing for it.
-      const claimed = await claimJobs(10);
-      expect(claimed.filter((job) => job.campaignId === id)).toHaveLength(0);
+      const claimed = await claimJobs(10, new Date(), id);
+      expect(claimed).toHaveLength(0);
     } finally {
       await db.outreachCampaign.delete({ where: { id } }).catch(() => undefined);
     }

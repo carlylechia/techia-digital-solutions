@@ -5,12 +5,13 @@ import { isLocale } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
 import { getErrorMessage } from "@/lib/prisma-errors";
 import { getOutreachActor } from "@/lib/outreach/auth";
-import { loadOutreachCampaignDetail } from "@/lib/outreach/queries";
+import { loadOutreachCampaignDetail, loadOutreachRunHistory } from "@/lib/outreach/queries";
 import { getOutreachSendingState } from "@/lib/outreach/config";
-import { OUTREACH_STATUS_LABELS, jobStatusTone, prospectStatusTone } from "@/lib/outreach/constants";
+import { OUTREACH_STATUS_LABELS, jobStatusTone, prospectStatusTone, runStatusTone } from "@/lib/outreach/constants";
 import { createMetadata } from "@/lib/seo";
 import { OutreachCampaignForm } from "@/components/admin/outreach/outreach-campaign-form";
 import { OutreachCampaignControls } from "@/components/admin/outreach/outreach-campaign-controls";
+import { OutreachRunControls } from "@/components/admin/outreach/outreach-run-controls";
 import {
   OutreachBar,
   OutreachEmptyState,
@@ -80,6 +81,14 @@ export default async function OutreachCampaignDetailPage({ params }: { params: P
   const sendingState = getOutreachSendingState();
   const statusEntries = Object.entries(statusGroups).sort((a, b) => b[1] - a[1]);
   const totalProspects = statusEntries.reduce((sum, [, count]) => sum + count, 0);
+
+  // Run history is a separate read so a failure there cannot stop the campaign
+  // page from rendering.
+  const runHistory = await loadOutreachRunHistory(prisma, id).catch((error) => {
+    console.error("outreach_run_history_load_failed", getErrorMessage(error));
+    return [];
+  });
+  const runInProgress = campaign.activeRunId !== null;
 
   return (
     <div className="grid gap-5">
@@ -191,6 +200,101 @@ export default async function OutreachCampaignDetailPage({ params }: { params: P
             ) : null}
           </div>
         </div>
+      </OutreachPanel>
+
+      <OutreachPanel>
+        <h3 className="text-lg font-semibold">Run this campaign</h3>
+        <p className="mt-1 max-w-3xl text-sm text-muted">
+          Trigger the pipeline immediately instead of waiting for the daily schedule. Both actions run the same engine
+          the scheduled cycle runs, so every existing safeguard still applies.
+        </p>
+        <div className="mt-4">
+          {actor.canSend || actor.canManage ? (
+            <OutreachRunControls
+              campaignId={campaign.id}
+              canManage={actor.canManage}
+              canSend={actor.canSend}
+              campaignActive={campaign.status === "ACTIVE"}
+              runInProgress={runInProgress}
+            />
+          ) : (
+            <p className="text-sm text-muted">You do not have permission to run this campaign.</p>
+          )}
+        </div>
+      </OutreachPanel>
+
+      <OutreachPanel>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold">Run history</h3>
+            <p className="mt-1 max-w-3xl text-sm text-muted">
+              Scheduled, manual and test runs, newest first. A test run always reports zero emails sent.
+            </p>
+          </div>
+        </div>
+        {runHistory.length === 0 ? (
+          <div className="mt-4">
+            <OutreachEmptyState
+              title="No runs recorded yet"
+              description="Runs appear here once the daily schedule or a manual run has executed."
+            />
+          </div>
+        ) : (
+          <OutreachTable className="mt-4 min-w-[900px]">
+            <thead>
+              <tr className="border-b border-border">
+                <OutreachTh>Started</OutreachTh>
+                <OutreachTh>Trigger</OutreachTh>
+                <OutreachTh>Status</OutreachTh>
+                <OutreachTh>Discovered</OutreachTh>
+                <OutreachTh>Processed</OutreachTh>
+                <OutreachTh>Qualified</OutreachTh>
+                <OutreachTh>Drafts</OutreachTh>
+                <OutreachTh>Sent</OutreachTh>
+                <OutreachTh>Failed</OutreachTh>
+                <OutreachTh>Duration</OutreachTh>
+              </tr>
+            </thead>
+            <tbody>
+              {runHistory.map((run) => (
+                <OutreachTr key={run.id}>
+                  <OutreachTd className="whitespace-nowrap text-xs text-muted">{formatDateTime(run.startedAt)}</OutreachTd>
+                  <OutreachTd className="text-xs">
+                    {run.trigger === "CRON" ? "Scheduled" : run.trigger === "TEST" ? "Test" : "Manual"}
+                  </OutreachTd>
+                  <OutreachTd>
+                    <OutreachPill tone={runStatusTone(run.status)}>{run.status}</OutreachPill>
+                  </OutreachTd>
+                  <OutreachTd className="tabular-nums">{run.discoveredCount ?? "—"}</OutreachTd>
+                  <OutreachTd className="tabular-nums">{run.processedCount ?? "—"}</OutreachTd>
+                  <OutreachTd className="tabular-nums">{run.qualifiedCount ?? "—"}</OutreachTd>
+                  <OutreachTd className="tabular-nums">{run.draftsGeneratedCount ?? "—"}</OutreachTd>
+                  <OutreachTd className="tabular-nums">{run.emailsSentCount ?? 0}</OutreachTd>
+                  <OutreachTd className="tabular-nums">{run.failedCount ?? "—"}</OutreachTd>
+                  <OutreachTd className="whitespace-nowrap text-xs text-muted">
+                    {run.durationMs === null ? "—" : `${(run.durationMs / 1000).toFixed(1)}s`}
+                  </OutreachTd>
+                </OutreachTr>
+              ))}
+            </tbody>
+          </OutreachTable>
+        )}
+        {runHistory.some((run) => run.status === "FAILED" || run.status === "PARTIAL") ? (
+          <ul className="mt-4 grid gap-2">
+            {runHistory
+              .filter((run) => run.status === "FAILED" || run.status === "PARTIAL")
+              .slice(0, 5)
+              .map((run) => (
+                <li
+                  key={`summary-${run.id}`}
+                  className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-muted"
+                >
+                  <span className="font-semibold text-amber-300">{run.status}</span> · {formatDateTime(run.startedAt)}
+                  <span className="mt-1 block break-words">{run.summary ?? "No summary recorded."}</span>
+                </li>
+              ))}
+          </ul>
+        ) : null}
       </OutreachPanel>
 
       <OutreachPanel>

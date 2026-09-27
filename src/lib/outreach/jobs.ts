@@ -124,13 +124,17 @@ export async function reapStaleJobs(now = new Date()) {
  * Atomically claim up to `limit` due jobs. Each row is moved PENDING →
  * PROCESSING with a unique lock token in a single conditional UPDATE, which is
  * the only place a job can be handed to a worker.
+ *
+ * `campaignId` narrows the claim to a single campaign so a manual run on one
+ * campaign cannot pick up another campaign's queued work. It is optional, and
+ * omitting it keeps the previous whole-queue behaviour that the cron relies on.
  */
-export async function claimJobs(limit: number, now = new Date()): Promise<ClaimedJob[]> {
+export async function claimJobs(limit: number, now = new Date(), campaignId?: string): Promise<ClaimedJob[]> {
   const prisma = getPrisma();
   if (!prisma) return [];
 
   const candidates = await prisma.outreachJob.findMany({
-    where: { status: "PENDING", scheduledFor: { lte: now } },
+    where: { status: "PENDING", scheduledFor: { lte: now }, ...(campaignId ? { campaignId } : {}) },
     orderBy: [{ scheduledFor: "asc" }, { createdAt: "asc" }],
     take: limit,
     select: { id: true },

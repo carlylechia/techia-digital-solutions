@@ -129,6 +129,11 @@ describe("a send blocked by the sending window survives daily runs (requirement 
       //    global kill switch is checked first and must stay off in tests, so it
       //    would always return `kill_switch` here. The gate is the unit under test.
       const { evaluateSendGate, nextSendingWindowOpen } = await import("@/lib/outreach/limits");
+      // A fixed instant, not the wall clock. 12:00Z is 13:00 in Lagos, so a
+      // 23:00-23:30 window is unambiguously closed whatever time the suite runs.
+      // Using `new Date()` here made the test pass or fail depending on when it
+      // was executed, which is a flake rather than a signal.
+      const fixedNow = new Date("2026-09-27T12:00:00Z");
       const policy = {
         status: "ACTIVE" as const,
         mode: "AUTOMATIC" as const,
@@ -154,7 +159,7 @@ describe("a send blocked by the sending window survives daily runs (requirement 
           lastContactedAt: null,
           automationStoppedReason: null,
         },
-        now: new Date(),
+        now: fixedNow,
         dailySendUsed: 0,
         emailSuppressed: false,
         domainSuppressed: false,
@@ -165,7 +170,7 @@ describe("a send blocked by the sending window survives daily runs (requirement 
       expect(decision.allowed).toBe(false);
       expect(decision.code).toBe("before_window");
 
-      const opensAt = nextSendingWindowOpen(new Date(), policy);
+      const opensAt = nextSendingWindowOpen(fixedNow, policy);
       expect(opensAt).toBeInstanceOf(Date);
 
       // 2. That outcome is classified as pure scheduling, not a fault.
@@ -193,7 +198,7 @@ describe("a send blocked by the sending window survives daily runs (requirement 
         // the way. Holding it is what lets the deferral below take effect.
         let held: Awaited<ReturnType<typeof claimJobs>>[number] | null = null;
         for (let tries = 0; tries < 20 && !held; tries += 1) {
-          const [claimed] = await claimJobs(10);
+          const [claimed] = await claimJobs(10, new Date(), gated.id);
           if (!claimed) break;
           if (claimed.id === jobId) {
             held = claimed;
@@ -259,7 +264,7 @@ describe("a send blocked by the sending window survives daily runs (requirement 
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
       await db.outreachJob.update({ where: { id: jobId }, data: { scheduledFor: new Date(Date.now() - 1_000) } });
-      const [claimed] = await claimJobs(10);
+      const [claimed] = await claimJobs(10, new Date(), campaignId);
       if (!claimed || claimed.id !== jobId) continue;
       await deferJob(claimed, 1_000, "Send deferred: send_failed", { consumesAttempt: !isSchedulingDeferral("send_failed") });
     }

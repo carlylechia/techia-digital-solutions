@@ -18,9 +18,16 @@ import { getErrorMessage } from "@/lib/prisma-errors";
  * Every cron invocation claims a bounded batch, runs each handler and records the
  * outcome. Handlers are individually guarded so one malformed job cannot abort the
  * whole batch.
+ *
+ * `testMode` is set only by an administrator's Test Run. It is deliberately a
+ * parameter of the same dispatcher the cron uses rather than a separate executor,
+ * so a test run exercises the real pipeline and the only thing it changes is that
+ * sending is impossible.
  */
 
-type Handler = (job: ClaimedJob) => Promise<unknown>;
+type HandlerContext = { testMode: boolean };
+
+type Handler = (job: ClaimedJob, context: HandlerContext) => Promise<unknown>;
 
 const HANDLERS: Record<ClaimedJob["type"], Handler> = {
   DISCOVER: async (job) => {
@@ -35,18 +42,32 @@ const HANDLERS: Record<ClaimedJob["type"], Handler> = {
     if (!job.prospectId) throw new Error("ASSESS job without prospectId");
     return runAssessmentStage(job.prospectId);
   },
-  GENERATE_EMAIL: async (job) => {
+  GENERATE_EMAIL: async (job, context) => {
     if (!job.prospectId) throw new Error("GENERATE_EMAIL job without prospectId");
     const payload = (job.payload ?? {}) as { messageType?: string };
     const messageType = payload.messageType;
     if (messageType !== "INITIAL" && messageType !== "FOLLOW_UP_1" && messageType !== "FOLLOW_UP_2") {
       throw new Error(`GENERATE_EMAIL job has an invalid messageType: ${String(messageType)}`);
     }
-    return runEmailGenerationStage(job.prospectId, messageType);
+    // A test run still generates the draft, but the stage is told to keep it a
+    // DRAFT and to enqueue no send job. This is the only path that creates
+    // messages, so suppressing here prevents a send from being queued at all.
+    return runEmailGenerationStage(job.prospectId, messageType, { testRun: context.testMode });
   },
-  SEND_EMAIL: async (job) => {
+  SEND_EMAIL: async (job, context) => {
     const payload = (job.payload ?? {}) as { messageId?: string };
     if (!payload.messageId) throw new Error("SEND_EMAIL job without messageId");
+
+    // Hard stop for a Test Run. This is checked in the dispatcher, before
+    // `deliverOutreachMessage` — the only function allowed to reach the email
+    // provider — so a test run cannot send even when the campaign is automatic,
+    // the kill switch is on, the message is approved and the window is open.
+    //
+    // The job is released rather than failed: a legitimate approved message must
+    // still be sendable by the next scheduled run, and waiting is not an error.
+    if (context.testMode) {
+      return { deferred: true, deferMs: 60_000, consumesAttempt: false, reason: "Test run: sending is disabled for this run." };
+    }
 
     // Development never contacts a real prospect. The message is recorded as a
     // test artefact instead so the whole path can still be exercised.
@@ -192,12 +213,18 @@ export type ProcessBatchResult = {
  *
  * A job that defers is not an error and must not consume the failure budget, but
  * a job that has exhausted its attempts still fails so the condition surfaces.
+ *
+ * `campaignId` restricts the batch to one campaign, which is how a manual run
+ * avoids doing another campaign's work. `testMode` makes sending impossible for
+ * the batch. Both are optional: omitting them reproduces the previous behaviour
+ * exactly, which is what the cron continues to rely on.
  */
 export async function processJobBatch(
   limit = 5,
-  options: { deadlineAt?: number } = {}
+  options: { deadlineAt?: number; campaignId?: string; testMode?: boolean; maxLimit?: number } = {}
 ): Promise<ProcessBatchResult> {
   const deadlineAt = options.deadlineAt ?? Number.POSITIVE_INFINITY;
+  const testMode = options.testMode ?? false;
   const result: ProcessBatchResult = {
     claimed: 0,
     completed: 0,
@@ -210,7 +237,11 @@ export async function processJobBatch(
   await reapStaleJobs();
   await reapStaleSendingMessages();
 
-  const jobs = await claimJobs(Math.max(1, Math.min(10, limit)));
+  // The default cap of 10 keeps a cron invocation small. A manual run is a single
+  // supervised request rather than a recurring scheduler, so it may drain a larger
+  // batch, still bounded by the caller-supplied limit and deadline.
+  const ceiling = options.maxLimit ?? 10;
+  const jobs = await claimJobs(Math.max(1, Math.min(ceiling, limit)), new Date(), options.campaignId);
   result.claimed = jobs.length;
 
   for (const job of jobs) {
@@ -232,7 +263,7 @@ export async function processJobBatch(
     const started = Date.now();
     try {
       if (!handler) throw new Error(`No handler registered for job type ${job.type}`);
-      const detail = await handler(job);
+      const detail = await handler(job, { testMode });
 
       if (isDeferredResult(detail)) {
         await deferJob(job, detail.deferMs, detail.reason, { consumesAttempt: detail.consumesAttempt });

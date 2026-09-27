@@ -8,6 +8,7 @@ import { scheduleDueFollowUps } from "./follow-ups";
 import { enqueueJob } from "./jobs";
 import { clampDailyDiscovery, evaluateDiscoveryAllowance, startOfDayInTimezone } from "./limits";
 import { isBounceRateAbnormal, notifyAdminOfOutreachAlert } from "./notifications";
+import { recordCronRun } from "./campaign-run";
 import { recomputeAllDailyStats, startOfUtcDay } from "./stats";
 
 /**
@@ -284,5 +285,26 @@ export async function runDailyOrchestrator(
     failedPhases: phases.filter((phase) => !phase.ok).map((phase) => phase.phase),
   });
 
+  // Record the scheduled run so an operator can see cron activity in the same
+  // history as manual and test runs. This is purely additive: it writes a history
+  // row after the work is done and cannot affect what the run did. It is wrapped
+  // so a failure to record never changes the outcome of the cron itself.
+  await recordCronRun({
+    campaignIds: await activeCampaignIds(),
+    summary: `Scheduled daily cycle. ${dueWork.jobsCompleted} completed, ${dueWork.jobsDeferred} deferred, ${dueWork.jobsFailed} failed, ${dueWork.discoveryQueued} discovery queued.`,
+    durationMs,
+  }).catch((error) => console.error("[outreach-orchestrator] run_history_failed", getErrorMessage(error)));
+
   return result;
+}
+
+/** Campaigns the scheduled cycle would have considered, for run-history context. */
+async function activeCampaignIds(): Promise<string[]> {
+  const prisma = getPrisma();
+  if (!prisma) return [];
+  const rows = await prisma.outreachCampaign.findMany({
+    where: { status: "ACTIVE", mode: { in: ["SEMI_AUTOMATIC", "AUTOMATIC"] } },
+    select: { id: true },
+  });
+  return rows.map((row) => row.id);
 }

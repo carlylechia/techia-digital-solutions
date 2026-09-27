@@ -1333,6 +1333,23 @@ enum OutreachJobStatus {
   CANCELLED
 }
 
+/// What caused a run to start. CRON is the scheduled daily cycle; the other two
+/// are administrator initiated and are recorded in the same history so an
+/// operator can always tell scheduled work from hand-triggered work.
+enum OutreachRunTrigger {
+  CRON
+  MANUAL
+  TEST
+}
+
+enum OutreachRunStatus {
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
 enum OutreachSuppressionReason {
   UNSUBSCRIBED
   BOUNCED
@@ -1394,11 +1411,23 @@ model OutreachCampaign {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  // Mutual-exclusion token for a manual run on this campaign. It is claimed with
+  // a conditional UPDATE, the same idiom the job queue and the message send-claim
+  // already use, so a second concurrent "Run Now" simply cannot win the row rather
+  // than relying on the UI disabling the button. Null means "no run in flight".
+  // Cron does not use it: the cron path processes the shared queue and is already
+  // protected by job locking.
+  activeRunId String? @unique
+  // When the current lock was taken, so an abandoned lock left by a process that
+  // died can be reclaimed instead of blocking manual runs forever.
+  lastRunStartedAt DateTime?
+
   prospects  OutreachProspect[]
   messages   OutreachMessage[]
   events     OutreachEvent[]
   jobs       OutreachJob[]
   dailyStats OutreachDailyStats[]
+  runs       OutreachRun[]
 
   @@index([status])
   @@index([status, updatedAt(sort: Desc)])
@@ -1600,6 +1629,56 @@ model OutreachJob {
   @@index([type, status, scheduledFor])
   @@index([campaignId, status])
   @@index([prospectId, type])
+}
+
+/// One execution of the outreach pipeline over a campaign.
+///
+/// The job table records individual units of work; this records the run that
+/// happened to contain them, so an operator can answer "what did the last run do,
+/// who started it, and did anything fail" without reconstructing it from events.
+///
+/// A TEST run additionally carries `emailsSentCount` fixed at zero and its
+/// messages stay DRAFT, which is what makes "a test run never sends" auditable
+/// after the fact rather than merely asserted.
+model OutreachRun {
+  id         String           @id @default(cuid())
+  campaignId String
+  trigger    OutreachRunTrigger
+  status     OutreachRunStatus @default(RUNNING)
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  // Counts are per-run deltas, not campaign totals. Null means "not measured in
+  // this run" so a scheduled run that skipped a phase is not misread as zero work.
+  discoveredCount     Int?
+  processedCount      Int?
+  qualifiedCount      Int?
+  draftsGeneratedCount Int?
+  emailsSentCount     Int? @default(0)
+  skippedCount        Int?
+  failedCount         Int?
+
+  // Short, human readable outcome. Never contains message bodies, recipient
+  // addresses, credentials or provider payloads.
+  summary String? @db.Text
+
+  // The admin who started a manual or test run. Null for the scheduled cron.
+  createdById String?
+  // The run this one is continuing, when a bounded run defers the remainder and
+  // the next daily cron picks it up. Set on the later run, not the earlier one.
+  resumedFromId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campaign      OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  resumedFrom   OutreachRun?     @relation("OutreachRunResume", fields: [resumedFromId], references: [id], onDelete: SetNull)
+  resumedBy     OutreachRun[]    @relation("OutreachRunResume")
+
+  @@index([campaignId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@index([status])
 }
 
 model OutreachSuppression {

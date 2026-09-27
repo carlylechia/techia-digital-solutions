@@ -231,3 +231,15 @@ export function jobStatusTone(status: string): Tone {
   if (status === "PROCESSING") return "warn";
   return "quiet";
 }
+
+/**
+ * Run outcome tone. PARTIAL is distinct from FAILED: some work completed and some
+ * did not, which an operator needs to see differently from a run that never
+ * started or died outright.
+ */
+export function runStatusTone(status: string): Tone {
+  if (status === "COMPLETED") return "good";
+  if (status === "FAILED") return "danger";
+  if (status === "PARTIAL" || status === "RUNNING") return "warn";
+  return "quiet";
+}

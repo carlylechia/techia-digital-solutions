@@ -14,6 +14,7 @@ import { enqueueJob } from "@/lib/outreach/jobs";
 import { suppressContact, unsubscribeContact } from "@/lib/outreach/suppression";
 import { incrementDailyStat } from "@/lib/outreach/stats";
 import { runDailyOrchestrator } from "@/lib/outreach/orchestrator";
+import { CampaignRunError, runCampaign } from "@/lib/outreach/campaign-run";
 import { getOutreachSendingState } from "@/lib/outreach/config";
 import { normalizeEmail } from "@/lib/outreach/limits";
 import {
@@ -35,12 +36,29 @@ import { OUTREACH_CAMPAIGN_STATUSES, OUTREACH_PROSPECT_STATUSES } from "@/lib/ou
 
 export type OutreachActionResult = { ok: true; message: string } | { ok: false; error: string };
 
-function toResult(error: unknown): OutreachActionResult {
+/**
+ * A run outcome carries its counts back to the UI so the operator sees the
+ * started/completed/partial/failed state and the numbers without opening a page.
+ */
+export type OutreachRunActionResult =
+  | { ok: true; message: string; run: { id: string; status: string; trigger: string; durationMs: number; counts: Record<string, number>; summary: string } }
+  | { ok: false; error: string };
+
+/**
+ * Map a thrown error onto either result shape. Generic so the same helper serves
+ * simple actions and run actions, which carry extra detail on success.
+ */
+function toResult<T extends { ok: false; error: string }>(error: unknown): T {
   if (error instanceof OutreachAuthorizationError) {
-    return { ok: false, error: error.status === 401 ? "Please sign in again." : "You do not have permission to do that." };
+    return { ok: false, error: error.status === 401 ? "Please sign in again." : "You do not have permission to do that." } as T;
+  }
+  if (error instanceof CampaignRunError) {
+    // A duplicate run is an expected outcome, not a fault, so it gets its own
+    // message rather than the generic "check the server logs".
+    return { ok: false, error: error.message } as T;
   }
   console.error("[outreach-action] failed", getErrorMessage(error));
-  return { ok: false, error: "That action could not be completed. Check the server logs." };
+  return { ok: false, error: "That action could not be completed. Check the server logs." } as T;
 }
 
 function revalidateOutreach(...paths: string[]) {
@@ -498,6 +516,81 @@ export async function triggerOutreachDiscovery(input: { campaignId: string }): P
     await auditOutreach({ actorId: actor.id, action: "outreach.discovery_triggered", entityType: "OutreachCampaign", entityId: campaignId, metadata: { jobId } });
     revalidateOutreach(`/admin/outreach/campaigns/${campaignId}`);
     return { ok: true, message: "Discovery queued. It runs on the next job-processor tick." };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/**
+ * Run Now — execute the campaign's due work immediately.
+ *
+ * This calls the same pipeline the daily cron calls, narrowed to one campaign and
+ * bounded by a job count and a wall-clock budget. It does not grant any extra
+ * allowance: the daily discovery limit and the daily send limit are evaluated by
+ * the same checks the scheduled path uses, so a campaign at 7 of 10 sends can use
+ * at most the remaining 3.
+ *
+ * Authorization is `outreach.send`, the highest outreach permission, because a run
+ * is permitted to deliver approved email. A second click while a run is in flight
+ * is refused by the database lock rather than by a disabled button.
+ */
+export async function runOutreachCampaignNow(input: { campaignId: string }): Promise<OutreachRunActionResult> {
+  try {
+    const actor = await requireOutreachActor("outreach.send");
+    await requireOutreachDatabase();
+    const campaignId = String(input.campaignId ?? "").slice(0, 64);
+    if (!campaignId) return { ok: false, error: "Invalid campaign." };
+
+    const result = await runCampaign({ campaignId, trigger: "MANUAL", createdById: actor.id });
+
+    await auditOutreach({
+      actorId: actor.id,
+      action: "outreach.campaign_run_now",
+      entityType: "OutreachRun",
+      entityId: result.runId,
+      metadata: { campaignId, status: result.status, counts: result.counts, durationMs: result.durationMs },
+    });
+    revalidateOutreach(`/admin/outreach/campaigns/${campaignId}`, "/admin/outreach/campaigns");
+    return {
+      ok: true,
+      message: result.summary,
+      run: { id: result.runId, status: result.status, trigger: result.trigger, durationMs: result.durationMs, counts: result.counts, summary: result.summary },
+    };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/**
+ * Test Run — exercise discovery through email generation without sending.
+ *
+ * Uses the identical pipeline, but sending is impossible for the whole run: the
+ * dispatcher refuses SEND_EMAIL before it can reach the provider, and the
+ * generation stage stores a DRAFT and queues no send job. Nothing here resets or
+ * borrows a daily allowance, because no message is ever sent.
+ */
+export async function runOutreachCampaignTest(input: { campaignId: string }): Promise<OutreachRunActionResult> {
+  try {
+    const actor = await requireOutreachActor("outreach.manage");
+    await requireOutreachDatabase();
+    const campaignId = String(input.campaignId ?? "").slice(0, 64);
+    if (!campaignId) return { ok: false, error: "Invalid campaign." };
+
+    const result = await runCampaign({ campaignId, trigger: "TEST", createdById: actor.id });
+
+    await auditOutreach({
+      actorId: actor.id,
+      action: "outreach.campaign_test_run",
+      entityType: "OutreachRun",
+      entityId: result.runId,
+      metadata: { campaignId, status: result.status, counts: result.counts, emailsSent: result.counts.emailsSent },
+    });
+    revalidateOutreach(`/admin/outreach/campaigns/${campaignId}`, "/admin/outreach/campaigns");
+    return {
+      ok: true,
+      message: result.summary,
+      run: { id: result.runId, status: result.status, trigger: result.trigger, durationMs: result.durationMs, counts: result.counts, summary: result.summary },
+    };
   } catch (error) {
     return toResult(error);
   }

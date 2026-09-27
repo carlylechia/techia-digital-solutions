@@ -19,6 +19,41 @@ type Db = PrismaClient;
 
 export type OutreachDashboardData = Awaited<ReturnType<typeof loadOutreachDashboard>>;
 
+/**
+ * Run history for one campaign, newest first.
+ *
+ * `durationMs` is derived rather than stored, so a run that is still RUNNING
+ * reports no duration instead of a misleading zero.
+ */
+export async function loadOutreachRunHistory(db: Db, campaignId: string, take = 25) {
+  const rows = await db.outreachRun.findMany({
+    where: { campaignId },
+    orderBy: { startedAt: "desc" },
+    take: Math.min(100, Math.max(1, take)),
+    select: {
+      id: true,
+      trigger: true,
+      status: true,
+      startedAt: true,
+      completedAt: true,
+      discoveredCount: true,
+      processedCount: true,
+      qualifiedCount: true,
+      draftsGeneratedCount: true,
+      emailsSentCount: true,
+      skippedCount: true,
+      failedCount: true,
+      summary: true,
+      createdById: true,
+    },
+  });
+
+  return rows.map((row) => ({
+    ...row,
+    durationMs: row.completedAt ? row.completedAt.getTime() - row.startedAt.getTime() : null,
+  }));
+}
+
 export async function loadOutreachDashboard(db: Db) {
   const now = new Date();
   const today = startOfUtcDay(now);

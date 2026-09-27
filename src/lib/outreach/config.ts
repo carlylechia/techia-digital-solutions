@@ -186,6 +186,22 @@ export const OUTREACH_ORCHESTRATION = {
   maxJobsPerRun: readInt("OUTREACH_ORCHESTRATOR_MAX_JOBS", 25, 1, 100),
   /** Wall-clock budget for the whole invocation. */
   runBudgetMs: readInt("OUTREACH_ORCHESTRATOR_BUDGET_MS", 240_000, 10_000, 900_000),
+
+  /**
+   * Bounds for an administrator-triggered run.
+   *
+   * A manual run is a single supervised request rather than a recurring
+   * scheduler, so it may drain a larger batch than the cron does — but it is
+   * still bounded by both a job count and a wall-clock budget, and it is far
+   * below a function timeout so it always ends by returning rather than being
+   * killed mid-flight.
+   */
+  manualRunMaxJobs: readInt("OUTREACH_MANUAL_RUN_MAX_JOBS", 20, 1, 60),
+  manualRunBudgetMs: readInt("OUTREACH_MANUAL_RUN_BUDGET_MS", 150_000, 10_000, 600_000),
+  /** A test run exists to prove the pipeline works, not to process a backlog. */
+  testRunMaxJobs: readInt("OUTREACH_TEST_RUN_MAX_JOBS", 3, 1, 10),
+  /** Minutes after which an abandoned run lock is reclaimed. */
+  runLockTimeoutMinutes: readInt("OUTREACH_RUN_LOCK_TIMEOUT_MINUTES", 20, 1, 240),
 } as const;
 
 export const OUTREACH_PAGINATION = {
