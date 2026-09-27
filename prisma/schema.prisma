@@ -1299,6 +1299,19 @@ enum OutreachEventType {
   BOUNCED
   MANUAL_NOTE
   STATUS_CHANGED
+  DISCOVERY_PROVIDER_FALLBACK
+  DISCOVERY_PROVIDER_COOLDOWN
+}
+
+enum OutreachDiscoveryProvider {
+  GOOGLE_PLACES
+  OPENSTREETMAP
+}
+
+enum OutreachDiscoveryProviderMode {
+  AUTO
+  GOOGLE_PLACES
+  OPENSTREETMAP
 }
 
 enum OutreachJobType {
@@ -1363,6 +1376,11 @@ model OutreachCampaign {
   sendingWindowEnd    String  @default("17:00")
   timezone            String  @default("Africa/Douala")
 
+  // AUTO tries Google Places first and falls back to OpenStreetMap only when
+  // Google is unusable. The other two modes pin a single provider and never
+  // switch silently.
+  discoveryProviderMode OutreachDiscoveryProviderMode @default(AUTO)
+
   // Campaign level compliance configuration. Marketing email law differs per
   // jurisdiction, so the operator states the basis for contacting this market
   // instead of the system assuming one global rule.
@@ -1409,6 +1427,17 @@ model OutreachProspect {
   googlePlaceId String?
   googleMapsUri String?
 
+  // Provider-agnostic provenance. providerPlaceId holds the provider's own
+  // identifier so the same business found twice through one provider is
+  // recognised, while dedup.ts handles cross-provider identity.
+  discoveryProvider OutreachDiscoveryProvider @default(GOOGLE_PLACES)
+  providerPlaceId   String?
+  sourceUrl         String?
+  latitude          Float?
+  longitude         Float?
+  // Set when a cross-provider match was uncertain, so a human can merge later.
+  possibleDuplicateOfId String?
+
   source String @default("google_places")
 
   // Structured evidence only. Raw third-party page bodies are never persisted.
@@ -1438,7 +1467,11 @@ model OutreachProspect {
   meetings     OutreachMeeting[]
 
   @@unique([campaignId, googlePlaceId])
+  @@unique([campaignId, discoveryProvider, providerPlaceId])
   @@index([googlePlaceId])
+  @@index([discoveryProvider])
+  @@index([providerPlaceId])
+  @@index([possibleDuplicateOfId])
   @@index([campaignId, status])
   @@index([campaignId, discoveredAt(sort: Desc)])
   @@index([status, nextActionAt])
@@ -1624,8 +1657,34 @@ model OutreachDailyStats {
   proposals   Int @default(0)
   won         Int @default(0)
   lost        Int @default(0)
+  // Per-provider discovery volume and fallback count, so a campaign can be judged
+  // by the source that actually produced its prospects.
+  discoveredGoogle Int @default(0)
+  discoveredOsm    Int @default(0)
+  discoveryFallbacks Int @default(0)
   updatedAt   DateTime @updatedAt
 
   @@unique([campaignId, date])
   @@index([date])
+}
+
+/// Database-backed circuit breaker for external discovery providers.
+///
+/// Kept deliberately simple and tiny: one row per provider, so AUTO mode can stop
+/// calling a known-failing Google API for a short cooldown and retry it later.
+/// No Redis or additional infrastructure is introduced.
+model OutreachProviderHealth {
+  provider OutreachDiscoveryProvider @id
+  // Consecutive eligible failures. Reset on any success.
+  consecutiveFailures Int       @default(0)
+  // While set and in the future, AUTO mode skips this provider.
+  cooldownUntil        DateTime?
+  lastFailureCategory String?
+  lastFailureMessage  String?  @db.Text
+  lastSuccessAt       DateTime?
+  lastAttemptAt       DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([cooldownUntil])
 }

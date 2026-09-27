@@ -5,7 +5,7 @@ import { isLocale } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
 import { getOutreachActor } from "@/lib/outreach/auth";
 import { loadOutreachCampaigns, loadOutreachProspects } from "@/lib/outreach/queries";
-import { OUTREACH_PROSPECT_STATUSES, OUTREACH_STATUS_LABELS, prospectStatusTone } from "@/lib/outreach/constants";
+import { OUTREACH_DISCOVERY_PROVIDER_LABELS, OUTREACH_DISCOVERY_PROVIDERS, OUTREACH_PROSPECT_STATUSES, OUTREACH_STATUS_LABELS, prospectStatusTone } from "@/lib/outreach/constants";
 import { createMetadata } from "@/lib/seo";
 import {
   OutreachEmptyState,
@@ -61,9 +61,16 @@ export default async function AdminOutreachProspectsPage({
   const campaignId = sp.campaign ?? "";
   const status = OUTREACH_PROSPECT_STATUSES.find((value) => value === sp.status) ?? "";
   const search = (sp.q ?? "").slice(0, 80);
+  const provider = OUTREACH_DISCOVERY_PROVIDERS.find((value) => value === sp.provider) ?? "";
 
   const [result, campaigns] = await Promise.all([
-    loadOutreachProspects(prisma, { page, campaignId: campaignId || undefined, status: status || undefined, search: search || undefined }),
+    loadOutreachProspects(prisma, {
+      page,
+      campaignId: campaignId || undefined,
+      status: status || undefined,
+      search: search || undefined,
+      provider: provider || undefined,
+    }),
     loadOutreachCampaigns(prisma),
   ]);
 
@@ -71,6 +78,7 @@ export default async function AdminOutreachProspectsPage({
     const params2 = new URLSearchParams();
     if (campaignId) params2.set("campaign", campaignId);
     if (status) params2.set("status", status);
+    if (provider) params2.set("provider", provider);
     if (search) params2.set("q", search);
     params2.set("page", String(nextPage));
     return `/admin/outreach/prospects?${params2.toString()}`;
@@ -110,6 +118,17 @@ export default async function AdminOutreachProspectsPage({
             </select>
           </label>
           <label className="grid gap-1 text-xs">
+            <span className="font-semibold text-muted">Provider</span>
+            <select name="provider" defaultValue={provider} className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm">
+              <option value="">All providers</option>
+              {OUTREACH_DISCOVERY_PROVIDERS.map((value) => (
+                <option key={value} value={value}>
+                  {OUTREACH_DISCOVERY_PROVIDER_LABELS[value]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs">
             <span className="font-semibold text-muted">Search</span>
             <input
               name="q"
@@ -138,6 +157,7 @@ export default async function AdminOutreachProspectsPage({
                 <OutreachTh>Business</OutreachTh>
                 <OutreachTh>Location</OutreachTh>
                 <OutreachTh>Status</OutreachTh>
+                <OutreachTh>Provider</OutreachTh>
                 <OutreachTh>Score</OutreachTh>
                 <OutreachTh>Recommended services</OutreachTh>
                 <OutreachTh>Contact</OutreachTh>
@@ -159,6 +179,11 @@ export default async function AdminOutreachProspectsPage({
                   </OutreachTd>
                   <OutreachTd>
                     <OutreachPill tone={prospectStatusTone(prospect.status)}>{OUTREACH_STATUS_LABELS[prospect.status] ?? prospect.status}</OutreachPill>
+                  </OutreachTd>
+                  <OutreachTd>
+                    <OutreachPill tone={prospect.discoveryProvider === "OPENSTREETMAP" ? "quiet" : "default"}>
+                      {OUTREACH_DISCOVERY_PROVIDER_LABELS[prospect.discoveryProvider] ?? prospect.discoveryProvider}
+                    </OutreachPill>
                   </OutreachTd>
                   <OutreachTd className="tabular-nums">
                     <span className={prospect.opportunityScore >= 60 ? "text-emerald-300" : prospect.opportunityScore >= 40 ? "text-amber-300" : "text-muted"}>

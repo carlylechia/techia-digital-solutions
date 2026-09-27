@@ -12,6 +12,7 @@ import {
   campaignCanSendWithoutApproval,
   clampDailySend,
   evaluateSendGate,
+  nextSendingWindowOpen,
   normalizeEmail,
   type CampaignPolicyInput,
 } from "./limits";
@@ -40,7 +41,75 @@ export type SendOutcome = {
   reason: string | null;
   messageId: string | null;
   providerMessageId: string | null;
+  /** When the campaign's sending window next opens, if it is currently closed. */
+  windowOpensAt?: Date | null;
 };
+
+/**
+ * Send outcomes that mean "not now", as opposed to "never".
+ *
+ * Under a frequent poll these simply retry on the next tick. Under a daily
+ * orchestrator a wrongly-completed job would strand the message in APPROVED with
+ * nothing left to pick it up, so these are re-queued instead of finished.
+ *
+ * They fall into two groups, because they mean different things.
+ */
+const DEFERRABLE_SEND_BLOCKS = new Set([
+  "before_window",
+  "after_window",
+  "window_unresolved",
+  "invalid_timezone",
+  "too_soon",
+  "daily_limit",
+  "kill_switch",
+  "send_failed",
+  "not_configured",
+]);
+
+/**
+ * Deferrals that mean "the world is not ready yet": a closed sending window, a
+ * spent daily allowance, the kill switch being off.
+ *
+ * These must not consume the job's retry budget. A daily orchestrator meets them
+ * routinely — the Hobby cron fires once a day, often hours before a campaign's
+ * 09:00 window opens — so charging an attempt per day would exhaust a perfectly
+ * healthy job's allowance and fail an approved email that had done nothing wrong.
+ */
+const SCHEDULING_DEFERRALS = new Set([
+  "before_window",
+  "after_window",
+  "window_unresolved",
+  "invalid_timezone",
+  "too_soon",
+  "daily_limit",
+  "kill_switch",
+]);
+
+export function isDeferrableSendBlock(block: string | null) {
+  return block !== null && DEFERRABLE_SEND_BLOCKS.has(block);
+}
+
+/** True when a deferral is pure scheduling and so must not charge a retry attempt. */
+export function isSchedulingDeferral(block: string | null) {
+  return block !== null && SCHEDULING_DEFERRALS.has(block);
+}
+
+/**
+ * How long to wait before retrying a deferred send. A closed sending window waits
+ * until it reopens; a transient provider failure uses a short fixed delay, which
+ * is far shorter than a day so a daily orchestrator is not the only chance.
+ */
+export function deferDelayMs(block: string | null, windowOpensAt: Date | null, now = new Date()) {
+  if (windowOpensAt) {
+    // Never sleep beyond a day: the next orchestrator run picks it up anyway, and
+    // a longer sleep would only delay it further.
+    return Math.min(24 * 60 * 60 * 1000, Math.max(60_000, windowOpensAt.getTime() - now.getTime()));
+  }
+  if (block === "too_soon") return 6 * 60 * 60 * 1000;
+  if (block === "daily_limit") return 12 * 60 * 60 * 1000;
+  if (block === "send_failed" || block === "not_configured") return 60 * 60 * 1000;
+  return 30 * 60 * 1000;
+}
 
 export async function deliverOutreachMessage(messageId: string): Promise<SendOutcome> {
   const prisma = getPrisma();
@@ -121,7 +190,16 @@ export async function deliverOutreachMessage(messageId: string): Promise<SendOut
       summary: `Send blocked: ${gate.code}`,
       metadata: { code: gate.code, reason: gate.reason },
     });
-    return { sent: false, blocked: gate.code, reason: gate.reason, messageId, providerMessageId: null };
+    return {
+      sent: false,
+      blocked: gate.code,
+      reason: gate.reason,
+      messageId,
+      providerMessageId: null,
+      // Computed here, where the campaign's real window and timezone are known, so
+      // the caller can reschedule without re-reading the campaign.
+      windowOpensAt: nextSendingWindowOpen(now, campaignPolicy),
+    };
   }
 
   // Status is moved to SENDING with a conditional update so a retried job that

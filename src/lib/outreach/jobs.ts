@@ -196,6 +196,51 @@ export async function failJob(
   });
 }
 
+/**
+ * Hand a job back to the queue because its work is not due yet, rather than
+ * finishing it.
+ *
+ * This is what stops a daily orchestrator from silently dropping work that was
+ * merely early: a closed sending window, a spent daily allowance, or a briefly
+ * unavailable provider.
+ *
+ * `consumesAttempt` decides whether the retry budget is charged. A scheduling
+ * deferral is not a failed attempt, so the claimed attempt is given back and the
+ * job can wait as long as it needs. A real transient failure keeps the charge, so
+ * it still exhausts and surfaces rather than retrying forever.
+ */
+export async function deferJob(
+  job: Pick<ClaimedJob, "id" | "lockToken" | "attempts" | "maxAttempts">,
+  delayMs: number,
+  reason: string,
+  options: { consumesAttempt?: boolean; now?: Date } = {}
+) {
+  const prisma = getPrisma();
+  if (!prisma) return;
+  const now = options.now ?? new Date();
+  const consumesAttempt = options.consumesAttempt ?? true;
+
+  // Only a charged attempt can exhaust the budget. A job that is merely waiting
+  // is never failed for having waited.
+  const exhausted = consumesAttempt && job.attempts >= job.maxAttempts;
+  const nextAttempt = new Date(now.getTime() + Math.max(60_000, delayMs));
+
+  await prisma.outreachJob.updateMany({
+    where: { id: job.id, status: "PROCESSING", lockToken: job.lockToken },
+    data: exhausted
+      ? { status: "FAILED", completedAt: now, lockedAt: null, lockToken: null, errorMessage: `Deferred too many times: ${reason}`.slice(0, 500) }
+      : {
+          status: "PENDING",
+          lockedAt: null,
+          lockToken: null,
+          scheduledFor: nextAttempt,
+          errorMessage: `Deferred: ${reason}`.slice(0, 500),
+          // Give back the attempt claimed for this cycle: waiting is not a try.
+          ...(consumesAttempt ? {} : { attempts: { decrement: 1 } }),
+        },
+  });
+}
+
 export async function cancelJobsForProspect(prospectId: string, types: OutreachJobType[]) {
   const prisma = getPrisma();
   if (!prisma) return 0;

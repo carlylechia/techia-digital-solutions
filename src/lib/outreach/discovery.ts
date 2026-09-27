@@ -3,19 +3,28 @@ import "server-only";
 import { getPrisma } from "@/lib/prisma";
 import { getErrorMessage } from "@/lib/prisma-errors";
 import { OUTREACH_LIMITS } from "./config";
+import { findDuplicate } from "./dedup";
 import { recordEvent } from "./events";
-import { searchPlaces, type NormalizedPlace } from "./google-places";
 import { enqueueJob, OutreachJobError } from "./jobs";
-import { clampDailyDiscovery, evaluateDiscoveryAllowance } from "./limits";
-import { startOfUtcDay } from "./stats";
+import { clampDailyDiscovery, evaluateDiscoveryAllowance, startOfDayInTimezone } from "./limits";
+import { incrementDailyStat, providerStatField } from "./stats";
+import { runDiscoveryProviders, type SelectionReason } from "./providers/registry";
+import { isDiscoveryProviderError, type DiscoveredBusiness } from "./providers/types";
 
 /**
  * Discovery.
  *
- * Builds one targeted query from the campaign configuration, calls the official
- * Places Text Search endpoint with a narrow field mask, and turns the result into
- * prospects. Deduplication is on the Google place ID, so a business is never
- * rediscovered while it remains in the campaign.
+ * Orchestration only. The provider decides where businesses come from, the
+ * campaign decides what is allowed, and this function turns normalised results
+ * into prospects plus enrichment jobs.
+ *
+ * Everything downstream of here is provider-agnostic: a business discovered on
+ * OpenStreetMap enters exactly the same enrichment, scoring, AI qualification,
+ * email generation, approval and sending path as a Google-sourced one.
+ *
+ * The daily discovery limit stays global across providers. The allowance is
+ * computed from prospects already created today, so a fallback run can only ever
+ * use the remaining budget and can never double the campaign's allowance.
  */
 
 type CampaignDiscoveryConfig = {
@@ -59,9 +68,12 @@ export function buildDiscoveryQuery(campaign: CampaignDiscoveryConfig) {
   };
 }
 
-export function isExcludedPlace(place: NormalizedPlace, campaign: CampaignDiscoveryConfig) {
+export function isExcludedPlace(
+  business: Pick<DiscoveredBusiness, "name" | "formattedAddress" | "primaryType" | "types" | "businessStatus">,
+  campaign: CampaignDiscoveryConfig
+) {
   const haystack = normalize(
-    [place.displayName, place.formattedAddress, place.primaryType, place.types.join(" ")].filter(Boolean).join(" ")
+    [business.name, business.formattedAddress, business.primaryType, business.types.join(" ")].filter(Boolean).join(" ")
   );
 
   for (const term of campaign.excludedIndustries) {
@@ -72,8 +84,10 @@ export function isExcludedPlace(place: NormalizedPlace, campaign: CampaignDiscov
     const needle = normalize(keyword);
     if (needle && haystack.includes(needle)) return { excluded: true, reason: `Excluded keyword "${keyword}"` };
   }
-  if (place.businessStatus && !OPERATIONAL_STATUSES.has(place.businessStatus)) {
-    return { excluded: true, reason: `Business status is ${place.businessStatus}` };
+  // A provider that does not publish an operational state leaves this null, and
+  // a null is never treated as closed.
+  if (business.businessStatus && !OPERATIONAL_STATUSES.has(business.businessStatus)) {
+    return { excluded: true, reason: `Business status is ${business.businessStatus}` };
   }
   return { excluded: false, reason: null as string | null };
 }
@@ -81,12 +95,19 @@ export function isExcludedPlace(place: NormalizedPlace, campaign: CampaignDiscov
 export type DiscoveryOutcome = {
   campaignId: string;
   query: string | null;
+  provider: string | null;
+  providerMode: string;
+  selectionReason: SelectionReason | null;
+  fallbackFrom: string | null;
+  fallbackReason: string | null;
   fetched: number;
   created: number;
   duplicates: number;
+  possibleDuplicates: number;
   excluded: number;
   enrichmentQueued: number;
   skipped: string | null;
+  error: string | null;
 };
 
 export async function runDiscovery(campaignId: string, now = new Date()): Promise<DiscoveryOutcome> {
@@ -94,19 +115,28 @@ export async function runDiscovery(campaignId: string, now = new Date()): Promis
   const empty: DiscoveryOutcome = {
     campaignId,
     query: null,
+    provider: null,
+    providerMode: "AUTO",
+    selectionReason: null,
+    fallbackFrom: null,
+    fallbackReason: null,
     fetched: 0,
     created: 0,
     duplicates: 0,
+    possibleDuplicates: 0,
     excluded: 0,
     enrichmentQueued: 0,
     skipped: "database_unavailable",
+    error: null,
   };
   if (!prisma) return empty;
 
   const campaign = await prisma.outreachCampaign.findUnique({ where: { id: campaignId } });
   if (!campaign) return { ...empty, skipped: "campaign_not_found" };
 
-  const dayStart = startOfUtcDay(now);
+  // The daily allowance is measured against the campaign's own calendar day, not
+  // UTC, so a campaign's budget lines up with its own local day.
+  const dayStart = startOfDayInTimezone(now, campaign.timezone);
 
   const [discoveredToday, runsToday] = await Promise.all([
     prisma.outreachProspect.count({ where: { campaignId, discoveredAt: { gte: dayStart } } }),
@@ -134,63 +164,161 @@ export async function runDiscovery(campaignId: string, now = new Date()): Promis
     runsToday
   );
   if (!allowance.allowed) {
-    return { ...empty, skipped: allowance.code };
+    return { ...empty, providerMode: campaign.discoveryProviderMode, skipped: allowance.code };
   }
 
   const cap = clampDailyDiscovery(campaign.dailyDiscoveryLimit);
+  // Remaining budget is recomputed from what has already been stored, so it is
+  // shared by every provider for the day rather than granted per provider.
   const remaining = Math.max(0, cap - discoveredToday);
   const query = buildDiscoveryQuery(campaign);
 
-  let places: NormalizedPlace[];
+  const outcome: DiscoveryOutcome = {
+    ...empty,
+    query: query.text,
+    providerMode: campaign.discoveryProviderMode,
+    skipped: null,
+  };
+
+  let businesses: DiscoveredBusiness[];
+  let selectedProvider: string | null = null;
+  let selectionReason: SelectionReason | null = null;
+  let fallbackFrom: string | null = null;
+  let fallbackReason: string | null = null;
+
   try {
-    const result = await searchPlaces({
-      text: query.text,
-      regionCode: null,
-      languageCode: "en",
+    const result = await runDiscoveryProviders({
+      mode: campaign.discoveryProviderMode,
+      campaignId,
+      now,
+      criteria: {
+        campaignId,
+        country: campaign.country,
+        regions: campaign.regions,
+        cities: campaign.cities,
+        industries: campaign.industries,
+        businessTypes: campaign.businessTypes,
+        keywords: campaign.excludedKeywords,
+        language: "en",
+        // Ask for the remaining budget so the provider never returns far more
+        // candidates than the campaign is allowed to accept.
+        maxResults: Math.max(1, remaining),
+      },
     });
-    places = result.places;
+
+    businesses = result.businesses;
+    selectedProvider = result.provider;
+    selectionReason = result.reason;
+    if (result.fallback) {
+      fallbackFrom = result.fallback.from;
+      fallbackReason = `${result.fallback.category}: ${result.fallback.message}`;
+    }
+
+    if (result.skipped) {
+      // Recorded for the admin, and explicitly marked as an informational skip
+      // rather than a job failure.
+      console.info("[outreach-discovery] provider_skipped", {
+        campaignId,
+        provider: result.skipped.provider,
+        reason: result.skipped.reason,
+      });
+    }
+
+    if (result.fallback) {
+      await incrementDailyStat(campaignId, "discoveryFallbacks", 1, now);
+      await recordEvent({
+        type: "DISCOVERY_PROVIDER_FALLBACK",
+        campaignId,
+        summary: `${result.fallback.from} unavailable, using ${result.fallback.to}`,
+        metadata: {
+          primaryProvider: result.fallback.from,
+          fallbackProvider: result.fallback.to,
+          reasonCategory: result.fallback.category,
+          // The message is our own classification text, never a provider body,
+          // so no key or request header can appear here.
+          reason: result.fallback.message.slice(0, 200),
+          timestamp: now.toISOString(),
+        },
+      });
+    }
   } catch (error) {
-    const category = error instanceof Error && "category" in error ? String((error as { category: unknown }).category) : "unknown";
-    console.error("[outreach-discovery] places_failed", { campaignId, category, error: getErrorMessage(error) });
-    throw new OutreachJobError(`Google Places discovery failed: ${getErrorMessage(error)}`, { category: "google_places" });
+    // A programming error is intentionally not swallowed: the job fails so it is
+    // visible instead of being hidden behind a fallback.
+    const message = getErrorMessage(error);
+    console.error("[outreach-discovery] provider_error", {
+      campaignId,
+      providerMode: campaign.discoveryProviderMode,
+      error: message,
+    });
+    if (isDiscoveryProviderError(error)) {
+      throw new OutreachJobError(`${error.provider} discovery failed: ${message}`, {
+        category: `provider_${error.category}`,
+        retryable: false,
+      });
+    }
+    throw new OutreachJobError(`Discovery failed: ${message}`, { category: "discovery" });
   }
 
-  const outcome: DiscoveryOutcome = { campaignId, query: query.text, fetched: places.length, created: 0, duplicates: 0, excluded: 0, enrichmentQueued: 0, skipped: null };
+  // A pinned provider that could not run leaves nothing to process.
+  if (!selectedProvider) {
+    return {
+      ...outcome,
+      selectionReason,
+      fetched: 0,
+      skipped: "provider_unavailable",
+      error: "The selected discovery provider is unavailable.",
+    };
+  }
 
-  for (const place of places) {
-    if (outcome.created >= remaining) break;
+  outcome.provider = selectedProvider;
+  outcome.selectionReason = selectionReason;
+  outcome.fallbackFrom = fallbackFrom;
+  outcome.fallbackReason = fallbackReason;
+  outcome.fetched = businesses.length;
 
-    const exclusion = isExcludedPlace(place, campaign);
+  let createdThisRun = 0;
+
+  for (const business of businesses) {
+    // The global daily budget is enforced again here, and counted from the same
+    // pool the provider was given, so no retry or fallback can exceed it.
+    if (createdThisRun >= remaining) break;
+
+    const exclusion = isExcludedPlace(business, campaign);
     if (exclusion.excluded) {
       outcome.excluded += 1;
       continue;
     }
 
-    const existing = await prisma.outreachProspect.findFirst({
-      where: { campaignId, googlePlaceId: place.placeId },
-      select: { id: true },
-    });
-    if (existing) {
+    const verdict = await findDuplicate(prisma, campaignId, business);
+    if (verdict.status === "duplicate") {
       outcome.duplicates += 1;
       continue;
     }
 
-    // The place ID is the deduplication key, so a concurrent discovery run
-    // cannot create a second copy of the same business.
     const prospect = await prisma.outreachProspect
       .create({
         data: {
           campaignId,
           status: "DISCOVERED",
-          businessName: place.displayName.slice(0, 200),
-          country: place.country ?? campaign.country,
-          region: place.region,
-          city: place.city,
-          industry: place.primaryType ?? campaign.industries[0] ?? null,
-          websiteUrl: place.websiteUri,
-          googlePlaceId: place.placeId,
-          googleMapsUri: place.googleMapsUri,
-          source: "google_places",
+          businessName: business.name.slice(0, 200),
+          country: business.country ?? campaign.country,
+          region: business.region,
+          city: business.city,
+          industry: business.primaryType ?? campaign.industries[0] ?? null,
+          websiteUrl: business.websiteUrl,
+          // Provider-agnostic provenance.
+          discoveryProvider: business.provider,
+          providerPlaceId: business.providerPlaceId,
+          sourceUrl: business.sourceUrl,
+          latitude: business.latitude,
+          longitude: business.longitude,
+          possibleDuplicateOfId: verdict.status === "possible_duplicate" ? verdict.matchedId : null,
+          // Google keeps its own identifiers so the existing Google enrichment
+          // path continues to work exactly as before.
+          googlePlaceId: business.provider === "GOOGLE_PLACES" ? business.providerPlaceId : null,
+          googleMapsUri: business.googleMapsUrl,
+          publicPhone: business.phone,
+          source: business.provider === "GOOGLE_PLACES" ? "google_places" : "openstreetmap",
           discoveredAt: now,
         },
         select: { id: true },
@@ -207,13 +335,25 @@ export async function runDiscovery(campaignId: string, now = new Date()): Promis
 
     if (!prospect) continue;
 
+    createdThisRun += 1;
     outcome.created += 1;
+    if (verdict.status === "possible_duplicate") outcome.possibleDuplicates += 1;
+
+    // Volume is attributed to the provider that actually produced the prospect.
+    await incrementDailyStat(campaignId, providerStatField(business.provider), 1, now);
+
     await recordEvent({
       type: "DISCOVERED",
       campaignId,
       prospectId: prospect.id,
-      summary: place.displayName.slice(0, 160),
-      metadata: { source: "google_places", placeId: place.placeId, primaryType: place.primaryType },
+      summary: business.name.slice(0, 160),
+      metadata: {
+        provider: business.provider,
+        providerPlaceId: business.providerPlaceId,
+        primaryType: business.primaryType,
+        selectionReason,
+        duplicateSignal: verdict.status === "possible_duplicate" ? verdict.signal : null,
+      },
     });
 
     await enqueueJob({
@@ -221,18 +361,23 @@ export async function runDiscovery(campaignId: string, now = new Date()): Promis
       campaignId,
       prospectId: prospect.id,
       dedupeKey: `ENRICH:${campaignId}:${prospect.id}:${Math.floor(now.getTime() / 86_400_000)}`,
-      payload: { reason: "discovery" },
+      payload: { reason: "discovery", provider: business.provider },
     });
     outcome.enrichmentQueued += 1;
   }
 
   console.info("[outreach-discovery] run_complete", {
     campaignId,
+    provider: selectedProvider,
+    providerMode: campaign.discoveryProviderMode,
+    selectionReason,
+    fallbackFrom,
     fetched: outcome.fetched,
     created: outcome.created,
     duplicates: outcome.duplicates,
+    possibleDuplicates: outcome.possibleDuplicates,
     excluded: outcome.excluded,
-    cap: Math.min(OUTREACH_LIMITS.maxDailyDiscovery, cap),
+    budget: { cap: Math.min(OUTREACH_LIMITS.maxDailyDiscovery, cap), used: discoveredToday + createdThisRun },
   });
 
   return outcome;

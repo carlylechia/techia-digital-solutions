@@ -4,10 +4,10 @@ import { getPrisma } from "@/lib/prisma";
 import { OUTREACH_SAFETY, getOutreachSendingState } from "./config";
 import { recordEvent } from "./events";
 import { fetchPlaceDetails } from "./google-places";
-import { claimJobs, completeJob, enqueueJob, failJob, reapStaleJobs, type ClaimedJob } from "./jobs";
+import { claimJobs, completeJob, deferJob, enqueueJob, failJob, reapStaleJobs, type ClaimedJob } from "./jobs";
 import { runDiscovery } from "./discovery";
 import { runAssessmentStage, runEmailGenerationStage, runEnrichment } from "./pipeline";
-import { deliverOutreachMessage, reapStaleSendingMessages, simulateSend } from "./sending";
+import { deliverOutreachMessage, deferDelayMs, isDeferrableSendBlock, isSchedulingDeferral, reapStaleSendingMessages, simulateSend } from "./sending";
 import { processInboundReply } from "./inbound";
 import { planFollowUp } from "./limits";
 import { getErrorMessage } from "@/lib/prisma-errors";
@@ -55,9 +55,29 @@ const HANDLERS: Record<ClaimedJob["type"], Handler> = {
       if (sendingState.environment !== "production") {
         return simulateSend(payload.messageId);
       }
-      return { skipped: "kill_switch" as const, reason: sendingState.reason };
+      // Production with the kill switch off: defer, never "complete". Otherwise
+      // the message would be stranded in APPROVED with nothing left to send it.
+      // Waiting for an operator to flip a switch is not a failed attempt.
+      return { deferred: true, deferMs: 12 * 60 * 60 * 1000, consumesAttempt: false, reason: sendingState.reason };
     }
-    return deliverOutreachMessage(payload.messageId);
+
+    const outcome = await deliverOutreachMessage(payload.messageId);
+
+    // A send that is merely not due yet is re-queued rather than completed, so a
+    // daily orchestrator cannot strand a message behind a closed sending window.
+    if (!outcome.sent && isDeferrableSendBlock(outcome.blocked)) {
+      return {
+        deferred: true,
+        deferMs: deferDelayMs(outcome.blocked, outcome.windowOpensAt ?? null),
+        // A closed window or a spent allowance must not burn the retry budget, or
+        // an approved email that merely missed today's window would be failed
+        // after a few days without ever being sent.
+        consumesAttempt: !isSchedulingDeferral(outcome.blocked),
+        reason: `Send deferred: ${outcome.blocked}${outcome.reason ? ` (${outcome.reason})` : ""}`,
+      };
+    }
+
+    return outcome;
   },
   SCHEDULE_FOLLOWUP: async (job) => {
     // Scoped to a single prospect. The global sweep is the dedicated
@@ -155,22 +175,77 @@ export type ProcessBatchResult = {
   claimed: number;
   completed: number;
   failed: number;
-  outcomes: Array<{ id: string; type: string; status: "completed" | "failed"; detail: string }>;
+  deferred: number;
+  /** True when the deadline stopped the batch with work still due. */
+  budgetExhausted: boolean;
+  outcomes: Array<{ id: string; type: string; status: "completed" | "failed" | "deferred"; detail: string }>;
 };
 
-export async function processJobBatch(limit = 5): Promise<ProcessBatchResult> {
-  const result: ProcessBatchResult = { claimed: 0, completed: 0, failed: 0, outcomes: [] };
+/**
+ * Process a bounded batch of due jobs.
+ *
+ * Three outcomes are possible per job:
+ *   completed  the work is done
+ *   deferred   the work is not due yet (closed sending window, spent allowance,
+ *              brief provider outage) and goes back on the queue with a due time
+ *   failed     the work errored and follows the existing retry policy
+ *
+ * A job that defers is not an error and must not consume the failure budget, but
+ * a job that has exhausted its attempts still fails so the condition surfaces.
+ */
+export async function processJobBatch(
+  limit = 5,
+  options: { deadlineAt?: number } = {}
+): Promise<ProcessBatchResult> {
+  const deadlineAt = options.deadlineAt ?? Number.POSITIVE_INFINITY;
+  const result: ProcessBatchResult = {
+    claimed: 0,
+    completed: 0,
+    failed: 0,
+    deferred: 0,
+    budgetExhausted: false,
+    outcomes: [],
+  };
+
   await reapStaleJobs();
   await reapStaleSendingMessages();
+
   const jobs = await claimJobs(Math.max(1, Math.min(10, limit)));
   result.claimed = jobs.length;
 
   for (const job of jobs) {
+    // Stop claiming new work once the budget is spent. Anything already due and
+    // still unclaimed simply stays PENDING for the next run.
+    if (Date.now() >= deadlineAt) {
+      result.budgetExhausted = true;
+      await releaseUnprocessedJob(job);
+      result.outcomes.push({
+        id: job.id,
+        type: job.type,
+        status: "deferred",
+        detail: "run budget exhausted; left for the next orchestrator run",
+      });
+      continue;
+    }
+
     const handler = HANDLERS[job.type];
     const started = Date.now();
     try {
       if (!handler) throw new Error(`No handler registered for job type ${job.type}`);
       const detail = await handler(job);
+
+      if (isDeferredResult(detail)) {
+        await deferJob(job, detail.deferMs, detail.reason, { consumesAttempt: detail.consumesAttempt });
+        result.deferred += 1;
+        result.outcomes.push({
+          id: job.id,
+          type: job.type,
+          status: "deferred",
+          detail: detail.reason.slice(0, 200),
+        });
+        continue;
+      }
+
       await completeJob(job.id, job.lockToken);
       result.completed += 1;
       result.outcomes.push({
@@ -192,16 +267,31 @@ export async function processJobBatch(limit = 5): Promise<ProcessBatchResult> {
         attempt: job.attempts,
         error: message,
       });
-      await recordEvent({
-        type: "STATUS_CHANGED",
-        campaignId: job.campaignId,
-        prospectId: job.prospectId,
-        summary: `Job ${job.type} failed`,
-        metadata: { jobId: job.id, attempt: job.attempts, error: message },
-      });
     }
   }
   return result;
+}
+
+type DeferredResult = { deferred: true; deferMs: number; reason: string; consumesAttempt?: boolean };
+
+function isDeferredResult(value: unknown): value is DeferredResult {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as Record<string, unknown>).deferred === true
+  );
+}
+
+/** Put a claimed-but-unrun job straight back on the queue without consuming an attempt. */
+async function releaseUnprocessedJob(job: ClaimedJob) {
+  const prisma = getPrisma();
+  if (!prisma) return;
+  await prisma.outreachJob
+    .updateMany({
+      where: { id: job.id, status: "PROCESSING", lockToken: job.lockToken },
+      data: { status: "PENDING", lockedAt: null, lockToken: null, attempts: { decrement: 1 }, scheduledFor: new Date() },
+    })
+    .catch(() => undefined);
 }
 
 function summarize(detail: unknown) {

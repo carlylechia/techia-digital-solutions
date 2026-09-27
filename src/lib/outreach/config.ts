@@ -145,7 +145,9 @@ export const OUTREACH_AI_USAGE_REQUEST_TYPE = {
 export function getGooglePlacesApiKey() {
   const key = process.env.GOOGLE_MAPS_PLATFORM_API_KEY?.trim();
   if (!key) return null;
-  if (key.startsWith("AIza") === false && /placeholder|your[-_]?key/i.test(key)) return null;
+  // A missing key is normal in a fallback-only deployment, so this must never be
+  // fatal — it simply means Google discovery is unavailable.
+  if (/placeholder|your[-_]?key|changeme|replace[-_]?me|xxx/i.test(key)) return null;
   return key;
 }
 
@@ -153,7 +155,61 @@ export function isGooglePlacesConfigured() {
   return getGooglePlacesApiKey() !== null;
 }
 
+/**
+ * OpenStreetMap / Overpass configuration for the fallback provider.
+ *
+ * No credential is required. The endpoint is configurable so a deployment can
+ * point at its own Overpass instance instead of relying on the public one, but a
+ * sensible public default keeps a fresh install working.
+ */
+export const OUTREACH_OSM = {
+  overpassUrl: process.env.OUTREACH_OSM_OVERPASS_URL?.trim() || "https://overpass-api.de/api/interpreter",
+  geocodingUrl: process.env.OUTREACH_OSM_GEOCODING_URL?.trim() || "https://nominatim.openstreetmap.org/search",
+  userAgent:
+    process.env.OUTREACH_OSM_USER_AGENT?.trim() ||
+    "teChiaOutreachBot/1.0 (+https://techiadigital.com; business discovery; low volume)",
+  timeoutMs: readInt("OUTREACH_OSM_TIMEOUT_MS", 20_000, 2_000, 60_000),
+  healthTimeoutMs: readInt("OUTREACH_OSM_HEALTH_TIMEOUT_MS", 6_000, 1_000, 30_000),
+  maxResponseBytes: readInt("OUTREACH_OSM_MAX_RESPONSE_BYTES", 4_000_000, 100_000, 20_000_000),
+  maxResultsPerQuery: readInt("OUTREACH_OSM_MAX_RESULTS", 60, 1, 200),
+} as const;
+
+/**
+ * Daily orchestrator bounds.
+ *
+ * Vercel's Hobby plan fires a cron at most once a day and up to 59 minutes late,
+ * so one invocation has to do meaningful work while staying bounded. It drains a
+ * batch, then leaves the remainder PENDING for the next daily run. It never loops.
+ */
+export const OUTREACH_ORCHESTRATION = {
+  /** Jobs claimed per run, kept modest so a run fits inside one function. */
+  maxJobsPerRun: readInt("OUTREACH_ORCHESTRATOR_MAX_JOBS", 25, 1, 100),
+  /** Wall-clock budget for the whole invocation. */
+  runBudgetMs: readInt("OUTREACH_ORCHESTRATOR_BUDGET_MS", 240_000, 10_000, 900_000),
+} as const;
+
 export const OUTREACH_PAGINATION = {
   defaultPageSize: 25,
   maxPageSize: 100,
+} as const;
+
+/**
+ * Provider resilience tuning.
+ *
+ * The cooldown is short and bounded on purpose: it stops a failing provider from
+ * being hammered while it recovers, and it is never permanent, so Google returns
+ * to service on its own once the quota resets or the outage clears.
+ */
+export const OUTREACH_PROVIDERS = {
+  /** Consecutive eligible failures before a provider is put in cooldown. */
+  failureThreshold: readInt("OUTREACH_PROVIDER_FAILURE_THRESHOLD", 2, 1, 10),
+  baseCooldownMinutes: readInt("OUTREACH_PROVIDER_COOLDOWN_MINUTES", 30, 1, 24 * 60),
+  maxCooldownMinutes: readInt("OUTREACH_PROVIDER_MAX_COOLDOWN_MINUTES", 180, 5, 24 * 60),
+  /**
+   * In-request retries for a transient provider failure. Kept to a single short
+   * attempt: longer waits belong in the job system's own retry and backoff, not
+   * inside a cron HTTP request.
+   */
+  transientRetries: readInt("OUTREACH_PROVIDER_TRANSIENT_RETRIES", 1, 0, 3),
+  transientRetryDelayMs: readInt("OUTREACH_PROVIDER_RETRY_DELAY_MS", 1_500, 100, 15_000),
 } as const;

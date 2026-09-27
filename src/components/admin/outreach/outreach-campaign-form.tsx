@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { saveOutreachCampaign } from "@/app/[locale]/admin/outreach/actions";
-import { OUTREACH_CAMPAIGN_MODES, OUTREACH_CAMPAIGN_STATUSES, OUTREACH_TARGET_SERVICES } from "@/lib/outreach/constants";
+import { DISCOVERY_PROVIDER_MODES, OUTREACH_CAMPAIGN_MODES, OUTREACH_CAMPAIGN_STATUSES, OUTREACH_TARGET_SERVICES } from "@/lib/outreach/constants";
 import { OutreachButton, OutreachField, outreachInputClass } from "./outreach-ui";
 
 /**
@@ -37,6 +37,7 @@ type CampaignDefaults = {
   sendingWindowStart: string;
   sendingWindowEnd: string;
   timezone: string;
+  discoveryProviderMode: string;
   complianceBasis: string;
   complianceNote: string;
   senderNameOverride: string;
@@ -65,6 +66,7 @@ const DEFAULTS: CampaignDefaults = {
   sendingWindowStart: "09:00",
   sendingWindowEnd: "17:00",
   timezone: "Africa/Douala",
+  discoveryProviderMode: "AUTO",
   complianceBasis: "",
   complianceNote: "",
   senderNameOverride: "",
@@ -115,6 +117,7 @@ export function OutreachCampaignForm({ campaign }: { campaign?: Partial<Campaign
         sendingWindowStart: state.sendingWindowStart,
         sendingWindowEnd: state.sendingWindowEnd,
         timezone: state.timezone,
+        discoveryProviderMode: state.discoveryProviderMode,
         complianceBasis: state.complianceBasis,
         complianceNote: state.complianceNote,
         senderNameOverride: state.senderNameOverride,
@@ -395,6 +398,32 @@ export function OutreachCampaignForm({ campaign }: { campaign?: Partial<Campaign
             </span>
           </span>
         </label>
+
+        <div className="grid gap-2">
+          <OutreachField
+            label="Discovery provider"
+            hint="Automatic uses Google Places when available and safely falls back to OpenStreetMap when Google is unavailable or usage limits are reached."
+          >
+            <select
+              className={outreachInputClass}
+              value={state.discoveryProviderMode}
+              disabled={pending}
+              onChange={(event) => set("discoveryProviderMode", event.target.value)}
+            >
+              {DISCOVERY_PROVIDER_MODES.map((value) => (
+                <option key={value} value={value}>
+                  {value === "AUTO" ? "Automatic (Google Places → OpenStreetMap fallback)" : `${value.replace("_", " ")} only`}
+                </option>
+              ))}
+            </select>
+          </OutreachField>
+          {state.discoveryProviderMode === "GOOGLE_PLACES" ? (
+            <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+              This campaign uses Google Places only. If Google is not configured or is unavailable, discovery fails
+              visibly rather than switching providers.
+            </p>
+          ) : null}
+        </div>
       </fieldset>
 
       <fieldset className="subtle-tile grid gap-4 rounded-[1.25rem] p-4 sm:p-5" disabled={pending}>

@@ -25,7 +25,10 @@ export type DailyStatField =
   | "meetings"
   | "proposals"
   | "won"
-  | "lost";
+  | "lost"
+  | "discoveredGoogle"
+  | "discoveredOsm"
+  | "discoveryFallbacks";
 
 export function startOfUtcDay(date = new Date()) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
@@ -50,7 +53,15 @@ const FIELDS: DailyStatField[] = [
   "proposals",
   "won",
   "lost",
+  "discoveredGoogle",
+  "discoveredOsm",
+  "discoveryFallbacks",
 ];
+
+/** Which per-provider counter a discovery run should increment. */
+export function providerStatField(provider: string): "discoveredGoogle" | "discoveredOsm" {
+  return provider === "OPENSTREETMAP" ? "discoveredOsm" : "discoveredGoogle";
+}
 
 /**
  * Single-step increment, used when a pipeline event happens in real time. Safe to
@@ -94,6 +105,19 @@ export async function recomputeDailyStats(campaignId: string, date = new Date())
 
   const discovered = await prisma.outreachProspect.count({ where: { campaignId, discoveredAt: { gte: day, lt: windowStart } } });
   counts.discovered = discovered;
+
+  // Per-provider split, derived from the same source rows so a nightly rebuild
+  // converges on exactly the real total.
+  const [googleCount, osmCount] = await Promise.all([
+    prisma.outreachProspect.count({ where: { campaignId, discoveryProvider: "GOOGLE_PLACES", discoveredAt: { gte: day, lt: windowStart } } }),
+    prisma.outreachProspect.count({ where: { campaignId, discoveryProvider: "OPENSTREETMAP", discoveredAt: { gte: day, lt: windowStart } } }),
+  ]);
+  counts.discoveredGoogle = googleCount;
+  counts.discoveredOsm = osmCount;
+
+  counts.discoveryFallbacks = await prisma.outreachEvent.count({
+    where: { campaignId, type: "DISCOVERY_PROVIDER_FALLBACK", createdAt: { gte: day, lt: windowStart } },
+  });
 
   const qualified = await prisma.outreachProspect.count({ where: { campaignId, status: "QUALIFIED", updatedAt: { gte: day, lt: windowStart } } });
   counts.qualified = qualified;

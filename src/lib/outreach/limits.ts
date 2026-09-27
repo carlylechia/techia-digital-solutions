@@ -105,6 +105,80 @@ export function isValidTimezone(timezone: string) {
 }
 
 /**
+ * The UTC instant at which "today" began in a campaign's own timezone.
+ *
+ * Daily allowances must follow the campaign's calendar day, not the server's or
+ * UTC's, otherwise a campaign in a negative-offset timezone would lose or gain
+ * hours of budget at the day boundary. Falls back to the UTC day when the
+ * timezone is unknown, which is the conservative direction because it never
+ * grants extra budget.
+ */
+export function startOfDayInTimezone(now: Date, timezone: string): Date {
+  if (!isValidTimezone(timezone)) return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  const year = get("year");
+  const month = get("month");
+  const day = get("day");
+  const hour = get("hour");
+  const minute = get("minute");
+  const second = get("second");
+  if (![year, month, day, hour, minute, second].every((value) => Number.isFinite(value))) {
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  }
+
+  // The zone's UTC offset at `now`, recovered by treating the local wall clock as
+  // if it were UTC and comparing. Using the offset rather than "minutes elapsed
+  // since local midnight" is what makes this correct in any offset, including
+  // negative ones and half-hour zones.
+  //
+  // `now` is floored to whole seconds first: `Date.UTC` has no millisecond
+  // argument, so leaving them in would leak `now`'s milliseconds into the offset
+  // and make every "day start" a slightly different instant. That matters because
+  // these values are used to build per-day dedupe keys.
+  const nowSeconds = Math.floor(now.getTime() / 1000) * 1000;
+  const localWallClockAsUtc = Date.UTC(year, month - 1, day, hour, minute, second);
+  const zoneOffsetMs = localWallClockAsUtc - nowSeconds;
+
+  // Local midnight, then converted back to the instant it actually occurs.
+  // On a DST transition day the offset sampled at `now` is used, which can place
+  // the boundary up to an hour out; that never grants extra budget, it only makes
+  // the day roll slightly early or late.
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0) - zoneOffsetMs);
+}
+
+/** Next moment the campaign's sending window opens, or null when today is done. */
+export function nextSendingWindowOpen(
+  now: Date,
+  campaign: Pick<CampaignPolicyInput, "sendingWindowStart" | "sendingWindowEnd" | "timezone">
+): Date | null {
+  if (!isValidTimezone(campaign.timezone)) return null;
+  const start = parseClockTime(campaign.sendingWindowStart, "09:00");
+  const end = parseClockTime(campaign.sendingWindowEnd, "17:00");
+  if (end <= start) return null;
+
+  const minutesNow = minutesInCampaignTimezone(now, campaign.timezone);
+  if (minutesNow === null) return null;
+  // Already open, or already closed for today: either way there is nothing to
+  // wait for inside this window.
+  if (minutesNow >= start && minutesNow < end) return null;
+  if (minutesNow >= end) return null;
+
+  return new Date(now.getTime() + (start - minutesNow) * 60_000);
+}
+
+/**
  * Sending window check. An unknown timezone or unparsable window never widens
  * the window — it closes it, because failing open would send outside business
  * hours.

@@ -226,6 +226,7 @@ export default async function OutreachCampaignDetailPage({ params }: { params: P
                 sendingWindowStart: campaign.sendingWindowStart,
                 sendingWindowEnd: campaign.sendingWindowEnd,
                 timezone: campaign.timezone,
+                discoveryProviderMode: campaign.discoveryProviderMode,
                 complianceBasis: campaign.complianceBasis ?? "",
                 complianceNote: campaign.complianceNote ?? "",
                 senderNameOverride: campaign.senderNameOverride ?? "",

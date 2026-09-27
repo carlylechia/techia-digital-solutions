@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { isLocale } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
 import { getOutreachActor } from "@/lib/outreach/auth";
+import { OUTREACH_DISCOVERY_PROVIDER_LABELS } from "@/lib/outreach/constants";
 import { loadOutreachCampaigns } from "@/lib/outreach/queries";
 import { createMetadata } from "@/lib/seo";
 import {
@@ -87,6 +88,7 @@ export default async function AdminOutreachCampaignsPage({ params }: { params: P
                   <OutreachTh>Campaign</OutreachTh>
                   <OutreachTh>Status</OutreachTh>
                   <OutreachTh>Mode</OutreachTh>
+                  <OutreachTh>Discovery</OutreachTh>
                   <OutreachTh>Target</OutreachTh>
                   <OutreachTh>Limits</OutreachTh>
                   <OutreachTh>Window</OutreachTh>
@@ -126,6 +128,13 @@ export default async function AdminOutreachCampaignsPage({ params }: { params: P
                       <p className="mt-1 text-xs text-muted">
                         {campaign.requireApproval ? "approval required" : "no approval gate"}
                       </p>
+                    </OutreachTd>
+                    <OutreachTd>
+                      <OutreachPill tone={campaign.discoveryProviderMode === "AUTO" ? "quiet" : "default"}>
+                        {campaign.discoveryProviderMode === "AUTO"
+                          ? "Automatic"
+                          : OUTREACH_DISCOVERY_PROVIDER_LABELS[campaign.discoveryProviderMode] ?? campaign.discoveryProviderMode}
+                      </OutreachPill>
                     </OutreachTd>
                     <OutreachTd className="text-sm text-muted">
                       {campaign.cities.length > 0 ? campaign.cities.slice(0, 2).join(", ") : campaign.regions.length > 0 ? campaign.regions.slice(0, 2).join(", ") : "—"}

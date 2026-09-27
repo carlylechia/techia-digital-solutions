@@ -12,6 +12,25 @@ export type OutreachCampaignStatusValue = (typeof OUTREACH_CAMPAIGN_STATUSES)[nu
 export const OUTREACH_CAMPAIGN_MODES = ["MANUAL", "SEMI_AUTOMATIC", "AUTOMATIC"] as const;
 export type OutreachCampaignModeValue = (typeof OUTREACH_CAMPAIGN_MODES)[number];
 
+/**
+ * Discovery provider selection.
+ *
+ * AUTO tries Google Places first and falls back to OpenStreetMap only when
+ * Google is unusable. The other two pin a single provider and never switch
+ * silently. These values live here so the client form and the server-side Zod
+ * schema validate against exactly the same list.
+ */
+export const OUTREACH_DISCOVERY_PROVIDERS = ["GOOGLE_PLACES", "OPENSTREETMAP"] as const;
+export type OutreachDiscoveryProviderValue = (typeof OUTREACH_DISCOVERY_PROVIDERS)[number];
+
+export const DISCOVERY_PROVIDER_MODES = ["AUTO", "GOOGLE_PLACES", "OPENSTREETMAP"] as const;
+export type DiscoveryProviderModeValue = (typeof DISCOVERY_PROVIDER_MODES)[number];
+
+export const OUTREACH_DISCOVERY_PROVIDER_LABELS: Record<string, string> = {
+  GOOGLE_PLACES: "Google Places",
+  OPENSTREETMAP: "OpenStreetMap",
+};
+
 export const OUTREACH_PROSPECT_STATUSES = [
   "DISCOVERED",
   "ENRICHING",

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  DISCOVERY_PROVIDER_MODES,
   OUTREACH_CAMPAIGN_MODES,
   OUTREACH_CAMPAIGN_STATUSES,
   OUTREACH_MEETING_STATUSES,
@@ -76,6 +77,9 @@ export const outreachCampaignSchema = z
     sendingWindowStart: clockField.default("09:00"),
     sendingWindowEnd: clockField.default("17:00"),
     timezone: timezoneField.default("Africa/Douala"),
+    // Provider selection is validated here on the server, so a client cannot
+    // pin an arbitrary provider to bypass campaign or job controls.
+    discoveryProviderMode: z.enum(DISCOVERY_PROVIDER_MODES).default("AUTO"),
     complianceBasis: z.string().trim().max(1_000).optional().or(z.literal("")),
     complianceNote: z.string().trim().max(1_000).optional().or(z.literal("")),
     unsubscribeNote: z.string().trim().max(1_000).optional().or(z.literal("")),

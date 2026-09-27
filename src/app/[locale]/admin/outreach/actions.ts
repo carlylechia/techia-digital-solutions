@@ -13,6 +13,7 @@ import { recordEvent, recordStatusChange } from "@/lib/outreach/events";
 import { enqueueJob } from "@/lib/outreach/jobs";
 import { suppressContact, unsubscribeContact } from "@/lib/outreach/suppression";
 import { incrementDailyStat } from "@/lib/outreach/stats";
+import { runDailyOrchestrator } from "@/lib/outreach/orchestrator";
 import { getOutreachSendingState } from "@/lib/outreach/config";
 import { normalizeEmail } from "@/lib/outreach/limits";
 import {
@@ -78,6 +79,7 @@ export async function saveOutreachCampaign(input: unknown): Promise<OutreachActi
       sendingWindowStart: parsed.sendingWindowStart,
       sendingWindowEnd: parsed.sendingWindowEnd,
       timezone: parsed.timezone,
+      discoveryProviderMode: parsed.discoveryProviderMode,
       complianceBasis: parsed.complianceBasis,
       complianceNote: parsed.complianceNote,
       unsubscribeNote: parsed.unsubscribeNote,
@@ -575,6 +577,36 @@ export async function recordOutreachReply(input: { prospectId: string; subject: 
     await auditOutreach({ actorId: actor.id, action: "outreach.reply_recorded", entityType: "OutreachProspect", entityId: prospectId, metadata: { jobId } });
     revalidateOutreach("/admin/outreach/conversations", `/admin/outreach/prospects/${prospectId}`);
     return { ok: true, message: "Reply recorded and queued for classification." };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+export async function runOutreachOrchestratorNow(): Promise<OutreachActionResult> {
+  try {
+    // `outreach.send` is the highest outreach permission, so running the whole
+    // pipeline by hand requires it. The orchestrator itself re-enforces every
+    // limit, approval rule, suppression check and the global kill switch, so this
+    // button cannot cause an email that the scheduler would have refused.
+    const actor = await requireOutreachActor("outreach.send");
+    await requireOutreachDatabase();
+
+    const result = await runDailyOrchestrator();
+    const summary = `${result.dueWork.jobsCompleted} completed, ${result.dueWork.jobsDeferred} deferred, ${result.dueWork.jobsFailed} failed`;
+
+    await auditOutreach({
+      actorId: actor.id,
+      action: "outreach.orchestrator_run_manually",
+      entityType: "OutreachJob",
+      metadata: {
+        durationMs: result.durationMs,
+        dueWork: result.dueWork,
+        failedPhases: result.phases.filter((phase) => !phase.ok).map((phase) => phase.phase),
+      },
+    });
+
+    revalidateOutreach("/admin/outreach", "/admin/outreach/settings");
+    return { ok: true, message: `Orchestrator run finished: ${summary}.` };
   } catch (error) {
     return toResult(error);
   }

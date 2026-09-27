@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
 import { processJobBatch } from "@/lib/outreach/dispatcher";
+import { OUTREACH_ORCHESTRATION } from "@/lib/outreach/config";
 import { NO_STORE_HEADERS, verifyCronAuthorization } from "@/lib/outreach/cron-auth";
 import { getErrorMessage } from "@/lib/prisma-errors";
 
 /**
- * Job processor cron.
+ * Job processor.
  *
- * Claims a bounded batch of due jobs and runs them inside the request. Only the
- * processor decides which job types run — a caller cannot pass a job type in, so
- * this endpoint cannot be used to trigger arbitrary work.
+ * This is NOT scheduled. `/api/cron/outreach/daily` is the single scheduled entry
+ * point and calls the same `processJobBatch` internally. This endpoint exists so
+ * an operator can drain the queue on demand — for example after a deploy — without
+ * waiting for the next daily run.
+ *
+ * It only runs work that is already due, and each job enforces its own limits,
+ * approvals, suppression and sending windows, so calling it early cannot cause
+ * anything to happen sooner than the state of the data allows.
  */
 
 export const dynamic = "force-dynamic";
@@ -22,11 +28,11 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await processJobBatch(5);
-    return NextResponse.json(
-      { ok: true, ...result },
-      { headers: { ...NO_STORE_HEADERS, "Retry-After": "0" } }
-    );
+    const budgetMs = Math.min(OUTREACH_ORCHESTRATION.runBudgetMs, 240_000);
+    const result = await processJobBatch(OUTREACH_ORCHESTRATION.maxJobsPerRun, {
+      deadlineAt: Date.now() + budgetMs,
+    });
+    return NextResponse.json({ ok: true, scheduled: false, ...result }, { headers: NO_STORE_HEADERS });
   } catch (error) {
     console.error("outreach_job_processor_cron_failed", getErrorMessage(error));
     return NextResponse.json({ error: "Outreach job processing failed." }, { status: 500, headers: NO_STORE_HEADERS });

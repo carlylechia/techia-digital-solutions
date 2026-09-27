@@ -135,7 +135,6 @@ export function BlogPostEditor({
   const latestRequest = useRef(0);
   const lastAutosaveSignature = useRef<string | null>(null);
   const [scheduleDraft, setScheduleDraft] = useState(() => toDateTimeLocalValue(post.scheduledAt));
-
   const editable = canManage || form.status === "DRAFT" || form.status === "CHANGES_REQUESTED";
   const wordCount = useMemo(() => normalizeRichTextSource(form.content).replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length, [form.content]);
   const autosaveSignature = useMemo(() => JSON.stringify({ ...form, version: undefined, status: undefined, reviewNotes: undefined }), [form]);

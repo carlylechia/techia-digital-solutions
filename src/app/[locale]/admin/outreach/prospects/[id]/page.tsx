@@ -6,7 +6,7 @@ import { getPrisma } from "@/lib/prisma";
 import { getErrorMessage } from "@/lib/prisma-errors";
 import { getOutreachActor } from "@/lib/outreach/auth";
 import { loadOutreachProspectDetail } from "@/lib/outreach/queries";
-import { OUTREACH_SERVICE_LABELS, OUTREACH_STATUS_LABELS, messageStatusTone, prospectStatusTone } from "@/lib/outreach/constants";
+import { OUTREACH_DISCOVERY_PROVIDER_LABELS, OUTREACH_SERVICE_LABELS, OUTREACH_STATUS_LABELS, messageStatusTone, prospectStatusTone } from "@/lib/outreach/constants";
 import { createMetadata } from "@/lib/seo";
 import { OutreachProspectActions } from "@/components/admin/outreach/outreach-prospect-actions";
 import {
@@ -132,6 +132,14 @@ export default async function OutreachProspectDetailPage({ params }: { params: P
               {prospect.googlePlaceId ? <OutreachPill tone="quiet">Google place ID stored</OutreachPill> : null}
               {prospect.automationStoppedReason ? <OutreachPill tone="warn">Automation stopped: {prospect.automationStoppedReason}</OutreachPill> : null}
               {suppression.length > 0 ? <OutreachPill tone="danger">Suppressed</OutreachPill> : null}
+              <OutreachPill tone={prospect.discoveryProvider === "OPENSTREETMAP" ? "quiet" : "default"}>
+                Discovery: {OUTREACH_DISCOVERY_PROVIDER_LABELS[prospect.discoveryProvider] ?? prospect.discoveryProvider}
+              </OutreachPill>
+              {prospect.possibleDuplicateOfId ? (
+                <Link href={`/admin/outreach/prospects/${prospect.possibleDuplicateOfId}`}>
+                  <OutreachPill tone="warn">Possible duplicate — review</OutreachPill>
+                </Link>
+              ) : null}
             </div>
             <div className="mt-3 flex flex-wrap gap-3 text-sm">
               {prospect.websiteUrl ? (
@@ -155,6 +163,21 @@ export default async function OutreachProspectDetailPage({ params }: { params: P
                 >
                   Google Maps
                 </a>
+              ) : null}
+              {prospect.sourceUrl ? (
+                <a
+                  href={prospect.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer nofollow noopener"
+                  className="text-accent hover:underline"
+                >
+                  {prospect.discoveryProvider === "OPENSTREETMAP" ? "OpenStreetMap" : "Source listing"}
+                </a>
+              ) : null}
+              {prospect.latitude !== null && prospect.longitude !== null ? (
+                <span className="text-muted">
+                  {prospect.latitude.toFixed(5)}, {prospect.longitude.toFixed(5)}
+                </span>
               ) : null}
             </div>
           </div>

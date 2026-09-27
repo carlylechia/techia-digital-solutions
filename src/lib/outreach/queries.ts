@@ -3,7 +3,7 @@ import "server-only";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { OUTREACH_PAGINATION, getOutreachSendingState, isGooglePlacesConfigured } from "./config";
 import { isOutreachEmailConfigured } from "./email-service";
-import { OUTREACH_PROSPECT_STATUSES, OUTREACH_SERVICE_LABELS, type OutreachProspectStatusValue } from "./constants";
+import { OUTREACH_DISCOVERY_PROVIDERS, OUTREACH_PROSPECT_STATUSES, OUTREACH_SERVICE_LABELS, type OutreachDiscoveryProviderValue, type OutreachProspectStatusValue } from "./constants";
 import { startOfUtcDay, addDays } from "./stats";
 import { countQueuedJobs } from "./jobs";
 
@@ -205,6 +205,7 @@ export async function loadOutreachCampaigns(db: Db) {
       sendingWindowStart: true,
       sendingWindowEnd: true,
       timezone: true,
+      discoveryProviderMode: true,
       complianceBasis: true,
       complianceNote: true,
       senderNameOverride: true,
@@ -254,6 +255,7 @@ export type ProspectListFilters = {
   campaignId?: string;
   status?: string;
   search?: string;
+  provider?: string;
   page?: number;
   pageSize?: number;
 };
@@ -266,6 +268,9 @@ export async function loadOutreachProspects(db: Db, filters: ProspectListFilters
   if (filters.campaignId) where.campaignId = filters.campaignId;
   if (filters.status && OUTREACH_PROSPECT_STATUSES.includes(filters.status as OutreachProspectStatusValue)) {
     where.status = filters.status as OutreachProspectStatusValue;
+  }
+  if (filters.provider && OUTREACH_DISCOVERY_PROVIDERS.includes(filters.provider as OutreachDiscoveryProviderValue)) {
+    where.discoveryProvider = filters.provider as OutreachDiscoveryProviderValue;
   }
   if (filters.search) {
     where.OR = [
@@ -293,6 +298,7 @@ export async function loadOutreachProspects(db: Db, filters: ProspectListFilters
         opportunityScore: true,
         publicEmail: true,
         websiteUrl: true,
+        discoveryProvider: true,
         recommendedServices: true,
         emailsSentCount: true,
         lastContactedAt: true,
