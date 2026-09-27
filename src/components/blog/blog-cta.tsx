@@ -39,11 +39,19 @@ export function BlogCta({
     <aside className="gradient-border my-12 overflow-hidden rounded-[1.75rem]">
       <div className="elevated-panel relative overflow-hidden p-6 sm:p-9">
         <div className="pointer-events-none absolute -right-16 -top-20 size-56 rounded-full bg-cyan-400/15 blur-3xl" />
-        <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
+        {/*
+          The copy spans the full panel and the actions sit on their own row beneath
+          it. This was previously a two-column grid (`lg:grid-cols-[1fr_auto]`) with
+          `max-w-2xl` on the text, which reserved the width of the buttons for the
+          text column and then capped the copy again on top of that. The result was
+          a narrow ribbon of text squeezed to one side, with the buttons pushed out
+          to the bottom corner.
+        */}
+        <div className="relative grid gap-6">
           <div>
             <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-accent"><Sparkles className="size-4" />{text.eyebrow}</p>
-            <h2 className="mt-3 max-w-2xl text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{title || text.title}</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted sm:text-base">{description || text.body}</p>
+            <h2 className="mt-3 text-balance text-2xl font-semibold tracking-tight text-primary sm:text-3xl">{title || text.title}</h2>
+            <p className="mt-3 text-sm leading-7 text-muted sm:text-base">{description || text.body}</p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link href={safeHref || "/contact"} className="btn-primary justify-center">
