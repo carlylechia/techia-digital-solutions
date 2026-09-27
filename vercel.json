@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/blog/publish",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/outreach/daily",
+      "schedule": "0 6 * * *"
     }
   ]
 }
