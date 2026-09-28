@@ -1,7 +1,7 @@
 "use client";
 
 import { Bold, Code2, Image as ImageIcon, Italic, Link2, List, ListOrdered, Minus, Quote, Redo2, Strikethrough, Table2, Underline, Undo2, Upload } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { normalizeRichTextSource } from "@/lib/blog/rich-text";
 
 type Props = {
@@ -85,6 +85,7 @@ export function cleanClientHtml(html: string) {
 function EditorToolbar({
   disabled,
   label,
+  activeFormats,
   onCommand,
   onLink,
   onImage,
@@ -96,6 +97,7 @@ function EditorToolbar({
 }: {
   disabled: boolean;
   label: string;
+  activeFormats: Set<string>;
   onCommand: (name: string, value?: string) => void;
   onLink: () => void;
   onImage: () => void;
@@ -106,29 +108,31 @@ function EditorToolbar({
   onSelectionStart: () => void;
 }) {
   const tools = [
-    { label: "Bold", icon: Bold, action: () => onCommand("bold") },
-    { label: "Italic", icon: Italic, action: () => onCommand("italic") },
-    { label: "Underline", icon: Underline, action: () => onCommand("underline") },
-    { label: "Strikethrough", icon: Strikethrough, action: () => onCommand("strikeThrough") },
-    { label: "Inline code", icon: Code2, action: () => onCommand("inlineCode") },
-    { label: "Bulleted list", icon: List, action: () => onCommand("insertUnorderedList") },
-    { label: "Numbered list", icon: ListOrdered, action: () => onCommand("insertOrderedList") },
-    { label: "Quote", icon: Quote, action: () => onCommand("formatBlock", "blockquote") },
-    { label: "Code block", icon: Code2, action: () => onCommand("formatBlock", "pre") },
-    { label: "Link", icon: Link2, action: onLink },
-    { label: "Image", icon: ImageIcon, action: onImage },
-    { label: "Import HTML / Markdown", icon: Upload, action: onImport },
-    { label: "Table", icon: Table2, action: onTable },
-    { label: "Divider", icon: Minus, action: () => onCommand("insertHorizontalRule") },
+    { id: "bold", label: "Bold", icon: Bold, action: () => onCommand("bold") },
+    { id: "italic", label: "Italic", icon: Italic, action: () => onCommand("italic") },
+    { id: "underline", label: "Underline", icon: Underline, action: () => onCommand("underline") },
+    { id: "strikeThrough", label: "Strikethrough", icon: Strikethrough, action: () => onCommand("strikeThrough") },
+    { id: "inlineCode", label: "Inline code", icon: Code2, action: () => onCommand("inlineCode") },
+    { id: "insertUnorderedList", label: "Bulleted list", icon: List, action: () => onCommand("insertUnorderedList") },
+    { id: "insertOrderedList", label: "Numbered list", icon: ListOrdered, action: () => onCommand("insertOrderedList") },
+    { id: "blockquote", label: "Quote", icon: Quote, action: () => onCommand("formatBlock", "blockquote") },
+    { id: "pre", label: "Code block", icon: Code2, action: () => onCommand("formatBlock", "pre") },
+    { id: "link", label: "Link", icon: Link2, action: onLink },
+    { id: "image", label: "Image", icon: ImageIcon, action: onImage },
+    { id: "import", label: "Import HTML / Markdown", icon: Upload, action: onImport },
+    { id: "table", label: "Table", icon: Table2, action: onTable },
+    { id: "insertHorizontalRule", label: "Divider", icon: Minus, action: () => onCommand("insertHorizontalRule") },
   ];
 
+  const headingValue = activeFormats.has("h2") ? "h2" : activeFormats.has("h3") ? "h3" : activeFormats.has("h4") ? "h4" : "p";
+
   return (
-    <div className="sticky top-3 z-20 -mx-1 flex flex-wrap items-center gap-1 overflow-x-auto rounded-xl border border-border bg-surface-strong/95 p-2 shadow-lg shadow-black/10 backdrop-blur" role="toolbar" aria-label={`${label} formatting`}>
+    <div className="sticky top-3 z-20 m-2 flex flex-wrap items-center gap-1 overflow-x-auto rounded-xl border border-border bg-surface-strong/95 p-2 shadow-lg shadow-black/10 backdrop-blur" role="toolbar" aria-label={`${label} formatting`}>
       <label className="sr-only" htmlFor={`${label.replace(/\s+/g, "-").toLowerCase()}-heading`}>Text style</label>
       <select
         id={`${label.replace(/\s+/g, "-").toLowerCase()}-heading`}
         className="h-9 min-w-[8.5rem] rounded-lg border border-border bg-background px-2 text-xs font-medium text-primary outline-none focus-visible:ring-2 focus-visible:ring-accent"
-        defaultValue="p"
+        value={headingValue}
         disabled={disabled}
         aria-label="Text style"
         onMouseDown={onSelectionStart}
@@ -140,8 +144,8 @@ function EditorToolbar({
         <option value="h4">Heading 3</option>
       </select>
       <span className="mx-1 h-5 w-px shrink-0 bg-border" />
-      {tools.map(({ label: toolLabel, icon: Icon, action }) => (
-        <button key={toolLabel} type="button" className="icon-button shrink-0" title={toolLabel} aria-label={toolLabel} disabled={disabled} onMouseDown={(event) => { onSelectionStart(); event.preventDefault(); }} onClick={action}>
+      {tools.map(({ id, label: toolLabel, icon: Icon, action }) => (
+        <button key={id} type="button" className={`icon-button shrink-0${activeFormats.has(id) ? " bg-accent/20 ring-1 ring-accent/40" : ""}`} title={toolLabel} aria-label={toolLabel} aria-pressed={activeFormats.has(id)} disabled={disabled} onMouseDown={(event) => { onSelectionStart(); event.preventDefault(); }} onClick={action}>
           <Icon className="size-4" aria-hidden="true" />
         </button>
       ))}
@@ -159,6 +163,8 @@ export function RichTextEditor({ initialHtml, onChange, disabled = false, label 
   const initialized = useRef(false);
   const savedRange = useRef<Range | null>(null);
   const helpId = `${label.replace(/\s+/g, "-").toLowerCase()}-help`;
+  const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set());
+  const activeFormatsRef = useRef<Set<string>>(new Set());
 
   function captureSelection() {
     const editor = editorRef.current;
@@ -177,6 +183,49 @@ export function RichTextEditor({ initialHtml, onChange, disabled = false, label 
     selection.addRange(range);
   }
 
+  function detectActiveFormats() {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const formats = new Set<string>();
+
+    try {
+      if (document.queryCommandState("bold")) formats.add("bold");
+      if (document.queryCommandState("italic")) formats.add("italic");
+      if (document.queryCommandState("underline")) formats.add("underline");
+      if (document.queryCommandState("strikeThrough")) formats.add("strikeThrough");
+      if (document.queryCommandState("insertUnorderedList")) formats.add("insertUnorderedList");
+      if (document.queryCommandState("insertOrderedList")) formats.add("insertOrderedList");
+    } catch {
+      // queryCommandState can throw in some browsers
+    }
+
+    const selection = window.getSelection();
+    if (selection?.rangeCount && editor.contains(selection.anchorNode)) {
+      const node = selection.anchorNode;
+      if (node) {
+        const element = node.nodeType === Node.ELEMENT_NODE ? node as Element : node.parentElement;
+        const closest = element?.closest("code, blockquote, pre, h2, h3, h4, a");
+        if (closest) {
+          const tag = closest.tagName.toLowerCase();
+          if (tag === "code") formats.add("inlineCode");
+          else if (tag === "blockquote") formats.add("blockquote");
+          else if (tag === "pre") formats.add("pre");
+          else if (tag === "h2") formats.add("h2");
+          else if (tag === "h3") formats.add("h3");
+          else if (tag === "h4") formats.add("h4");
+          else if (tag === "a") formats.add("link");
+        }
+      }
+    }
+
+    const current = activeFormatsRef.current;
+    if (formats.size !== current.size || [...formats].some((f) => !current.has(f))) {
+      activeFormatsRef.current = formats;
+      setActiveFormats(formats);
+    }
+  }
+
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -190,6 +239,11 @@ export function RichTextEditor({ initialHtml, onChange, disabled = false, label 
     // avoid resetting the caret. External reloads can safely replace the body.
     if (document.activeElement !== editor && editor.innerHTML !== normalized) editor.innerHTML = normalized;
   }, [initialHtml]);
+
+  useEffect(() => {
+    document.addEventListener("selectionchange", detectActiveFormats);
+    return () => document.removeEventListener("selectionchange", detectActiveFormats);
+  }, []);
 
   function emit() {
     const editor = editorRef.current;
@@ -222,20 +276,28 @@ export function RichTextEditor({ initialHtml, onChange, disabled = false, label 
     emit();
   }
 
-  function wrapSelection(tagName: "code" | "del") {
+  function unwrapSelection(tagName: "code" | "del") {
     const editor = editorRef.current;
     const selection = window.getSelection();
     if (!editor || !selection?.rangeCount) return;
     const range = selection.getRangeAt(0);
     if (!editor.contains(range.commonAncestorContainer)) return;
-    const wrapper = document.createElement(tagName);
-    wrapper.append(range.cloneContents());
-    range.deleteContents();
-    range.insertNode(wrapper);
-    selection.removeAllRanges();
+
+    const element = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+      ? range.commonAncestorContainer as Element
+      : range.commonAncestorContainer.parentElement;
+    const wrapper = element?.closest(tagName);
+    if (!wrapper || !editor.contains(wrapper)) return;
+
+    const parent = wrapper.parentNode;
+    if (!parent) return;
+    while (wrapper.firstChild) parent.insertBefore(wrapper.firstChild, wrapper);
+    parent.removeChild(wrapper);
+
     const nextRange = document.createRange();
-    nextRange.setStart(wrapper, 0);
+    nextRange.setStart(parent, 0);
     nextRange.collapse(true);
+    selection.removeAllRanges();
     selection.addRange(nextRange);
   }
 
@@ -243,8 +305,49 @@ export function RichTextEditor({ initialHtml, onChange, disabled = false, label 
     if (disabled) return;
     editorRef.current?.focus();
     restoreSelection();
-    if (commandName === "inlineCode" || commandName === "strikeThrough") {
-      wrapSelection(commandName === "inlineCode" ? "code" : "del");
+
+    if (commandName === "inlineCode") {
+      if (activeFormatsRef.current.has("inlineCode")) {
+        unwrapSelection("code");
+      } else {
+        const editor = editorRef.current;
+        const selection = window.getSelection();
+        if (!editor || !selection?.rangeCount) return;
+        const range = selection.getRangeAt(0);
+        if (!editor.contains(range.commonAncestorContainer)) return;
+        const wrapper = document.createElement("code");
+        wrapper.append(range.cloneContents());
+        range.deleteContents();
+        range.insertNode(wrapper);
+        selection.removeAllRanges();
+        const nextRange = document.createRange();
+        nextRange.setStart(wrapper, 0);
+        nextRange.collapse(true);
+        selection.addRange(nextRange);
+      }
+    } else if (commandName === "strikeThrough") {
+      if (activeFormatsRef.current.has("strikeThrough")) {
+        unwrapSelection("del");
+      } else {
+        const editor = editorRef.current;
+        const selection = window.getSelection();
+        if (!editor || !selection?.rangeCount) return;
+        const range = selection.getRangeAt(0);
+        if (!editor.contains(range.commonAncestorContainer)) return;
+        const wrapper = document.createElement("del");
+        wrapper.append(range.cloneContents());
+        range.deleteContents();
+        range.insertNode(wrapper);
+        selection.removeAllRanges();
+        const nextRange = document.createRange();
+        nextRange.setStart(wrapper, 0);
+        nextRange.collapse(true);
+        selection.addRange(nextRange);
+      }
+    } else if (commandName === "formatBlock" && value) {
+      const currentBlock = activeFormatsRef.current.has(value) ? "p" : value;
+      const commandValue = /^[a-z0-9]+$/i.test(currentBlock) ? `<${currentBlock}>` : currentBlock;
+      document.execCommand("formatBlock", false, commandValue);
     } else {
       const commandValue = commandName === "formatBlock" && value && /^[a-z0-9]+$/i.test(value) ? `<${value}>` : value;
       document.execCommand(commandName, false, commandValue);
@@ -253,6 +356,22 @@ export function RichTextEditor({ initialHtml, onChange, disabled = false, label 
   }
 
   function addLink() {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const selection = window.getSelection();
+    const anchorNode = selection?.rangeCount ? selection.anchorNode : null;
+    const isInLink = anchorNode && editor.contains(anchorNode)
+      ? (anchorNode.nodeType === Node.ELEMENT_NODE ? anchorNode as Element : anchorNode.parentElement)?.closest("a")
+      : null;
+
+    if (isInLink) {
+      editor.focus();
+      restoreSelection();
+      document.execCommand("unlink");
+      emit();
+      return;
+    }
+
     const value = window.prompt("Paste a teChia or HTTPS link");
     const href = value ? value.trim() : null;
     if (href && isSafeHref(href)) command("createLink", href);
@@ -305,20 +424,19 @@ export function RichTextEditor({ initialHtml, onChange, disabled = false, label 
 
   return (
     <div className="rounded-2xl border border-border bg-background">
-      <div className="border-b border-border p-2">
-        <EditorToolbar
-          disabled={disabled}
-          label={label}
-          onCommand={command}
-          onLink={addLink}
-          onImage={addImage}
-          onTable={addTable}
-          onImport={() => fileInputRef.current?.click()}
-          onUndo={() => command("undo")}
-          onRedo={() => command("redo")}
-          onSelectionStart={captureSelection}
-        />
-      </div>
+      <EditorToolbar
+        disabled={disabled}
+        label={label}
+        activeFormats={activeFormats}
+        onCommand={command}
+        onLink={addLink}
+        onImage={addImage}
+        onTable={addTable}
+        onImport={() => fileInputRef.current?.click()}
+        onUndo={() => command("undo")}
+        onRedo={() => command("redo")}
+        onSelectionStart={captureSelection}
+      />
       <input ref={fileInputRef} type="file" accept=".html,.htm,.md,.markdown,text/html,text/markdown" className="hidden" onChange={handleImport} aria-label="Import HTML or Markdown file" />
       <div
         ref={editorRef}
