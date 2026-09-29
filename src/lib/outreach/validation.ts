@@ -77,6 +77,8 @@ export const outreachCampaignSchema = z
     sendingWindowStart: clockField.default("09:00"),
     sendingWindowEnd: clockField.default("17:00"),
     timezone: timezoneField.default("Africa/Douala"),
+    minReadinessScore: z.coerce.number().int().min(0).max(100).default(70),
+    maxApprovedProspects: z.coerce.number().int().min(1).max(500).optional().or(z.literal("")),
     // Provider selection is validated here on the server, so a client cannot
     // pin an arbitrary provider to bypass campaign or job controls.
     discoveryProviderMode: z.enum(DISCOVERY_PROVIDER_MODES).default("AUTO"),
@@ -106,6 +108,8 @@ export const outreachCampaignSchema = z
     dailyAiAssessLimit: clampDailyAiAssess(data.dailyAiAssessLimit),
     minOpportunityScore: clampOpportunityThreshold(data.minOpportunityScore),
     maxFollowUps: clampMaxFollowUps(data.maxFollowUps),
+    minReadinessScore: clampOpportunityThreshold(data.minReadinessScore),
+    maxApprovedProspects: data.maxApprovedProspects ? Math.min(500, Math.max(1, data.maxApprovedProspects)) : null,
   }));
 
 export type OutreachCampaignInput = z.infer<typeof outreachCampaignSchema>;

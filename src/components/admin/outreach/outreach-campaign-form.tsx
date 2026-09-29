@@ -41,6 +41,8 @@ type CampaignDefaults = {
   complianceBasis: string;
   complianceNote: string;
   senderNameOverride: string;
+  minReadinessScore: number;
+  maxApprovedProspects: number | null;
 };
 
 const DEFAULTS: CampaignDefaults = {
@@ -70,6 +72,8 @@ const DEFAULTS: CampaignDefaults = {
   complianceBasis: "",
   complianceNote: "",
   senderNameOverride: "",
+  minReadinessScore: 70,
+  maxApprovedProspects: null,
 };
 
 /**
@@ -156,6 +160,8 @@ export function OutreachCampaignForm({ campaign }: { campaign?: Partial<Campaign
         complianceBasis: state.complianceBasis,
         complianceNote: state.complianceNote,
         senderNameOverride: state.senderNameOverride,
+        minReadinessScore: state.minReadinessScore,
+        maxApprovedProspects: state.maxApprovedProspects,
       });
 
       if (result.ok) {
@@ -384,6 +390,29 @@ export function OutreachCampaignForm({ campaign }: { campaign?: Partial<Campaign
               className={outreachInputClass}
               value={state.dailyAiAssessLimit}
               onChange={(event) => set("dailyAiAssessLimit", Number(event.target.value))}
+            />
+          </OutreachField>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <OutreachField label="Readiness threshold" hint="0-100. Minimum outreach readiness score.">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              className={outreachInputClass}
+              value={state.minReadinessScore}
+              onChange={(event) => set("minReadinessScore", Number(event.target.value))}
+            />
+          </OutreachField>
+          <OutreachField label="Max approved prospects" hint="Optional cap on approved outreach prospects.">
+            <input
+              type="number"
+              min={1}
+              max={500}
+              className={outreachInputClass}
+              value={state.maxApprovedProspects ?? ""}
+              onChange={(event) => set("maxApprovedProspects", event.target.value ? Number(event.target.value) : null)}
             />
           </OutreachField>
         </div>

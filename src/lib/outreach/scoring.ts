@@ -66,6 +66,16 @@ export type ScoringEvidence = {
   existingChatOrAutomation: boolean;
   /** Set when the business is clearly not an SME we can help. */
   enterpriseSignals: number;
+  // Real-estate-specific signals
+  hasPropertyListings: boolean;
+  hasPropertyEnquiry: boolean;
+  hasPhoneCta: boolean;
+  hasWhatsAppCta: boolean;
+  hasViewingRequest: boolean;
+  hasLocationInfo: boolean;
+  hasServicesListed: boolean;
+  hasAgentProfiles: boolean;
+  hasPropertyReviews: boolean;
 };
 
 export type ScoreDimension = {

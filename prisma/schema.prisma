@@ -1393,6 +1393,13 @@ model OutreachCampaign {
   sendingWindowEnd    String  @default("17:00")
   timezone            String  @default("Africa/Douala")
 
+  // Outreach Readiness threshold. A prospect must score at least this many
+  // points on the readiness scale before it can be considered for outreach.
+  minReadinessScore Int     @default(70)
+  // Maximum number of prospects that may be approved for outreach in this
+  // campaign. Null means no cap beyond the daily send limit.
+  maxApprovedProspects Int?
+
   // AUTO tries Google Places first and falls back to OpenStreetMap only when
   // Google is unusable. The other two modes pin a single provider and never
   // switch silently.
@@ -1477,6 +1484,23 @@ model OutreachProspect {
   aiSummary        String?            @db.Text
   aiReasoning      String?            @db.Text
 
+  // ─── Outreach Readiness & Qualification ─────────────────────────────────
+  // The readiness score measures whether a business is a strong candidate for
+  // personalized cold outreach right now. It is separate from opportunityScore,
+  // which measures digital improvement opportunities.
+  outreachReadinessScore Int    @default(0)
+  // QUALIFIED | REVIEW | DISQUALIFIED — the outcome of the hard qualification
+  // rules, not just the numeric score.
+  qualificationStatus     String?
+  // 0-1 confidence in the qualification decision.
+  qualificationConfidence Float?
+  // The single most important opportunity identified from evidence.
+  primaryOpportunity      String?
+  // Human-readable explanation of the qualification outcome.
+  qualificationReason    String?   @db.Text
+  disqualificationReason  String?   @db.Text
+  recommendedNextAction   String?
+
   // Follow-up state machine checkpoint. Automation stops whenever this is set.
   automationStoppedReason String?
   emailsSentCount         Int       @default(0)
@@ -1506,6 +1530,9 @@ model OutreachProspect {
   @@index([status, nextActionAt])
   @@index([publicEmail])
   @@index([opportunityScore(sort: Desc)])
+  @@index([outreachReadinessScore(sort: Desc)])
+  @@index([qualificationStatus])
+  @@index([campaignId, qualificationStatus])
 }
 
 model OutreachAssessment {
@@ -1526,6 +1553,17 @@ model OutreachAssessment {
   summary          String?  @db.Text
   primaryService   String?
   doNotContactReason String?
+
+  // Readiness and qualification fields mirror the prospect record so the
+  // assessment history captures the full decision context.
+  outreachReadinessScore Int     @default(0)
+  qualificationStatus     String?
+  qualificationConfidence Float?
+  primaryOpportunity      String?
+  qualificationReason    String?   @db.Text
+  disqualificationReason  String?   @db.Text
+  recommendedNextAction   String?
+
   isCurrent        Boolean  @default(true)
   createdAt        DateTime @default(now())
 

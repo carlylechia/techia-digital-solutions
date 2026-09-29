@@ -170,6 +170,55 @@ export async function setOutreachCampaignStatus(input: { campaignId: string; sta
   }
 }
 
+export async function deleteOutreachCampaign(input: { campaignId: string }): Promise<OutreachActionResult> {
+  try {
+    const actor = await requireOutreachActor("outreach.send");
+    const db = await requireOutreachDatabase();
+    const campaignId = String(input.campaignId ?? "").slice(0, 64);
+    if (!campaignId) return { ok: false, error: "Invalid campaign." };
+
+    const existing = await db.outreachCampaign.findUnique({
+      where: { id: campaignId },
+      select: { id: true, status: true, name: true, _count: { select: { prospects: true, messages: true } } },
+    });
+    if (!existing) return { ok: false, error: "Campaign not found." };
+
+    // Safety: refuse to delete an active campaign.
+    if (existing.status === "ACTIVE") {
+      return { ok: false, error: "Pause or archive the campaign before deleting it." };
+    }
+
+    // Cancel all pending jobs first.
+    await db.outreachJob.updateMany({
+      where: { campaignId, status: "PENDING" },
+      data: { status: "CANCELLED", completedAt: new Date() },
+    });
+
+    // Delete the campaign and all related data (cascades handle the rest).
+    await db.outreachCampaign.delete({ where: { id: campaignId } });
+
+    await recordEvent({
+      type: "STATUS_CHANGED",
+      campaignId,
+      summary: `Campaign "${existing.name}" deleted`,
+      metadata: { name: existing.name, prospects: existing._count.prospects, messages: existing._count.messages },
+      actorId: actor.id,
+    });
+    await auditOutreach({
+      actorId: actor.id,
+      action: "outreach.campaign_deleted",
+      entityType: "OutreachCampaign",
+      entityId: campaignId,
+      metadata: { name: existing.name },
+    });
+
+    revalidateOutreach("/admin/outreach/campaigns");
+    return { ok: true, message: `Campaign "${existing.name}" deleted.` };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
 export async function reviewOutreachMessage(input: unknown): Promise<OutreachActionResult> {
   try {
     const actor = await requireOutreachActor("outreach.manage");

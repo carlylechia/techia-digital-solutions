@@ -25,6 +25,13 @@ export const assessmentResultSchema = z.object({
   primaryService: z.union([z.enum(serviceValues), z.literal("")]).default(""),
   reason: z.string().trim().max(1_200),
   doNotContactReason: z.union([z.string().trim().max(400), z.null()]).default(null),
+  // Qualification fields — the AI proposes, the deterministic rules dispose.
+  qualificationStatus: z.enum(["QUALIFIED", "REVIEW", "DISQUALIFIED"]).default("REVIEW"),
+  qualificationConfidence: z.number().min(0).max(1).default(0.5),
+  primaryOpportunity: z.string().trim().max(400).default(""),
+  qualificationReason: z.string().trim().max(1_200).default(""),
+  disqualificationReason: z.union([z.string().trim().max(400), z.null()]).default(null),
+  recommendedNextAction: z.string().trim().max(400).default(""),
 });
 
 export type AssessmentResult = z.infer<typeof assessmentResultSchema>;

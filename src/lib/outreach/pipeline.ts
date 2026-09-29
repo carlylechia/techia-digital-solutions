@@ -9,6 +9,8 @@ import { enrichWebsite, evidenceFrom, type WebsiteSnapshot } from "./enrichment"
 import { fetchPlaceDetails } from "./google-places";
 import { incrementDailyStat, startOfUtcDay } from "./stats";
 import { scoreOpportunity } from "./scoring";
+import { scoreReadiness } from "./readiness";
+import { evaluateQualification } from "./qualification";
 import { canGenerateOutreach } from "./limits";
 import { getOutreachDailyTokenUsage } from "./ai-client";
 import { OutreachJobError } from "./jobs";
@@ -98,11 +100,21 @@ export async function runEnrichment(prospectId: string) {
       publishedEmails: [],
       robotsRespected: true,
       errorCategory: "no_website",
+      hasPropertyListings: false,
+      hasPropertyEnquiry: false,
+      hasPhoneCta: false,
+      hasWhatsAppCta: false,
+      hasViewingRequest: false,
+      hasLocationInfo: false,
+      hasServicesListed: false,
+      hasAgentProfiles: false,
+      hasPropertyReviews: false,
     },
     { hasListing: Boolean(prospect.googlePlaceId), rating: place?.rating ?? null, reviewCount: place?.userRatingCount ?? null }
   );
 
   const score = scoreOpportunity(evidence);
+  const readiness = scoreReadiness(evidence);
   const publishedEmail = snapshot?.publishedEmails[0] ?? null;
   const now = new Date();
 
@@ -135,6 +147,7 @@ export async function runEnrichment(prospectId: string) {
       } as object,
       opportunityScore: score.total,
       recommendedServices: score.recommendedServices,
+      outreachReadinessScore: readiness.total,
       lastEnrichedAt: now,
     },
   });
@@ -180,6 +193,18 @@ export async function runAssessmentStage(prospectId: string) {
   });
   if (!prospect) throw new OutreachJobError("Prospect not found", { retryable: false });
   if (prospect.status === "DISQUALIFIED") return { skipped: "disqualified" as const };
+
+  // Ensure the new fields are available (they may be null for older records).
+  const prospectWithReadiness = {
+    ...prospect,
+    outreachReadinessScore: prospect.outreachReadinessScore ?? 0,
+    qualificationStatus: prospect.qualificationStatus ?? null,
+    qualificationConfidence: prospect.qualificationConfidence ?? null,
+    primaryOpportunity: prospect.primaryOpportunity ?? null,
+    qualificationReason: prospect.qualificationReason ?? null,
+    disqualificationReason: prospect.disqualificationReason ?? null,
+    recommendedNextAction: prospect.recommendedNextAction ?? null,
+  };
 
   const dayStart = startOfUtcDay();
   const assessedToday = await prisma.outreachJob.count({
@@ -237,6 +262,68 @@ export async function runAssessmentStage(prospectId: string) {
     result.data
   );
 
+  // Compute qualification using the hard rules.
+  // Rebuild evidence from the stored snapshot for the qualification input.
+  const evidence = snapshot
+    ? evidenceFrom(snapshot)
+    : evidenceFrom({
+        fetchedAt: new Date().toISOString(),
+        url: "",
+        status: 0,
+        https: false,
+        title: null,
+        metaDescription: null,
+        hasH1: false,
+        h1Text: null,
+        viewportPresent: false,
+        canonicalPresent: false,
+        textExcerpt: "",
+        socialPlatforms: [],
+        contactMethods: [],
+        trustSignals: [],
+        testimonialSignals: 0,
+        leadCaptureForm: false,
+        hasBooking: false,
+        hasQuoteOrForm: false,
+        hasEcommerce: false,
+        hasCatalogue: false,
+        clearCallToAction: false,
+        hoursOrLocationInfo: false,
+        repetitiveContentBlocks: 0,
+        existingChatOrAutomation: false,
+        localAreaSignals: [],
+        serviceKeywords: [],
+        industryKeywords: [],
+        contactPageUrl: null,
+        publishedEmails: [],
+        robotsRespected: true,
+        errorCategory: "no_snapshot",
+        hasPropertyListings: false,
+        hasPropertyEnquiry: false,
+        hasPhoneCta: false,
+        hasWhatsAppCta: false,
+        hasViewingRequest: false,
+        hasLocationInfo: false,
+        hasServicesListed: false,
+        hasAgentProfiles: false,
+        hasPropertyReviews: false,
+      } as WebsiteSnapshot);
+  const readiness = scoreReadiness(evidence);
+  const qualification = evaluateQualification({
+    readinessScore: prospectWithReadiness.outreachReadinessScore,
+    readiness,
+    evidence,
+    hasConcreteOpportunity: reconciled.opportunities.length > 0,
+    hasContactMethod: prospect.publicEmail !== null || prospect.publicPhone !== null,
+    appearsActive: prospect.websiteSnapshot !== null || prospect.googlePlaceId !== null,
+    hasServiceFit: reconciled.recommendedServices.length > 0,
+    isSuppressed: false, // Checked at send time
+    isDuplicate: prospect.possibleDuplicateOfId !== null,
+    alreadyContacted: prospect.emailsSentCount > 0,
+    hasEnoughEvidence: reconciled.observations.length > 0,
+    minReadinessScore: prospect.campaign.minReadinessScore,
+  });
+
   // Historical assessments are appended, never overwritten.
   await prisma.$transaction(async (tx) => {
     await tx.outreachAssessment.updateMany({ where: { prospectId, isCurrent: true }, data: { isCurrent: false } });
@@ -253,11 +340,18 @@ export async function runAssessmentStage(prospectId: string) {
         summary: reconciled.summary,
         primaryService: reconciled.primaryService,
         doNotContactReason: reconciled.doNotContactReason,
+        outreachReadinessScore: prospect.outreachReadinessScore,
+        qualificationStatus: qualification.status,
+        qualificationConfidence: qualification.confidence,
+        primaryOpportunity: qualification.primaryOpportunity,
+        qualificationReason: qualification.reason,
+        disqualificationReason: qualification.disqualificationReason,
+        recommendedNextAction: qualification.recommendedNextAction,
         isCurrent: true,
       },
     });
 
-    const qualifies = prospect.opportunityScore >= prospect.campaign.minOpportunityScore;
+    const qualifies = qualification.status === "QUALIFIED";
     const blocked = Boolean(reconciled.doNotContactReason);
 
     await tx.outreachProspect.update({
@@ -269,6 +363,12 @@ export async function runAssessmentStage(prospectId: string) {
         aiSummary: reconciled.summary,
         aiReasoning: reconciled.reason,
         automationStoppedReason: blocked ? (reconciled.doNotContactReason ?? "do_not_contact") : null,
+        qualificationStatus: qualification.status,
+        qualificationConfidence: qualification.confidence,
+        primaryOpportunity: qualification.primaryOpportunity,
+        qualificationReason: qualification.reason,
+        disqualificationReason: qualification.disqualificationReason,
+        recommendedNextAction: qualification.recommendedNextAction,
       },
     });
   });

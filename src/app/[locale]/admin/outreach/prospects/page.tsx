@@ -5,7 +5,7 @@ import { isLocale } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
 import { getOutreachActor } from "@/lib/outreach/auth";
 import { loadOutreachCampaigns, loadOutreachProspects } from "@/lib/outreach/queries";
-import { OUTREACH_DISCOVERY_PROVIDER_LABELS, OUTREACH_DISCOVERY_PROVIDERS, OUTREACH_PROSPECT_STATUSES, OUTREACH_STATUS_LABELS, prospectStatusTone } from "@/lib/outreach/constants";
+import { OUTREACH_DISCOVERY_PROVIDER_LABELS, OUTREACH_DISCOVERY_PROVIDERS, OUTREACH_PROSPECT_STATUSES, OUTREACH_QUALIFICATION_LABELS, OUTREACH_QUALIFICATION_STATUSES, OUTREACH_STATUS_LABELS, prospectStatusTone } from "@/lib/outreach/constants";
 import { createMetadata } from "@/lib/seo";
 import {
   OutreachEmptyState,
@@ -62,6 +62,9 @@ export default async function AdminOutreachProspectsPage({
   const status = OUTREACH_PROSPECT_STATUSES.find((value) => value === sp.status) ?? "";
   const search = (sp.q ?? "").slice(0, 80);
   const provider = OUTREACH_DISCOVERY_PROVIDERS.find((value) => value === sp.provider) ?? "";
+  const qualificationStatus = OUTREACH_QUALIFICATION_STATUSES.find((value) => value === sp.qualification) ?? "";
+  const minReadiness = sp.minReadiness ? Number.parseInt(sp.minReadiness, 10) : undefined;
+  const missingContact = sp.missingContact === "1";
 
   const [result, campaigns] = await Promise.all([
     loadOutreachProspects(prisma, {
@@ -70,6 +73,9 @@ export default async function AdminOutreachProspectsPage({
       status: status || undefined,
       search: search || undefined,
       provider: provider || undefined,
+      qualificationStatus: qualificationStatus || undefined,
+      minReadinessScore: minReadiness,
+      missingContact: missingContact || undefined,
     }),
     loadOutreachCampaigns(prisma),
   ]);
@@ -80,6 +86,9 @@ export default async function AdminOutreachProspectsPage({
     if (status) params2.set("status", status);
     if (provider) params2.set("provider", provider);
     if (search) params2.set("q", search);
+    if (qualificationStatus) params2.set("qualification", qualificationStatus);
+    if (minReadiness !== undefined) params2.set("minReadiness", String(minReadiness));
+    if (missingContact) params2.set("missingContact", "1");
     params2.set("page", String(nextPage));
     return `/admin/outreach/prospects?${params2.toString()}`;
   };
@@ -129,6 +138,27 @@ export default async function AdminOutreachProspectsPage({
             </select>
           </label>
           <label className="grid gap-1 text-xs">
+            <span className="font-semibold text-muted">Qualification</span>
+            <select name="qualification" defaultValue={qualificationStatus} className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm">
+              <option value="">All</option>
+              {OUTREACH_QUALIFICATION_STATUSES.map((value) => (
+                <option key={value} value={value}>
+                  {OUTREACH_QUALIFICATION_LABELS[value]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs">
+            <span className="font-semibold text-muted">Min Readiness</span>
+            <select name="minReadiness" defaultValue={minReadiness !== undefined ? String(minReadiness) : ""} className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm">
+              <option value="">Any</option>
+              <option value="70">70+</option>
+              <option value="60">60+</option>
+              <option value="50">50+</option>
+              <option value="40">40+</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs">
             <span className="font-semibold text-muted">Search</span>
             <input
               name="q"
@@ -151,15 +181,16 @@ export default async function AdminOutreachProspectsPage({
             description="Clear the filters, or activate a campaign and run discovery to build an audience."
           />
         ) : (
-          <OutreachTable className="min-w-[980px]">
+          <OutreachTable className="min-w-[1200px]">
             <thead>
               <tr className="border-b border-border">
                 <OutreachTh>Business</OutreachTh>
                 <OutreachTh>Location</OutreachTh>
                 <OutreachTh>Status</OutreachTh>
-                <OutreachTh>Provider</OutreachTh>
-                <OutreachTh>Score</OutreachTh>
-                <OutreachTh>Recommended services</OutreachTh>
+                <OutreachTh>Qualification</OutreachTh>
+                <OutreachTh>Opportunity</OutreachTh>
+                <OutreachTh>Readiness</OutreachTh>
+                <OutreachTh>Primary Opportunity</OutreachTh>
                 <OutreachTh>Contact</OutreachTh>
                 <OutreachTh>Sent</OutreachTh>
                 <OutreachTh>Discovered</OutreachTh>
@@ -181,9 +212,13 @@ export default async function AdminOutreachProspectsPage({
                     <OutreachPill tone={prospectStatusTone(prospect.status)}>{OUTREACH_STATUS_LABELS[prospect.status] ?? prospect.status}</OutreachPill>
                   </OutreachTd>
                   <OutreachTd>
-                    <OutreachPill tone={prospect.discoveryProvider === "OPENSTREETMAP" ? "quiet" : "default"}>
-                      {OUTREACH_DISCOVERY_PROVIDER_LABELS[prospect.discoveryProvider] ?? prospect.discoveryProvider}
-                    </OutreachPill>
+                    {prospect.qualificationStatus ? (
+                      <OutreachPill tone={prospect.qualificationStatus === "QUALIFIED" ? "good" : prospect.qualificationStatus === "REVIEW" ? "warn" : "danger"}>
+                        {OUTREACH_QUALIFICATION_LABELS[prospect.qualificationStatus] ?? prospect.qualificationStatus}
+                      </OutreachPill>
+                    ) : (
+                      <span className="text-xs text-muted">—</span>
+                    )}
                   </OutreachTd>
                   <OutreachTd className="tabular-nums">
                     <span className={prospect.opportunityScore >= 60 ? "text-emerald-300" : prospect.opportunityScore >= 40 ? "text-amber-300" : "text-muted"}>
@@ -191,7 +226,13 @@ export default async function AdminOutreachProspectsPage({
                     </span>
                     <span className="text-xs text-muted">/100</span>
                   </OutreachTd>
-                  <OutreachTd className="text-xs text-muted">{prospect.recommendedServices.slice(0, 3).join(", ") || "—"}</OutreachTd>
+                  <OutreachTd className="tabular-nums">
+                    <span className={prospect.outreachReadinessScore >= 70 ? "text-emerald-300" : prospect.outreachReadinessScore >= 40 ? "text-amber-300" : "text-muted"}>
+                      {prospect.outreachReadinessScore}
+                    </span>
+                    <span className="text-xs text-muted">/100</span>
+                  </OutreachTd>
+                  <OutreachTd className="text-xs text-muted">{prospect.primaryOpportunity || "—"}</OutreachTd>
                   <OutreachTd className="text-xs text-muted">
                     {prospect.publicEmail ? (
                       <a href={`mailto:${prospect.publicEmail}`} className="hover:text-accent">

@@ -334,6 +334,8 @@ export default async function OutreachCampaignDetailPage({ params }: { params: P
                 complianceBasis: campaign.complianceBasis ?? "",
                 complianceNote: campaign.complianceNote ?? "",
                 senderNameOverride: campaign.senderNameOverride ?? "",
+                minReadinessScore: campaign.minReadinessScore,
+                maxApprovedProspects: campaign.maxApprovedProspects,
               }}
             />
           ) : (

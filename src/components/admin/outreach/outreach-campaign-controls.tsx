@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { cancelOutreachCampaignJobs, setOutreachCampaignStatus, triggerOutreachDiscovery } from "@/app/[locale]/admin/outreach/actions";
+import { cancelOutreachCampaignJobs, deleteOutreachCampaign, setOutreachCampaignStatus, triggerOutreachDiscovery } from "@/app/[locale]/admin/outreach/actions";
 import { OutreachButton } from "./outreach-ui";
 
 /**
@@ -27,6 +27,7 @@ export function OutreachCampaignControls({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   function run(action: () => Promise<{ ok: true; message: string } | { ok: false; error: string }>) {
     setFeedback(null);
@@ -79,6 +80,50 @@ export function OutreachCampaignControls({
           </OutreachButton>
         ) : null}
       </div>
+
+      <div className="flex flex-wrap gap-2">
+        {canManage && status !== "ARCHIVED" ? (
+          <OutreachButton
+            type="button"
+            tone="quiet"
+            disabled={pending}
+            onClick={() => run(() => setOutreachCampaignStatus({ campaignId, status: "ARCHIVED" }))}
+          >
+            Archive campaign
+          </OutreachButton>
+        ) : null}
+        {canSend && status !== "ACTIVE" ? (
+          <OutreachButton
+            type="button"
+            tone="danger"
+            disabled={pending}
+            onClick={() => setConfirmDelete(true)}
+          >
+            Delete campaign
+          </OutreachButton>
+        ) : null}
+      </div>
+
+      {confirmDelete ? (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+          <p className="text-xs text-red-200">
+            Delete this campaign and all its prospects, messages, events and jobs? This cannot be undone.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <OutreachButton
+              type="button"
+              tone="danger"
+              disabled={pending}
+              onClick={() => run(() => deleteOutreachCampaign({ campaignId }))}
+            >
+              Confirm delete
+            </OutreachButton>
+            <OutreachButton type="button" tone="quiet" disabled={pending} onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </OutreachButton>
+          </div>
+        </div>
+      ) : null}
 
       {!sendingEnabled ? (
         <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">

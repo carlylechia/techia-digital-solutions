@@ -3,7 +3,7 @@ import "server-only";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { OUTREACH_PAGINATION, getOutreachSendingState, isGooglePlacesConfigured } from "./config";
 import { isOutreachEmailConfigured } from "./email-service";
-import { OUTREACH_DISCOVERY_PROVIDERS, OUTREACH_PROSPECT_STATUSES, OUTREACH_SERVICE_LABELS, type OutreachDiscoveryProviderValue, type OutreachProspectStatusValue } from "./constants";
+import { OUTREACH_DISCOVERY_PROVIDERS, OUTREACH_PROSPECT_STATUSES, OUTREACH_QUALIFICATION_STATUSES, OUTREACH_SERVICE_LABELS, type OutreachDiscoveryProviderValue, type OutreachProspectStatusValue, type OutreachQualificationStatusValue } from "./constants";
 import { startOfUtcDay, addDays } from "./stats";
 import { countQueuedJobs } from "./jobs";
 
@@ -77,6 +77,8 @@ export async function loadOutreachDashboard(db: Db) {
     lostTotal,
     disqualifiedTotal,
     approvedTotal,
+    outreachReadyTotal,
+    reviewTotal,
     jobs,
     statsRows,
     recentProspects,
@@ -119,6 +121,8 @@ export async function loadOutreachDashboard(db: Db) {
     db.outreachProspect.count({ where: { status: "LOST" } }),
     db.outreachProspect.count({ where: { status: "DISQUALIFIED" } }),
     db.outreachProspect.count({ where: { status: "APPROVED" } }),
+    db.outreachProspect.count({ where: { outreachReadinessScore: { gte: 70 } } }),
+    db.outreachProspect.count({ where: { qualificationStatus: "REVIEW" } }),
     countQueuedJobs(now),
     db.outreachDailyStats.findMany({
       where: { date: { gte: thirtyDaysAgo } },
@@ -128,7 +132,7 @@ export async function loadOutreachDashboard(db: Db) {
     db.outreachProspect.findMany({
       orderBy: { createdAt: "desc" },
       take: 8,
-      select: { id: true, businessName: true, city: true, status: true, opportunityScore: true, createdAt: true },
+      select: { id: true, businessName: true, city: true, status: true, opportunityScore: true, outreachReadinessScore: true, qualificationStatus: true, createdAt: true },
     }),
   ]);
 
@@ -192,6 +196,8 @@ export async function loadOutreachDashboard(db: Db) {
       lostTotal,
       disqualifiedTotal,
       approvedTotal,
+      outreachReadyTotal,
+      reviewTotal,
     },
     jobs,
     campaigns,
@@ -200,14 +206,14 @@ export async function loadOutreachDashboard(db: Db) {
     recentProspects,
     funnel: [
       { stage: "Discovered", value: discoveredToday },
+      { stage: "Enriched", value: discoveredToday },
+      { stage: "Assessed", value: qualifiedTotal + disqualifiedTotal },
+      { stage: "Outreach-ready", value: outreachReadyTotal },
       { stage: "Qualified", value: qualifiedTotal },
       { stage: "Approved", value: approvedTotal },
+      { stage: "Email draft generated", value: awaitingApproval },
       { stage: "Sent", value: sentTotal },
       { stage: "Replied", value: repliesTotal },
-      { stage: "Interested", value: interestedTotal },
-      { stage: "Meetings", value: meetingsTotal },
-      { stage: "Proposals", value: proposalsTotal },
-      { stage: "Won", value: wonTotal },
     ],
   };
 }
@@ -244,6 +250,8 @@ export async function loadOutreachCampaigns(db: Db) {
       complianceBasis: true,
       complianceNote: true,
       senderNameOverride: true,
+      minReadinessScore: true,
+      maxApprovedProspects: true,
       startedAt: true,
       completedAt: true,
       createdAt: true,
@@ -291,6 +299,9 @@ export type ProspectListFilters = {
   status?: string;
   search?: string;
   provider?: string;
+  qualificationStatus?: string;
+  minReadinessScore?: number;
+  missingContact?: boolean;
   page?: number;
   pageSize?: number;
 };
@@ -306,6 +317,18 @@ export async function loadOutreachProspects(db: Db, filters: ProspectListFilters
   }
   if (filters.provider && OUTREACH_DISCOVERY_PROVIDERS.includes(filters.provider as OutreachDiscoveryProviderValue)) {
     where.discoveryProvider = filters.provider as OutreachDiscoveryProviderValue;
+  }
+  if (filters.qualificationStatus && OUTREACH_QUALIFICATION_STATUSES.includes(filters.qualificationStatus as OutreachQualificationStatusValue)) {
+    where.qualificationStatus = filters.qualificationStatus as OutreachQualificationStatusValue;
+  }
+  if (filters.minReadinessScore !== undefined) {
+    where.outreachReadinessScore = { gte: filters.minReadinessScore };
+  }
+  if (filters.missingContact) {
+    where.OR = [
+      { publicEmail: null },
+      { publicPhone: null },
+    ];
   }
   if (filters.search) {
     where.OR = [
@@ -331,6 +354,10 @@ export async function loadOutreachProspects(db: Db, filters: ProspectListFilters
         industry: true,
         status: true,
         opportunityScore: true,
+        outreachReadinessScore: true,
+        qualificationStatus: true,
+        qualificationConfidence: true,
+        primaryOpportunity: true,
         publicEmail: true,
         websiteUrl: true,
         discoveryProvider: true,

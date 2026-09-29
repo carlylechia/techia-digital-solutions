@@ -47,6 +47,25 @@ export type WebsiteSnapshot = {
   publishedEmails: string[];
   robotsRespected: boolean;
   errorCategory: string | null;
+  // ─── Real-estate-specific signals ──────────────────────────────────────
+  /** Property listings detected on the page. */
+  hasPropertyListings: boolean;
+  /** Enquiry or contact buttons specifically for property enquiries. */
+  hasPropertyEnquiry: boolean;
+  /** Phone number displayed as a CTA. */
+  hasPhoneCta: boolean;
+  /** WhatsApp contact link detected. */
+  hasWhatsAppCta: boolean;
+  /** Viewing or appointment request form/link. */
+  hasViewingRequest: boolean;
+  /** Location or map information for the business. */
+  hasLocationInfo: boolean;
+  /** Services or property types listed. */
+  hasServicesListed: boolean;
+  /** Agent or team member profiles. */
+  hasAgentProfiles: boolean;
+  /** Reviews or testimonials specific to properties. */
+  hasPropertyReviews: boolean;
 };
 
 const SOCIAL_HOSTS: Array<[RegExp, string]> = [
@@ -111,6 +130,59 @@ const CTA_PATTERNS = [
 const CHAT_PATTERNS = [/intercom/i, /drift/i, /zendesk/i, /tawk\.to/i, /crisp/i, /hubspot.*chat/i, /whatsapp.*api/i];
 
 const AREA_PATTERN = /\b(douala|yaound[eé]|kribi|limbe|bafoussam|garoua|maroua|ngaoundere|kamerun|cameroon|afrique|africa|lagos|abuja|nairobi|accra|dakar|paris|lyon|marseille|london|ile de france)\b/gi;
+
+// Real-estate-specific patterns for property businesses.
+const PROPERTY_LISTING_PATTERNS = [
+  /\b(property|properties|property listings?|real estate|immobilier|biens immobiliers)\b/i,
+  /\b(house|houses|apartment|apartments|villa|villas|land|lands|plot|plots)\b/i,
+  /\b(for sale|for rent|à vendre|à louer|en vente|en location)\b/i,
+  /\b(bedroom|bedrooms|bathroom|bathrooms|sqm|m²|square meters?)\b/i,
+];
+
+const PROPERTY_ENQUIRY_PATTERNS = [
+  /\b(enquire|enquiry|inquire|inquiry|request.*(info|details|viewing))\b/i,
+  /\b(contact.*(agent|realtor|estate)|speak.*(agent|realtor|estate))\b/i,
+  /\b(book.*(viewing|appointment|tour)|schedule.*(viewing|appointment|tour))\b/i,
+  /\b(demande.*(info|détails|visite)|contacter.*(agent|immobilier))\b/i,
+];
+
+const PHONE_CTA_PATTERNS = [
+  /\b(call (now|us|today)|phone|tel|téléphone)\b/i,
+  /href=["']tel:/i,
+];
+
+const WHATSAPP_CTA_PATTERNS = [
+  /whatsapp/i,
+  /wa\.me/i,
+  /href=["']https?:\/\/wa\.me/i,
+];
+
+const VIEWING_REQUEST_PATTERNS = [
+  /\b(viewing|view.*(property|house|apartment|home))\b/i,
+  /\b(appointment|schedule.*(visit|tour|meeting))\b/i,
+  /\b(visite|rendez-?vous|planifier)\b/i,
+];
+
+const LOCATION_INFO_PATTERNS = [
+  /\b(location|address|adresse|map|directions?|find us|where)\b/i,
+  /\b(near|close to|in the heart of|downtown|centre-ville)\b/i,
+];
+
+const SERVICES_LISTED_PATTERNS = [
+  /\b(services?|what we offer|nos services|prestations)\b/i,
+  /\b(buying|selling|renting|leasing|property management|gestion immobilière)\b/i,
+  /\b(achat|vente|location|gestion)\b/i,
+];
+
+const AGENT_PROFILE_PATTERNS = [
+  /\b(agent|agents|realtor|realtors|team|staff|about us|notre équipe)\b/i,
+  /\b(estate agent|real estate agent|agent immobilier)\b/i,
+];
+
+const PROPERTY_REVIEW_PATTERNS = [
+  /\b(review|reviews|testimonial|testimonials|avis|témoignage)\b/i,
+  /\b(what our clients|ils nous ont|client says)\b/i,
+];
 
 const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 
@@ -228,6 +300,17 @@ export async function enrichWebsite(
 
   const contactPageUrl = findContactPageUrl(html, response.finalUrl);
 
+  // Real-estate-specific signal detection.
+  const hasPropertyListings = PROPERTY_LISTING_PATTERNS.some((pattern) => pattern.test(haystack));
+  const hasPropertyEnquiry = PROPERTY_ENQUIRY_PATTERNS.some((pattern) => pattern.test(haystack));
+  const hasPhoneCta = PHONE_CTA_PATTERNS.some((pattern) => pattern.test(haystack)) || /href=["']tel:/i.test(html);
+  const hasWhatsAppCta = WHATSAPP_CTA_PATTERNS.some((pattern) => pattern.test(haystack));
+  const hasViewingRequest = VIEWING_REQUEST_PATTERNS.some((pattern) => pattern.test(haystack));
+  const hasLocationInfo = LOCATION_INFO_PATTERNS.some((pattern) => pattern.test(haystack));
+  const hasServicesListed = SERVICES_LISTED_PATTERNS.some((pattern) => pattern.test(haystack));
+  const hasAgentProfiles = AGENT_PROFILE_PATTERNS.some((pattern) => pattern.test(haystack));
+  const hasPropertyReviews = PROPERTY_REVIEW_PATTERNS.some((pattern) => pattern.test(haystack));
+
   const snapshot: WebsiteSnapshot = {
     fetchedAt: new Date().toISOString(),
     url: response.finalUrl,
@@ -260,6 +343,15 @@ export async function enrichWebsite(
     publishedEmails: emails,
     robotsRespected: robotsAllows(new URL(response.finalUrl).origin, new URL(response.finalUrl).pathname),
     errorCategory: null,
+    hasPropertyListings,
+    hasPropertyEnquiry,
+    hasPhoneCta,
+    hasWhatsAppCta,
+    hasViewingRequest,
+    hasLocationInfo,
+    hasServicesListed,
+    hasAgentProfiles,
+    hasPropertyReviews,
   };
 
   return { snapshot, evidence: evidenceFrom(snapshot) };
@@ -310,6 +402,15 @@ function buildEmpty(websiteUrl: string): WebsiteSnapshot {
     publishedEmails: [],
     robotsRespected: true,
     errorCategory: null,
+    hasPropertyListings: false,
+    hasPropertyEnquiry: false,
+    hasPhoneCta: false,
+    hasWhatsAppCta: false,
+    hasViewingRequest: false,
+    hasLocationInfo: false,
+    hasServicesListed: false,
+    hasAgentProfiles: false,
+    hasPropertyReviews: false,
   };
 }
 
@@ -336,6 +437,15 @@ function emptyEvidence(): ScoringEvidence {
     hasGoogleListing: false,
     googleReviewCount: null,
     googleRating: null,
+    hasPropertyListings: false,
+    hasPropertyEnquiry: false,
+    hasPhoneCta: false,
+    hasWhatsAppCta: false,
+    hasViewingRequest: false,
+    hasLocationInfo: false,
+    hasServicesListed: false,
+    hasAgentProfiles: false,
+    hasPropertyReviews: false,
     reviewResponseRate: null,
     industryKeywordsInContent: false,
     localAreaSignals: 0,
@@ -386,5 +496,14 @@ export function evidenceFrom(
     repetitiveContentBlocks: snapshot.repetitiveContentBlocks,
     existingChatOrAutomation: snapshot.existingChatOrAutomation,
     enterpriseSignals: 0,
+    hasPropertyListings: snapshot.hasPropertyListings,
+    hasPropertyEnquiry: snapshot.hasPropertyEnquiry,
+    hasPhoneCta: snapshot.hasPhoneCta,
+    hasWhatsAppCta: snapshot.hasWhatsAppCta,
+    hasViewingRequest: snapshot.hasViewingRequest,
+    hasLocationInfo: snapshot.hasLocationInfo,
+    hasServicesListed: snapshot.hasServicesListed,
+    hasAgentProfiles: snapshot.hasAgentProfiles,
+    hasPropertyReviews: snapshot.hasPropertyReviews,
   };
 }

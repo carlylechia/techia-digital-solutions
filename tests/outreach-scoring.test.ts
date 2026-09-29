@@ -31,6 +31,15 @@ const evidence = (overrides: Partial<ScoringEvidence> = {}): ScoringEvidence => 
   repetitiveContentBlocks: 0,
   existingChatOrAutomation: false,
   enterpriseSignals: 0,
+  hasPropertyListings: false,
+  hasPropertyEnquiry: false,
+  hasPhoneCta: false,
+  hasWhatsAppCta: false,
+  hasViewingRequest: false,
+  hasLocationInfo: false,
+  hasServicesListed: false,
+  hasAgentProfiles: false,
+  hasPropertyReviews: false,
   ...overrides,
 });
 

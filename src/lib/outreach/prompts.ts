@@ -44,6 +44,23 @@ Do not fabricate missing information.
 If information is unavailable, say unknown.
 Do not insult or negatively characterize the business.
 
+For every important observation, require evidence. Use "Observed:" for facts
+present in the evidence. Use "Unknown" when evidence is unavailable.
+
+Do NOT assume:
+* website problems without evidence
+* missing services
+* customer complaints
+* revenue problems
+* traffic levels
+* sales losses
+* business size
+* employees
+* marketing budgets
+* technology stack
+* social activity
+* customer numbers
+
 Return valid JSON only.`;
 
 export const EMAIL_SYSTEM_PROMPT = `You are the outbound communications assistant for teChia Digital Solutions.
@@ -141,12 +158,24 @@ Return this JSON object and nothing else:
 "recommendedServices": [],
 "primaryService": "",
 "reason": "",
-"doNotContactReason": null}
+"doNotContactReason": null,
+"qualificationStatus": "REVIEW",
+"qualificationConfidence": 0.5,
+"primaryOpportunity": "",
+"qualificationReason": "",
+"disqualificationReason": null,
+"recommendedNextAction": ""}
 
 - confidence is a number between 0 and 1.
 - observations list only facts present in the evidence. Say "unknown" instead of guessing.
 - recommendedServices must only contain values from the catalogue above.
-- doNotContactReason must be null unless there is a clear compliance reason not to contact.`;
+- doNotContactReason must be null unless there is a clear compliance reason not to contact.
+- qualificationStatus is QUALIFIED, REVIEW, or DISQUALIFIED based on the evidence.
+- qualificationConfidence is a number between 0 and 1.
+- primaryOpportunity is the single most important opportunity identified from evidence.
+- qualificationReason explains the qualification decision.
+- disqualificationReason is null unless there is a clear reason not to contact.
+- recommendedNextAction suggests what to do next.`;
 }
 
 export function buildEmailUserPrompt(input: {

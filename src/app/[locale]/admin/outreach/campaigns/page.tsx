@@ -8,6 +8,7 @@ import { getOutreachActor } from "@/lib/outreach/auth";
 import { OUTREACH_DISCOVERY_PROVIDER_LABELS } from "@/lib/outreach/constants";
 import { loadOutreachCampaigns } from "@/lib/outreach/queries";
 import { createMetadata } from "@/lib/seo";
+import { OutreachCampaignActions } from "@/components/admin/outreach/outreach-campaign-actions";
 import {
   OutreachEmptyState,
   OutreachPanel,
@@ -82,7 +83,7 @@ export default async function AdminOutreachCampaignsPage({ params }: { params: P
               description="Create your first campaign to start discovering businesses. Discovery stays off until the campaign is active."
             />
           ) : (
-            <OutreachTable className="min-w-[900px]">
+            <OutreachTable className="min-w-[1000px]">
               <thead>
                 <tr className="border-b border-border">
                   <OutreachTh>Campaign</OutreachTh>
@@ -93,6 +94,7 @@ export default async function AdminOutreachCampaignsPage({ params }: { params: P
                   <OutreachTh>Limits</OutreachTh>
                   <OutreachTh>Window</OutreachTh>
                   <OutreachTh>Volume</OutreachTh>
+                  <OutreachTh>Actions</OutreachTh>
                 </tr>
               </thead>
               <tbody>
@@ -157,6 +159,14 @@ export default async function AdminOutreachCampaignsPage({ params }: { params: P
                       {campaign._count.prospects} prospects
                       <br />
                       {campaign._count.messages} messages
+                    </OutreachTd>
+                    <OutreachTd>
+                      <OutreachCampaignActions
+                        campaignId={campaign.id}
+                        status={campaign.status}
+                        canManage={actor.canManage}
+                        canSend={actor.canSend}
+                      />
                     </OutreachTd>
                   </OutreachTr>
                 ))}

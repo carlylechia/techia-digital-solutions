@@ -140,6 +140,15 @@ export const OUTREACH_SERVICE_LABELS: Record<string, string> = Object.fromEntrie
   OUTREACH_TARGET_SERVICES.map((entry) => [entry.value, entry.label])
 );
 
+export const OUTREACH_QUALIFICATION_STATUSES = ["QUALIFIED", "REVIEW", "DISQUALIFIED"] as const;
+export type OutreachQualificationStatusValue = (typeof OUTREACH_QUALIFICATION_STATUSES)[number];
+
+export const OUTREACH_QUALIFICATION_LABELS: Record<string, string> = {
+  QUALIFIED: "Qualified",
+  REVIEW: "Review",
+  DISQUALIFIED: "Disqualified",
+};
+
 export const OUTREACH_REPLY_CATEGORIES = [
   "INTERESTED",
   "QUESTION",

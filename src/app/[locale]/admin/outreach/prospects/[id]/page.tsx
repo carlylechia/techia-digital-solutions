@@ -6,7 +6,7 @@ import { getPrisma } from "@/lib/prisma";
 import { getErrorMessage } from "@/lib/prisma-errors";
 import { getOutreachActor } from "@/lib/outreach/auth";
 import { loadOutreachProspectDetail } from "@/lib/outreach/queries";
-import { OUTREACH_DISCOVERY_PROVIDER_LABELS, OUTREACH_SERVICE_LABELS, OUTREACH_STATUS_LABELS, messageStatusTone, prospectStatusTone } from "@/lib/outreach/constants";
+import { OUTREACH_DISCOVERY_PROVIDER_LABELS, OUTREACH_QUALIFICATION_LABELS, OUTREACH_SERVICE_LABELS, OUTREACH_STATUS_LABELS, messageStatusTone, prospectStatusTone } from "@/lib/outreach/constants";
 import { createMetadata } from "@/lib/seo";
 import { OutreachProspectActions } from "@/components/admin/outreach/outreach-prospect-actions";
 import {
@@ -185,6 +185,9 @@ export default async function OutreachProspectDetailPage({ params }: { params: P
             <p className="text-xs uppercase tracking-[0.14em] text-muted">Opportunity score</p>
             <p className="text-4xl font-semibold tabular-nums">{prospect.opportunityScore}</p>
             <p className="text-xs text-muted">out of 100</p>
+            <p className="mt-2 text-xs uppercase tracking-[0.14em] text-muted">Readiness score</p>
+            <p className="text-4xl font-semibold tabular-nums">{prospect.outreachReadinessScore}</p>
+            <p className="text-xs text-muted">out of 100</p>
           </div>
         </div>
 
@@ -202,6 +205,58 @@ export default async function OutreachProspectDetailPage({ params }: { params: P
                 {OUTREACH_SERVICE_LABELS[service] ?? service}
               </OutreachPill>
             ))}
+          </div>
+        ) : null}
+      </OutreachPanel>
+
+      <OutreachPanel>
+        <h3 className="text-lg font-semibold">Qualification</h3>
+        <p className="mt-1 text-sm text-muted">
+          The qualification decision is based on hard rules, not just the numeric score. A prospect must satisfy ALL required
+          conditions to be qualified for outreach.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="subtle-tile rounded-lg px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Qualification Status</p>
+            <p className="mt-1 text-sm font-semibold text-primary">
+              {prospect.qualificationStatus ? (
+                <OutreachPill tone={prospect.qualificationStatus === "QUALIFIED" ? "good" : prospect.qualificationStatus === "REVIEW" ? "warn" : "danger"}>
+                  {OUTREACH_QUALIFICATION_LABELS[prospect.qualificationStatus] ?? prospect.qualificationStatus}
+                </OutreachPill>
+              ) : (
+                "—"
+              )}
+            </p>
+          </div>
+          <div className="subtle-tile rounded-lg px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Confidence</p>
+            <p className="mt-1 text-sm font-semibold text-primary">
+              {prospect.qualificationConfidence !== null && prospect.qualificationConfidence !== undefined
+                ? `${Math.round(prospect.qualificationConfidence * 100)}%`
+                : "—"}
+            </p>
+          </div>
+          <div className="subtle-tile rounded-lg px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Primary Opportunity</p>
+            <p className="mt-1 text-sm font-semibold text-primary">{prospect.primaryOpportunity || "—"}</p>
+          </div>
+        </div>
+        {prospect.qualificationReason ? (
+          <div className="mt-4 rounded-lg border border-border bg-background p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Qualification Reason</p>
+            <p className="mt-1 text-sm text-primary">{prospect.qualificationReason}</p>
+          </div>
+        ) : null}
+        {prospect.disqualificationReason ? (
+          <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-red-300">Disqualification Reason</p>
+            <p className="mt-1 text-sm text-red-200">{prospect.disqualificationReason}</p>
+          </div>
+        ) : null}
+        {prospect.recommendedNextAction ? (
+          <div className="mt-4 rounded-lg border border-border bg-background p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Recommended Next Action</p>
+            <p className="mt-1 text-sm text-primary">{prospect.recommendedNextAction}</p>
           </div>
         ) : null}
       </OutreachPanel>

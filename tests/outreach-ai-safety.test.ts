@@ -66,6 +66,12 @@ describe("assessment output validation", () => {
     primaryService: "BOOKING_AND_QUOTES",
     reason: "Evidence shows manual reservation handling.",
     doNotContactReason: null,
+    qualificationStatus: "REVIEW",
+    qualificationConfidence: 0.6,
+    primaryOpportunity: "Lead capture / enquiry journey",
+    qualificationReason: "Evidence shows no lead capture form on the website.",
+    disqualificationReason: null,
+    recommendedNextAction: "Manual review required before outreach",
   };
 
   it("accepts a well-formed response", () => {
@@ -95,6 +101,18 @@ describe("assessment output validation", () => {
 
   it("rejects an overlong summary", () => {
     expect(assessmentResultSchema.safeParse({ ...valid, summary: "A".repeat(5_000) }).success).toBe(false);
+  });
+
+  it("rejects an invalid qualification status", () => {
+    expect(assessmentResultSchema.safeParse({ ...valid, qualificationStatus: "MAYBE" }).success).toBe(false);
+  });
+
+  it("rejects a qualification confidence outside 0 to 1", () => {
+    expect(assessmentResultSchema.safeParse({ ...valid, qualificationConfidence: 1.5 }).success).toBe(false);
+  });
+
+  it("rejects an overlong primary opportunity", () => {
+    expect(assessmentResultSchema.safeParse({ ...valid, primaryOpportunity: "A".repeat(500) }).success).toBe(false);
   });
 });
 

@@ -130,7 +130,7 @@ export function getOutreachSendingState(): OutreachSendingState {
 }
 
 export const OUTREACH_PROMPTS = {
-  assessment: "OUTREACH_ASSESS_V1",
+  assessment: "OUTREACH_ASSESS_V2",
   email: "OUTREACH_EMAIL_V1",
   reply: "OUTREACH_REPLY_CLASSIFIER_V1",
 } as const;

@@ -7,7 +7,7 @@ import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { OutreachAuthorizationError, requireOutreachActor } from "@/lib/outreach/auth";
 import { loadOutreachCampaignDetail, loadOutreachCampaigns } from "@/lib/outreach/queries";
 import { OUTREACH_CAMPAIGN_STATUSES } from "@/lib/outreach/constants";
-import { saveOutreachCampaign, setOutreachCampaignStatus, triggerOutreachDiscovery } from "@/app/[locale]/admin/outreach/actions";
+import { deleteOutreachCampaign, saveOutreachCampaign, setOutreachCampaignStatus, triggerOutreachDiscovery } from "@/app/[locale]/admin/outreach/actions";
 
 /**
  * Campaign endpoint.
@@ -100,6 +100,13 @@ export async function POST(request: NextRequest) {
     const status = statusSchema.safeParse(raw);
     if (status.success) {
       const result = await setOutreachCampaignStatus({ campaignId: status.data.campaignId, status: status.data.status });
+      return NextResponse.json(result, { status: result.ok ? 200 : 400, headers: { "Cache-Control": "no-store" } });
+    }
+
+    const deleteSchema = z.object({ campaignId: z.string().trim().min(1).max(64) });
+    const deleteAction = deleteSchema.safeParse(raw);
+    if (deleteAction.success) {
+      const result = await deleteOutreachCampaign({ campaignId: deleteAction.data.campaignId });
       return NextResponse.json(result, { status: result.ok ? 200 : 400, headers: { "Cache-Control": "no-store" } });
     }
 
