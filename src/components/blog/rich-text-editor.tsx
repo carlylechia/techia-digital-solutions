@@ -108,16 +108,16 @@ function EditorToolbar({
   onSelectionStart: () => void;
 }) {
   const tools = [
-    { id: "bold", label: "Bold", icon: Bold, action: () => onCommand("bold") },
-    { id: "italic", label: "Italic", icon: Italic, action: () => onCommand("italic") },
-    { id: "underline", label: "Underline", icon: Underline, action: () => onCommand("underline") },
+    { id: "bold", label: "Bold (Ctrl+B)", icon: Bold, shortcut: "B", action: () => onCommand("bold") },
+    { id: "italic", label: "Italic (Ctrl+I)", icon: Italic, shortcut: "I", action: () => onCommand("italic") },
+    { id: "underline", label: "Underline (Ctrl+U)", icon: Underline, shortcut: "U", action: () => onCommand("underline") },
     { id: "strikeThrough", label: "Strikethrough", icon: Strikethrough, action: () => onCommand("strikeThrough") },
     { id: "inlineCode", label: "Inline code", icon: Code2, action: () => onCommand("inlineCode") },
-    { id: "insertUnorderedList", label: "Bulleted list", icon: List, action: () => onCommand("insertUnorderedList") },
-    { id: "insertOrderedList", label: "Numbered list", icon: ListOrdered, action: () => onCommand("insertOrderedList") },
+    { id: "insertUnorderedList", label: "Bulleted list", icon: List, shortcut: "•", action: () => onCommand("insertUnorderedList") },
+    { id: "insertOrderedList", label: "Numbered list", icon: ListOrdered, shortcut: "1.", action: () => onCommand("insertOrderedList") },
     { id: "blockquote", label: "Quote", icon: Quote, action: () => onCommand("formatBlock", "blockquote") },
     { id: "pre", label: "Code block", icon: Code2, action: () => onCommand("formatBlock", "pre") },
-    { id: "link", label: "Link", icon: Link2, action: onLink },
+    { id: "link", label: "Link (Ctrl+K)", icon: Link2, shortcut: "K", action: onLink },
     { id: "image", label: "Image", icon: ImageIcon, action: onImage },
     { id: "import", label: "Import HTML / Markdown", icon: Upload, action: onImport },
     { id: "table", label: "Table", icon: Table2, action: onTable },
@@ -144,9 +144,10 @@ function EditorToolbar({
         <option value="h4">Heading 3</option>
       </select>
       <span className="mx-1 h-5 w-px shrink-0 bg-border" />
-      {tools.map(({ id, label: toolLabel, icon: Icon, action }) => (
+      {tools.map(({ id, label: toolLabel, icon: Icon, shortcut, action }) => (
         <button key={id} type="button" className={`icon-button shrink-0${activeFormats.has(id) ? " bg-accent/20 ring-1 ring-accent/40" : ""}`} title={toolLabel} aria-label={toolLabel} aria-pressed={activeFormats.has(id)} disabled={disabled} onMouseDown={(event) => { onSelectionStart(); event.preventDefault(); }} onClick={action}>
           <Icon className="size-4" aria-hidden="true" />
+          {shortcut ? <span className="ml-0.5 text-[10px] font-bold text-muted">{shortcut}</span> : null}
         </button>
       ))}
       <span className="mx-1 h-5 w-px shrink-0 bg-border" />

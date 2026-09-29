@@ -5,7 +5,7 @@ export function ArticleBody({ html }: { html: string }) {
   const safeHtml = normalizeArticleHtml(html);
   return (
     <div
-      className="blog-prose prose prose-invert max-w-none text-base leading-8 text-muted sm:text-lg"
+      className="blog-prose max-w-none text-base leading-8 text-muted sm:text-lg"
       dangerouslySetInnerHTML={{ __html: safeHtml }}
     />
   );
