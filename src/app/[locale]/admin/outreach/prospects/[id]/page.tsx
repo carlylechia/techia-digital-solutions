@@ -371,6 +371,7 @@ export default async function OutreachProspectDetailPage({ params }: { params: P
             currentStatus={prospect.status}
             hasEmail={Boolean(prospect.publicEmail)}
             canManage={actor.canManage}
+            canSend={actor.canSend}
           />
         </div>
       </OutreachPanel>

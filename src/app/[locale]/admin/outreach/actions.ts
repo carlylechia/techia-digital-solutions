@@ -26,6 +26,7 @@ import {
 import { OUTREACH_CAMPAIGN_STATUSES, OUTREACH_PROSPECT_STATUSES } from "@/lib/outreach/constants";
 import { ZodError } from "zod";
 import { runAssessmentStage, runEmailGenerationStage } from "@/lib/outreach/pipeline";
+import { deliverOutreachMessage } from "@/lib/outreach/sending";
 
 /**
  * Every outreach mutation.
@@ -750,6 +751,55 @@ export async function instantGenerateOutreachMessage(input: { prospectId: string
     await auditOutreach({ actorId: actor.id, action: "outreach.message_instant", entityType: "OutreachProspect", entityId: prospectId, metadata: { status: result.status } });
     revalidateOutreach(`/admin/outreach/prospects/${prospectId}`);
     return { ok: true, message: `Message generated successfully (status: ${result.status})` };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/**
+ * Instant Send — sends a generated email immediately, bypassing the queue.
+ * The message must be in APPROVED or PENDING_APPROVAL status.
+ */
+export async function instantSendOutreachMessage(input: { prospectId: string }): Promise<OutreachActionResult> {
+  try {
+    const actor = await requireOutreachActor("outreach.send");
+    const db = await requireOutreachDatabase();
+    const prospectId = String(input.prospectId ?? "").slice(0, 64);
+    if (!prospectId) return { ok: false, error: "Invalid request." };
+
+    const prospect = await db.outreachProspect.findUnique({
+      where: { id: prospectId },
+      include: { messages: { where: { type: "INITIAL" }, orderBy: { createdAt: "desc" }, take: 1 } },
+    });
+    if (!prospect) return { ok: false, error: "Prospect not found." };
+
+    const message = prospect.messages[0];
+    if (!message) return { ok: false, error: "No message found for this prospect. Generate one first." };
+
+    // Check if message is in a sendable state
+    if (!["APPROVED", "PENDING_APPROVAL", "QUEUED"].includes(message.status)) {
+      return { ok: false, error: `Message cannot be sent in its current status: ${message.status}` };
+    }
+
+    // If the message is PENDING_APPROVAL, approve it first
+    if (message.status === "PENDING_APPROVAL") {
+      await db.outreachMessage.update({
+        where: { id: message.id },
+        data: { status: "APPROVED", approvedAt: new Date(), approvedById: actor.id },
+      });
+    }
+
+    // Send the message directly (bypasses the queue)
+    const result = await deliverOutreachMessage(message.id);
+
+    await auditOutreach({ actorId: actor.id, action: "outreach.message_sent_instant", entityType: "OutreachMessage", entityId: message.id, metadata: { sent: result.sent, blocked: result.blocked } });
+    revalidateOutreach(`/admin/outreach/prospects/${prospectId}`);
+
+    if (result.sent) {
+      return { ok: true, message: `Email sent successfully to ${prospect.publicEmail}` };
+    } else {
+      return { ok: false, error: `Send blocked: ${result.reason}` };
+    }
   } catch (error) {
     return toResult(error);
   }

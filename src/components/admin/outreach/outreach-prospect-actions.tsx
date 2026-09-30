@@ -6,6 +6,7 @@ import {
   enqueueOutreachProspectJob,
   instantAssessOutreachProspect,
   instantGenerateOutreachMessage,
+  instantSendOutreachMessage,
   recordOutreachReply,
   setOutreachProspectStatus,
   unsubscribeOutreachProspect,
@@ -25,11 +26,13 @@ export function OutreachProspectActions({
   currentStatus,
   hasEmail,
   canManage,
+  canSend,
 }: {
   prospectId: string;
   currentStatus: string;
   hasEmail: boolean;
   canManage: boolean;
+  canSend: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -81,6 +84,14 @@ export function OutreachProspectActions({
           onClick={() => run(() => instantGenerateOutreachMessage({ prospectId }))}
         >
           ✉️ Generate Message Instantly
+        </OutreachButton>
+        <OutreachButton
+          type="button"
+          tone="good"
+          disabled={pending || !canSend || !hasEmail}
+          onClick={() => run(() => instantSendOutreachMessage({ prospectId }))}
+        >
+          📤 Send Now
         </OutreachButton>
         <OutreachButton
           type="button"
