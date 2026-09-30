@@ -151,6 +151,12 @@ export async function sendOutreachEmail(input: OutreachSendInput & { complianceN
     return { sent: false, skipped: "not_configured", providerMessageId: null, error: "Email provider is not configured." };
   }
 
+  // Validate recipient email before sending
+  const recipient = normalizeEmail(input.to);
+  if (!recipient || !recipient.includes("@") || recipient.length < 5) {
+    return { sent: false, skipped: null, providerMessageId: null, error: `Invalid recipient email address: ${input.to}` };
+  }
+
   const html = buildOutreachHtml({
     subject: input.subject,
     bodyText: input.bodyText,
@@ -167,12 +173,13 @@ export async function sendOutreachEmail(input: OutreachSendInput & { complianceN
     headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
   }
   const subject = stripControlCharacters(input.subject, 180);
+  const from = fromAddress(input);
 
   try {
     const { data, error } = await resend.emails.send(
       {
-        from: fromAddress(input),
-        to: normalizeEmail(input.to) as string,
+        from,
+        to: recipient,
         replyTo: cleanEnv(input.replyTo ?? undefined) || cleanEnv(process.env.OUTREACH_REPLY_TO) || cleanEnv(process.env.RESEND_REPLY_TO) || undefined,
         subject,
         html,
@@ -185,14 +192,17 @@ export async function sendOutreachEmail(input: OutreachSendInput & { complianceN
     if (error) {
       console.error("[outreach-email] provider_error", {
         name: error.name,
+        message: error.message,
         category: error.name,
         idempotencyKey: input.idempotencyKey,
+        to: input.to,
+        from: fromAddress(input),
       });
       return {
         sent: false,
         skipped: null,
         providerMessageId: null,
-        error: `Email provider error (${error.name}).`,
+        error: `Email provider error (${error.name}): ${error.message ?? "Unknown error"}`,
       };
     }
 
