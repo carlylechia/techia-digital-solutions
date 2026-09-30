@@ -26,6 +26,7 @@ import {
 } from "@/lib/outreach/validation";
 import { OUTREACH_CAMPAIGN_STATUSES, OUTREACH_PROSPECT_STATUSES } from "@/lib/outreach/constants";
 import { ZodError } from "zod";
+import { runAssessmentStage, runEmailGenerationStage } from "@/lib/outreach/pipeline";
 
 /**
  * Every outreach mutation.
@@ -54,26 +55,23 @@ function toResult<T extends { ok: false; error: string }>(error: unknown): T {
     return { ok: false, error: error.status === 401 ? "Please sign in again." : "You do not have permission to do that." } as T;
   }
   if (error instanceof CampaignRunError) {
-    // A duplicate run is an expected outcome, not a fault, so it gets its own
-    // message rather than the generic "check the server logs".
     return { ok: false, error: error.message } as T;
   }
   if (error instanceof OutreachJobError) {
-    // Pipeline errors carry specific, actionable messages (quota limits,
-    // missing data, etc.). Surface them directly.
     return { ok: false, error: error.message } as T;
   }
   if (error instanceof ZodError) {
-    // Zod validation errors carry field-level messages. Surface them directly
-    // so the operator knows exactly what to fix instead of a generic failure.
     const messages = error.issues.map((issue) => {
       const field = issue.path.join(".");
       return field ? `${field}: ${issue.message}` : issue.message;
     });
     return { ok: false, error: messages.join("; ") } as T;
   }
-  console.error("[outreach-action] failed", getErrorMessage(error));
-  return { ok: false, error: "That action could not be completed. Check the server logs." } as T;
+  // For all other errors, surface the actual message so the operator can
+  // see what really went wrong instead of a generic failure notice.
+  const message = error instanceof Error ? error.message : String(error);
+  console.error("[outreach-action] failed", message);
+  return { ok: false, error: message || "That action could not be completed." } as T;
 }
 
 function revalidateOutreach(...paths: string[]) {
@@ -706,7 +704,6 @@ export async function instantAssessOutreachProspect(input: { prospectId: string 
     if (!prospect) return { ok: false, error: "Prospect not found." };
 
     // Run the assessment stage directly (bypasses the queue)
-    const { runAssessmentStage } = await import("@/lib/outreach/pipeline");
     const result = await runAssessmentStage(prospectId);
 
     // Handle skipped cases (prospect disqualified)
@@ -738,7 +735,6 @@ export async function instantGenerateOutreachMessage(input: { prospectId: string
     if (!prospect.publicEmail) return { ok: false, error: "This prospect has no email address." };
 
     // Run the email generation stage directly (bypasses the queue)
-    const { runEmailGenerationStage } = await import("@/lib/outreach/pipeline");
     const result = await runEmailGenerationStage(prospectId, "INITIAL");
 
     // Handle skipped cases (prospect not eligible, already generated)
