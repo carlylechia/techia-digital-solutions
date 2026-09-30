@@ -83,95 +83,190 @@ export default async function AdminOutreachCampaignsPage({ params }: { params: P
               description="Create your first campaign to start discovering businesses. Discovery stays off until the campaign is active."
             />
           ) : (
-            <OutreachTable className="min-w-[1000px]">
-              <thead>
-                <tr className="border-b border-border">
-                  <OutreachTh>Campaign</OutreachTh>
-                  <OutreachTh>Status</OutreachTh>
-                  <OutreachTh>Mode</OutreachTh>
-                  <OutreachTh>Discovery</OutreachTh>
-                  <OutreachTh>Target</OutreachTh>
-                  <OutreachTh>Limits</OutreachTh>
-                  <OutreachTh>Window</OutreachTh>
-                  <OutreachTh>Volume</OutreachTh>
-                  <OutreachTh>Actions</OutreachTh>
-                </tr>
-              </thead>
-              <tbody>
-                {campaigns.map((campaign) => (
-                  <OutreachTr key={campaign.id}>
-                    <OutreachTd>
-                      <Link href={`/admin/outreach/campaigns/${campaign.id}`} className="font-semibold text-primary hover:text-accent">
-                        {campaign.name}
-                      </Link>
-                      {campaign.complianceBasis ? (
-                        <p className="mt-1 max-w-sm text-xs text-muted">Compliance: {campaign.complianceBasis}</p>
-                      ) : null}
-                    </OutreachTd>
-                    <OutreachTd>
-                      <OutreachPill
-                        tone={
-                          campaign.status === "ACTIVE"
-                            ? "good"
-                            : campaign.status === "PAUSED"
-                              ? "warn"
-                              : campaign.status === "DRAFT"
-                                ? "quiet"
-                                : "default"
-                        }
-                      >
-                        {campaign.status}
-                      </OutreachPill>
-                    </OutreachTd>
-                    <OutreachTd>
-                      <OutreachPill tone={campaign.mode === "AUTOMATIC" ? "warn" : "default"}>
-                        {campaign.mode.replace("_", " ")}
-                      </OutreachPill>
-                      <p className="mt-1 text-xs text-muted">
-                        {campaign.requireApproval ? "approval required" : "no approval gate"}
-                      </p>
-                    </OutreachTd>
-                    <OutreachTd>
-                      <OutreachPill tone={campaign.discoveryProviderMode === "AUTO" ? "quiet" : "default"}>
-                        {campaign.discoveryProviderMode === "AUTO"
-                          ? "Automatic"
-                          : OUTREACH_DISCOVERY_PROVIDER_LABELS[campaign.discoveryProviderMode] ?? campaign.discoveryProviderMode}
-                      </OutreachPill>
-                    </OutreachTd>
-                    <OutreachTd className="text-sm text-muted">
-                      {campaign.cities.length > 0 ? campaign.cities.slice(0, 2).join(", ") : campaign.regions.length > 0 ? campaign.regions.slice(0, 2).join(", ") : "—"}
-                      <br />
-                      {campaign.industries.slice(0, 2).join(", ") || "no industry filter"}
-                    </OutreachTd>
-                    <OutreachTd className="text-sm text-muted">
-                      {campaign.dailyDiscoveryLimit}/day discovery
-                      <br />
-                      {campaign.dailySendLimit}/day send
-                      <br />
-                      ≥{campaign.minOpportunityScore} score
-                    </OutreachTd>
-                    <OutreachTd className="text-sm text-muted">
-                      {campaign.sendingWindowStart}–{campaign.sendingWindowEnd}
-                      <br />
-                      {campaign.timezone}
-                    </OutreachTd>
-                    <OutreachTd className="text-sm text-muted">
-                      {campaign._count.prospects} prospects
-                      <br />
-                      {campaign._count.messages} messages
-                    </OutreachTd>
-                    <OutreachTd>
-                      <OutreachCampaignActions
-                        campaignId={campaign.id}
-                        status={campaign.status}
-                        canManage={actor.canManage}
-                        canSend={actor.canSend}
-                      />
-                    </OutreachTd>
-                  </OutreachTr>
-                ))}
-              </tbody>
-            </OutreachTable>
+            <div className="grid gap-5">
+              {/* Active campaigns */}
+              <OutreachTable className="min-w-[1000px]">
+                <thead>
+                  <tr className="border-b border-border">
+                    <OutreachTh>Campaign</OutreachTh>
+                    <OutreachTh>Status</OutreachTh>
+                    <OutreachTh>Mode</OutreachTh>
+                    <OutreachTh>Discovery</OutreachTh>
+                    <OutreachTh>Target</OutreachTh>
+                    <OutreachTh>Limits</OutreachTh>
+                    <OutreachTh>Window</OutreachTh>
+                    <OutreachTh>Volume</OutreachTh>
+                    <OutreachTh>Actions</OutreachTh>
+                  </tr>
+                </thead>
+                <tbody>
+                  {campaigns.filter((c) => c.status !== "ARCHIVED").map((campaign) => (
+                    <OutreachTr key={campaign.id}>
+                      <OutreachTd>
+                        <Link href={`/admin/outreach/campaigns/${campaign.id}`} className="font-semibold text-primary hover:text-accent">
+                          {campaign.name}
+                        </Link>
+                        {campaign.complianceBasis ? (
+                          <p className="mt-1 max-w-sm text-xs text-muted">Compliance: {campaign.complianceBasis}</p>
+                        ) : null}
+                      </OutreachTd>
+                      <OutreachTd>
+                        <OutreachPill
+                          tone={
+                            campaign.status === "ACTIVE"
+                              ? "good"
+                              : campaign.status === "PAUSED"
+                                ? "warn"
+                                : campaign.status === "DRAFT"
+                                  ? "quiet"
+                                  : "default"
+                          }
+                        >
+                          {campaign.status}
+                        </OutreachPill>
+                      </OutreachTd>
+                      <OutreachTd>
+                        <OutreachPill tone={campaign.mode === "AUTOMATIC" ? "warn" : "default"}>
+                          {campaign.mode.replace("_", " ")}
+                        </OutreachPill>
+                        <p className="mt-1 text-xs text-muted">
+                          {campaign.requireApproval ? "approval required" : "no approval gate"}
+                        </p>
+                      </OutreachTd>
+                      <OutreachTd>
+                        <OutreachPill tone={campaign.discoveryProviderMode === "AUTO" ? "quiet" : "default"}>
+                          {campaign.discoveryProviderMode === "AUTO"
+                            ? "Automatic"
+                            : OUTREACH_DISCOVERY_PROVIDER_LABELS[campaign.discoveryProviderMode] ?? campaign.discoveryProviderMode}
+                        </OutreachPill>
+                      </OutreachTd>
+                      <OutreachTd className="text-sm text-muted">
+                        {campaign.cities.length > 0 ? campaign.cities.slice(0, 2).join(", ") : campaign.regions.length > 0 ? campaign.regions.slice(0, 2).join(", ") : "—"}
+                        <br />
+                        {campaign.industries.slice(0, 2).join(", ") || "no industry filter"}
+                      </OutreachTd>
+                      <OutreachTd className="text-sm text-muted">
+                        {campaign.dailyDiscoveryLimit}/day discovery
+                        <br />
+                        {campaign.dailySendLimit}/day send
+                        <br />
+                        ≥{campaign.minOpportunityScore} score
+                      </OutreachTd>
+                      <OutreachTd className="text-sm text-muted">
+                        {campaign.sendingWindowStart}–{campaign.sendingWindowEnd}
+                        <br />
+                        {campaign.timezone}
+                      </OutreachTd>
+                      <OutreachTd className="text-sm text-muted">
+                        {campaign._count.prospects} prospects
+                        <br />
+                        {campaign._count.messages} messages
+                      </OutreachTd>
+                      <OutreachTd>
+                        <OutreachCampaignActions
+                          campaignId={campaign.id}
+                          status={campaign.status}
+                          canManage={actor.canManage}
+                          canSend={actor.canSend}
+                        />
+                      </OutreachTd>
+                    </OutreachTr>
+                  ))}
+                </tbody>
+              </OutreachTable>
+
+              {/* Archived campaigns — separated at the bottom */}
+              {campaigns.some((c) => c.status === "ARCHIVED") ? (
+                <div className="grid gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                      Archived campaigns
+                    </span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+                  <OutreachTable className="min-w-[1000px]">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <OutreachTh>Campaign</OutreachTh>
+                        <OutreachTh>Status</OutreachTh>
+                        <OutreachTh>Mode</OutreachTh>
+                        <OutreachTh>Discovery</OutreachTh>
+                        <OutreachTh>Target</OutreachTh>
+                        <OutreachTh>Limits</OutreachTh>
+                        <OutreachTh>Window</OutreachTh>
+                        <OutreachTh>Volume</OutreachTh>
+                        <OutreachTh>Actions</OutreachTh>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {campaigns.filter((c) => c.status === "ARCHIVED").map((campaign) => (
+                        <OutreachTr key={campaign.id} className="opacity-60">
+                          <OutreachTd>
+                            <Link href={`/admin/outreach/campaigns/${campaign.id}`} className="font-semibold text-primary hover:text-accent">
+                              {campaign.name}
+                            </Link>
+                            {campaign.complianceBasis ? (
+                              <p className="mt-1 max-w-sm text-xs text-muted">Compliance: {campaign.complianceBasis}</p>
+                            ) : null}
+                          </OutreachTd>
+                          <OutreachTd>
+                            <OutreachPill tone="quiet">
+                              {campaign.status}
+                            </OutreachPill>
+                          </OutreachTd>
+                          <OutreachTd>
+                            <OutreachPill tone={campaign.mode === "AUTOMATIC" ? "warn" : "default"}>
+                              {campaign.mode.replace("_", " ")}
+                            </OutreachPill>
+                            <p className="mt-1 text-xs text-muted">
+                              {campaign.requireApproval ? "approval required" : "no approval gate"}
+                            </p>
+                          </OutreachTd>
+                          <OutreachTd>
+                            <OutreachPill tone={campaign.discoveryProviderMode === "AUTO" ? "quiet" : "default"}>
+                              {campaign.discoveryProviderMode === "AUTO"
+                                ? "Automatic"
+                                : OUTREACH_DISCOVERY_PROVIDER_LABELS[campaign.discoveryProviderMode] ?? campaign.discoveryProviderMode}
+                            </OutreachPill>
+                          </OutreachTd>
+                          <OutreachTd className="text-sm text-muted">
+                            {campaign.cities.length > 0 ? campaign.cities.slice(0, 2).join(", ") : campaign.regions.length > 0 ? campaign.regions.slice(0, 2).join(", ") : "—"}
+                            <br />
+                            {campaign.industries.slice(0, 2).join(", ") || "no industry filter"}
+                          </OutreachTd>
+                          <OutreachTd className="text-sm text-muted">
+                            {campaign.dailyDiscoveryLimit}/day discovery
+                            <br />
+                            {campaign.dailySendLimit}/day send
+                            <br />
+                            ≥{campaign.minOpportunityScore} score
+                          </OutreachTd>
+                          <OutreachTd className="text-sm text-muted">
+                            {campaign.sendingWindowStart}–{campaign.sendingWindowEnd}
+                            <br />
+                            {campaign.timezone}
+                          </OutreachTd>
+                          <OutreachTd className="text-sm text-muted">
+                            {campaign._count.prospects} prospects
+                            <br />
+                            {campaign._count.messages} messages
+                          </OutreachTd>
+                          <OutreachTd>
+                            <OutreachCampaignActions
+                              campaignId={campaign.id}
+                              status={campaign.status}
+                              canManage={actor.canManage}
+                              canSend={actor.canSend}
+                            />
+                          </OutreachTd>
+                        </OutreachTr>
+                      ))}
+                    </tbody>
+                  </OutreachTable>
+                </div>
+              ) : null}
+            </div>
           )}
         </div>
       </OutreachPanel>
