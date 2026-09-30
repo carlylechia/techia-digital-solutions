@@ -10,7 +10,7 @@ import {
   requireOutreachDatabase,
 } from "@/lib/outreach/auth";
 import { recordEvent, recordStatusChange } from "@/lib/outreach/events";
-import { enqueueJob } from "@/lib/outreach/jobs";
+import { enqueueJob, OutreachJobError } from "@/lib/outreach/jobs";
 import { suppressContact, unsubscribeContact } from "@/lib/outreach/suppression";
 import { incrementDailyStat } from "@/lib/outreach/stats";
 import { runDailyOrchestrator } from "@/lib/outreach/orchestrator";
@@ -56,6 +56,11 @@ function toResult<T extends { ok: false; error: string }>(error: unknown): T {
   if (error instanceof CampaignRunError) {
     // A duplicate run is an expected outcome, not a fault, so it gets its own
     // message rather than the generic "check the server logs".
+    return { ok: false, error: error.message } as T;
+  }
+  if (error instanceof OutreachJobError) {
+    // Pipeline errors carry specific, actionable messages (quota limits,
+    // missing data, etc.). Surface them directly.
     return { ok: false, error: error.message } as T;
   }
   if (error instanceof ZodError) {
@@ -704,6 +709,11 @@ export async function instantAssessOutreachProspect(input: { prospectId: string 
     const { runAssessmentStage } = await import("@/lib/outreach/pipeline");
     const result = await runAssessmentStage(prospectId);
 
+    // Handle skipped cases (prospect disqualified)
+    if (result.skipped !== null && result.skipped !== undefined) {
+      return { ok: false, error: "This prospect is disqualified and cannot be assessed." };
+    }
+
     await auditOutreach({ actorId: actor.id, action: "outreach.assessment_instant", entityType: "OutreachProspect", entityId: prospectId, metadata: { status: result.status } });
     revalidateOutreach(`/admin/outreach/prospects/${prospectId}`);
     return { ok: true, message: `Assessment complete: ${result.status}` };
@@ -731,9 +741,20 @@ export async function instantGenerateOutreachMessage(input: { prospectId: string
     const { runEmailGenerationStage } = await import("@/lib/outreach/pipeline");
     const result = await runEmailGenerationStage(prospectId, "INITIAL");
 
+    // Handle skipped cases (prospect not eligible, already generated)
+    if (result.skipped !== null && result.skipped !== undefined) {
+      const skipReason = result.skipped;
+      const message = skipReason === "prospect_not_eligible"
+        ? "This prospect is not eligible for message generation. It may be disqualified or already contacted."
+        : skipReason === "already_generated"
+          ? "A message has already been generated for this prospect."
+          : `Message generation skipped: ${skipReason}`;
+      return { ok: false, error: message };
+    }
+
     await auditOutreach({ actorId: actor.id, action: "outreach.message_instant", entityType: "OutreachProspect", entityId: prospectId, metadata: { status: result.status } });
     revalidateOutreach(`/admin/outreach/prospects/${prospectId}`);
-    return { ok: true, message: `Message generated: ${result.status}` };
+    return { ok: true, message: `Message generated successfully (status: ${result.status})` };
   } catch (error) {
     return toResult(error);
   }

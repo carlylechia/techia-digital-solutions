@@ -192,7 +192,11 @@ export function OutreachProspectActions({
         </select>
       </div>
 
-      {feedback ? <p className="text-xs text-muted">{feedback}</p> : null}
+      {feedback ? (
+        <p className={`text-xs ${feedback.startsWith("Assessment complete") || feedback.startsWith("Message generated") ? "text-emerald-300" : "text-red-300"}`}>
+          {feedback}
+        </p>
+      ) : null}
     </div>
   );
 }
