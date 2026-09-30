@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { getPrisma } from "@/lib/prisma";
-import { getErrorMessage } from "@/lib/prisma-errors";
 import {
   OutreachAuthorizationError,
   auditOutreach,
