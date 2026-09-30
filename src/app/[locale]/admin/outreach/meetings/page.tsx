@@ -76,7 +76,7 @@ export default async function AdminOutreachMeetingsPage({
               description="Add a meeting from a prospect page, or connect a booking provider to populate this list automatically."
             />
           ) : (
-            <OutreachTable className="min-w-[860px]">
+            <OutreachTable>
               <thead>
                 <tr className="border-b border-border">
                   <OutreachTh>Prospect</OutreachTh>

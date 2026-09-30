@@ -453,7 +453,7 @@ export default async function OutreachProspectDetailPage({ params }: { params: P
             <OutreachEmptyState title="No events recorded" />
           </div>
         ) : (
-          <OutreachTable className="mt-4 min-w-[620px]">
+          <OutreachTable className="mt-4">
             <thead>
               <tr className="border-b border-border">
                 <OutreachTh>When</OutreachTh>

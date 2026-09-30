@@ -85,7 +85,7 @@ export default async function AdminOutreachCampaignsPage({ params }: { params: P
           ) : (
             <div className="grid gap-5">
               {/* Active campaigns */}
-              <OutreachTable className="min-w-[1000px]">
+              <OutreachTable>
                 <thead>
                   <tr className="border-b border-border">
                     <OutreachTh>Campaign</OutreachTh>
@@ -185,7 +185,7 @@ export default async function AdminOutreachCampaignsPage({ params }: { params: P
                     </span>
                     <div className="h-px flex-1 bg-border" />
                   </div>
-                  <OutreachTable className="min-w-[1000px]">
+                  <OutreachTable>
                     <thead>
                       <tr className="border-b border-border">
                         <OutreachTh>Campaign</OutreachTh>

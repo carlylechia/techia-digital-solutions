@@ -168,7 +168,7 @@ export default async function AdminOutreachSettingsPage({ params }: { params: Pr
           Only a configured/not-configured state is ever rendered. Credential values stay in the server environment.
         </p>
         <div className="mt-4">
-          <OutreachTable className="min-w-[720px]">
+          <OutreachTable>
             <thead>
               <tr className="border-b border-border">
                 <OutreachTh>Integration</OutreachTh>
@@ -294,7 +294,7 @@ export default async function AdminOutreachSettingsPage({ params }: { params: Pr
                     <OutreachEmptyState title="No service recommendations yet" />
                   </div>
                 ) : (
-                  <OutreachTable className="mt-3 min-w-[420px]">
+                  <OutreachTable className="mt-3">
                     <thead>
                       <tr className="border-b border-border">
                         <OutreachTh>Service</OutreachTh>
@@ -353,7 +353,7 @@ function BreakdownTable({ title, rows }: { title: string; rows: Array<{ key: str
           <OutreachEmptyState title={`No ${title.toLowerCase()} data yet`} />
         </div>
       ) : (
-        <OutreachTable className="mt-3 min-w-[320px]">
+        <OutreachTable className="mt-3">
           <thead>
             <tr className="border-b border-border">
               <OutreachTh>{title.replace("By ", "")}</OutreachTh>

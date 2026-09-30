@@ -119,7 +119,7 @@ export default async function AdminOutreachConversationsPage({
               description="Replies appear here as soon as the provider webhook or a manual entry receives one."
             />
           ) : (
-            <OutreachTable className="min-w-[900px]">
+            <OutreachTable>
               <thead>
                 <tr className="border-b border-border">
                   <OutreachTh>Prospect</OutreachTh>

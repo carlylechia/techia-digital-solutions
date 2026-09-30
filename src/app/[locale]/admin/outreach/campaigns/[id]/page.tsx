@@ -162,7 +162,7 @@ export default async function OutreachCampaignDetailPage({ params }: { params: P
                 <OutreachEmptyState title="No jobs recorded" description="Jobs appear once the cron ticks start." />
               </div>
             ) : (
-              <OutreachTable className="mt-3 min-w-[380px]">
+              <OutreachTable className="mt-3">
                 <thead>
                   <tr className="border-b border-border">
                     <OutreachTh>Type</OutreachTh>
@@ -240,7 +240,7 @@ export default async function OutreachCampaignDetailPage({ params }: { params: P
             />
           </div>
         ) : (
-          <OutreachTable className="mt-4 min-w-[900px]">
+          <OutreachTable className="mt-4">
             <thead>
               <tr className="border-b border-border">
                 <OutreachTh>Started</OutreachTh>
@@ -351,7 +351,7 @@ export default async function OutreachCampaignDetailPage({ params }: { params: P
             <OutreachEmptyState title="No daily statistics yet" description="Aggregates are rebuilt each night by the stats job." />
           </div>
         ) : (
-          <OutreachTable className="mt-4 min-w-[760px]">
+          <OutreachTable className="mt-4">
             <thead>
               <tr className="border-b border-border">
                 <OutreachTh>Date</OutreachTh>

@@ -93,7 +93,7 @@ export default async function AdminOutreachSuppressionPage({
           {result.rows.length === 0 ? (
             <OutreachEmptyState title="The suppression list is empty" description="Opt-outs and bounces will populate it automatically." />
           ) : (
-            <OutreachTable className="min-w-[720px]">
+            <OutreachTable>
               <thead>
                 <tr className="border-b border-border">
                   <OutreachTh>Email</OutreachTh>

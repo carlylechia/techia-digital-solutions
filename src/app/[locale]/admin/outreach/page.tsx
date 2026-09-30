@@ -223,7 +223,7 @@ export default async function AdminOutreachPage({ params }: { params: Promise<{ 
               <OutreachEmptyState title="No daily statistics yet" description="Statistics aggregate overnight via the stats job." />
             </div>
           ) : (
-            <OutreachTable className="mt-4 min-w-[420px]">
+            <OutreachTable className="mt-4">
               <thead>
                 <tr className="border-b border-border">
                   <OutreachTh>Date</OutreachTh>
