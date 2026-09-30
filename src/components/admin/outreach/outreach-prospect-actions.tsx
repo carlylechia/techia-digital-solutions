@@ -48,20 +48,22 @@ export function OutreachProspectActions({
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap gap-2">
-        {(["INTERESTED", "MEETING_BOOKED", "PROPOSAL", "WON", "LOST", "PAUSED", "QUALIFIED"] as const).map((status) => (
-          <OutreachButton
-            key={status}
-            type="button"
-            tone={status === "WON" || status === "INTERESTED" ? "good" : status === "LOST" || status === "PAUSED" ? "danger" : "quiet"}
-            disabled={pending || !canManage || currentStatus === status}
-            onClick={() => run(() => setOutreachProspectStatus({ prospectId, status }))}
-          >
-            Mark {OUTREACH_STATUS_LABELS[status] ?? status}
-          </OutreachButton>
-        ))}
+      {/* Primary action: Instant AI Assessment */}
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-accent/30 bg-accent/5 p-3">
+        <OutreachButton
+          type="button"
+          disabled={pending || !canManage}
+          onClick={() => run(() => enqueueOutreachProspectJob({ prospectId, step: "ASSESS" }))}
+          className="px-4 py-2.5 text-base"
+        >
+          ⚡ Instant AI Assessment
+        </OutreachButton>
+        <p className="text-xs text-muted">
+          Runs AI analysis immediately to evaluate this prospect&apos;s digital presence and qualification.
+        </p>
       </div>
 
+      {/* Secondary actions */}
       <div className="flex flex-wrap gap-2">
         <OutreachButton
           type="button"
@@ -72,17 +74,19 @@ export function OutreachProspectActions({
         </OutreachButton>
         <OutreachButton
           type="button"
-          disabled={pending || !canManage}
-          onClick={() => run(() => enqueueOutreachProspectJob({ prospectId, step: "ASSESS" }))}
+          tone="good"
+          disabled={pending || !canManage || !hasEmail}
+          onClick={() => run(() => enqueueOutreachProspectJob({ prospectId, step: "GENERATE_EMAIL" }))}
         >
-          Re-assess with AI
+          ✉️ Generate Message
         </OutreachButton>
         <OutreachButton
           type="button"
-          disabled={pending || !canManage}
-          onClick={() => run(() => enqueueOutreachProspectJob({ prospectId, step: "GENERATE_EMAIL" }))}
+          tone="quiet"
+          disabled={pending || !canManage || currentStatus === "QUALIFIED"}
+          onClick={() => run(() => setOutreachProspectStatus({ prospectId, status: "QUALIFIED" }))}
         >
-          Regenerate message
+          ✓ Qualify
         </OutreachButton>
         <OutreachButton
           type="button"
@@ -95,6 +99,21 @@ export function OutreachProspectActions({
         <OutreachButton type="button" tone="quiet" disabled={pending || !canManage} onClick={() => setReplyOpen((open) => !open)}>
           {replyOpen ? "Hide reply box" : "Record a reply"}
         </OutreachButton>
+      </div>
+
+      {/* Status change buttons */}
+      <div className="flex flex-wrap gap-2">
+        {(["INTERESTED", "MEETING_BOOKED", "PROPOSAL", "WON", "LOST", "PAUSED"] as const).map((status) => (
+          <OutreachButton
+            key={status}
+            type="button"
+            tone={status === "WON" || status === "INTERESTED" ? "good" : status === "LOST" || status === "PAUSED" ? "danger" : "quiet"}
+            disabled={pending || !canManage || currentStatus === status}
+            onClick={() => run(() => setOutreachProspectStatus({ prospectId, status }))}
+          >
+            Mark {OUTREACH_STATUS_LABELS[status] ?? status}
+          </OutreachButton>
+        ))}
       </div>
 
       {replyOpen ? (

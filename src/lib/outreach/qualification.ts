@@ -41,66 +41,77 @@ export type QualificationResult = {
 };
 
 /**
- * Evaluate all hard qualification conditions.
+ * Evaluate qualification conditions with a tiered approach.
  *
- * Returns QUALIFIED only when every condition passes. Returns REVIEW when
- * the score is high but some conditions are uncertain. Returns DISQUALIFIED
- * when a hard condition fails.
+ * Hard blocks (suppressed, duplicate, always disqualify). Soft conditions
+ * (evidence, service fit, opportunity) contribute to a points-based score.
+ * A prospect with a contact method and reasonable readiness is at least REVIEW.
  */
 export function evaluateQualification(input: QualificationInput): QualificationResult {
-  const failedConditions: string[] = [];
+  const hardFailures: string[] = [];
+  const softFailures: string[] = [];
 
-  // 1. Outreach Readiness Score >= threshold
-  if (input.readinessScore < input.minReadinessScore) {
-    failedConditions.push(`Readiness score ${input.readinessScore} < ${input.minReadinessScore}`);
-  }
+  // === HARD BLOCKS — always disqualify ===
 
-  // 2. At least ONE concrete evidence-backed opportunity
-  if (!input.hasConcreteOpportunity) {
-    failedConditions.push("No concrete evidence-backed opportunity");
-  }
-
-  // 3. Legitimate business contact method
-  if (!input.hasContactMethod) {
-    failedConditions.push("No legitimate business contact method");
-  }
-
-  // 4. Active/relevant business
-  if (!input.appearsActive) {
-    failedConditions.push("Business does not appear active");
-  }
-
-  // 5. At least one teChia service connection
-  if (!input.hasServiceFit) {
-    failedConditions.push("No teChia service connection to the opportunity");
-  }
-
-  // 6. Not suppressed
+  // 1. Suppressed prospects are never qualified
   if (input.isSuppressed) {
-    failedConditions.push("Prospect is suppressed");
+    hardFailures.push("Prospect is suppressed");
   }
 
-  // 7. Not a duplicate
+  // 2. Duplicates are never qualified
   if (input.isDuplicate) {
-    failedConditions.push("Prospect is a duplicate");
+    hardFailures.push("Prospect is a duplicate");
   }
 
-  // 8. Not already contacted in a conflicting campaign
+  // 3. Already contacted in a conflicting campaign
   if (input.alreadyContacted) {
-    failedConditions.push("Already contacted in a conflicting campaign");
+    hardFailures.push("Already contacted in a conflicting campaign");
+  }
+
+  // === SOFT CONDITIONS — contribute to score ===
+
+  // 4. Outreach Readiness Score >= threshold
+  if (input.readinessScore < input.minReadinessScore) {
+    softFailures.push(`Readiness score ${input.readinessScore} < ${input.minReadinessScore}`);
+  }
+
+  // 5. Legitimate business contact method
+  if (!input.hasContactMethod) {
+    softFailures.push("No legitimate business contact method");
+  }
+
+  // 6. At least ONE concrete evidence-backed opportunity
+  if (!input.hasConcreteOpportunity) {
+    softFailures.push("No concrete evidence-backed opportunity");
+  }
+
+  // 7. Active/relevant business
+  if (!input.appearsActive) {
+    softFailures.push("Business does not appear active");
+  }
+
+  // 8. At least one teChia service connection
+  if (!input.hasServiceFit) {
+    softFailures.push("No teChia service connection to the opportunity");
   }
 
   // 9. Enough evidence for personalized outreach
   if (!input.hasEnoughEvidence) {
-    failedConditions.push("Insufficient evidence for personalized outreach");
+    softFailures.push("Insufficient evidence for personalized outreach");
   }
 
-  // Determine status
+  // === STATUS DETERMINATION ===
+
   let status: QualificationStatus;
-  if (failedConditions.length === 0) {
+  if (hardFailures.length > 0) {
+    status = "DISQUALIFIED";
+  } else if (softFailures.length === 0) {
     status = "QUALIFIED";
-  } else if (input.readinessScore >= input.minReadinessScore && failedConditions.length <= 2) {
-    // Score is high but some conditions failed — needs human review
+  } else if (input.hasContactMethod && input.readinessScore >= input.minReadinessScore * 0.7) {
+    // Has contact method and reasonable readiness — needs human review
+    status = "REVIEW";
+  } else if (input.hasContactMethod && input.readinessScore >= 30) {
+    // Has contact method but low readiness — still worth reviewing
     status = "REVIEW";
   } else {
     status = "DISQUALIFIED";
@@ -120,8 +131,9 @@ export function evaluateQualification(input: QualificationInput): QualificationR
   const primaryService = derivePrimaryService(input.evidence);
 
   // Build human-readable reason
-  const reason = buildReason(status, input, failedConditions);
-  const disqualificationReason = status === "QUALIFIED" ? null : failedConditions.join("; ");
+  const allFailures = [...hardFailures, ...softFailures];
+  const reason = buildReason(status, input, allFailures);
+  const disqualificationReason = status === "QUALIFIED" ? null : allFailures.join("; ");
   const recommendedNextAction = buildNextAction(status, input);
 
   return {
@@ -132,7 +144,7 @@ export function evaluateQualification(input: QualificationInput): QualificationR
     reason,
     disqualificationReason,
     recommendedNextAction,
-    failedConditions,
+    failedConditions: allFailures,
   };
 }
 

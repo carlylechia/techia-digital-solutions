@@ -72,8 +72,8 @@ const DEFAULTS: CampaignDefaults = {
   complianceBasis: "",
   complianceNote: "",
   senderNameOverride: "",
-  minReadinessScore: 70,
-  maxApprovedProspects: null,
+  minReadinessScore: 50,
+  maxApprovedProspects: 50,
 };
 
 /**
@@ -352,60 +352,65 @@ export function OutreachCampaignForm({ campaign }: { campaign?: Partial<Campaign
         ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <OutreachField label="Daily discovery" hint="Max 200.">
+          <OutreachField label="Daily discovery *" hint="Max 200.">
             <input
               type="number"
               min={1}
               max={200}
+              required
               className={outreachInputClass}
               value={state.dailyDiscoveryLimit}
-              onChange={(event) => set("dailyDiscoveryLimit", Number(event.target.value))}
+              onChange={(event) => set("dailyDiscoveryLimit", event.target.value ? Number(event.target.value) : 25)}
             />
           </OutreachField>
-          <OutreachField label="Daily sends" hint="Max 50.">
+          <OutreachField label="Daily sends *" hint="Max 50.">
             <input
               type="number"
               min={1}
               max={50}
+              required
               className={outreachInputClass}
               value={state.dailySendLimit}
-              onChange={(event) => set("dailySendLimit", Number(event.target.value))}
+              onChange={(event) => set("dailySendLimit", event.target.value ? Number(event.target.value) : 10)}
             />
           </OutreachField>
-          <OutreachField label="Score threshold" hint="0-100.">
+          <OutreachField label="Score threshold *" hint="0-100.">
             <input
               type="number"
               min={0}
               max={100}
+              required
               className={outreachInputClass}
               value={state.minOpportunityScore}
-              onChange={(event) => set("minOpportunityScore", Number(event.target.value))}
+              onChange={(event) => set("minOpportunityScore", event.target.value ? Number(event.target.value) : 40)}
             />
           </OutreachField>
-          <OutreachField label="Daily AI assessments" hint="Cost control.">
+          <OutreachField label="Daily AI assessments *" hint="Cost control.">
             <input
               type="number"
               min={0}
               max={100}
+              required
               className={outreachInputClass}
               value={state.dailyAiAssessLimit}
-              onChange={(event) => set("dailyAiAssessLimit", Number(event.target.value))}
+              onChange={(event) => set("dailyAiAssessLimit", event.target.value ? Number(event.target.value) : 25)}
             />
           </OutreachField>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <OutreachField label="Readiness threshold" hint="0-100. Minimum outreach readiness score.">
+          <OutreachField label="Readiness threshold *" hint="0-100. Minimum outreach readiness score.">
             <input
               type="number"
               min={0}
               max={100}
+              required
               className={outreachInputClass}
               value={state.minReadinessScore}
-              onChange={(event) => set("minReadinessScore", Number(event.target.value))}
+              onChange={(event) => set("minReadinessScore", event.target.value ? Number(event.target.value) : 50)}
             />
           </OutreachField>
-          <OutreachField label="Max approved prospects" hint="Optional cap on approved outreach prospects.">
+          <OutreachField label="Max approved prospects" hint="Cap on approved outreach prospects. Leave empty for no cap.">
             <input
               type="number"
               min={1}
@@ -436,14 +441,15 @@ export function OutreachCampaignForm({ campaign }: { campaign?: Partial<Campaign
               pattern="^([01]\d|2[0-3]):[0-5]\d$"
             />
           </OutreachField>
-          <OutreachField label="Max follow-ups" hint="0 to 3. The sequence always stops after the last one.">
+          <OutreachField label="Max follow-ups *" hint="0 to 3. The sequence always stops after the last one.">
             <input
               type="number"
               min={0}
               max={3}
+              required
               className={outreachInputClass}
               value={state.maxFollowUps}
-              onChange={(event) => set("maxFollowUps", Number(event.target.value))}
+              onChange={(event) => set("maxFollowUps", event.target.value ? Number(event.target.value) : 2)}
             />
           </OutreachField>
         </div>

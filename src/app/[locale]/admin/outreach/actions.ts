@@ -25,6 +25,7 @@ import {
   outreachSuppressionSchema,
 } from "@/lib/outreach/validation";
 import { OUTREACH_CAMPAIGN_STATUSES, OUTREACH_PROSPECT_STATUSES } from "@/lib/outreach/constants";
+import { ZodError } from "zod";
 
 /**
  * Every outreach mutation.
@@ -56,6 +57,15 @@ function toResult<T extends { ok: false; error: string }>(error: unknown): T {
     // A duplicate run is an expected outcome, not a fault, so it gets its own
     // message rather than the generic "check the server logs".
     return { ok: false, error: error.message } as T;
+  }
+  if (error instanceof ZodError) {
+    // Zod validation errors carry field-level messages. Surface them directly
+    // so the operator knows exactly what to fix instead of a generic failure.
+    const messages = error.issues.map((issue) => {
+      const field = issue.path.join(".");
+      return field ? `${field}: ${issue.message}` : issue.message;
+    });
+    return { ok: false, error: messages.join("; ") } as T;
   }
   console.error("[outreach-action] failed", getErrorMessage(error));
   return { ok: false, error: "That action could not be completed. Check the server logs." } as T;
@@ -102,6 +112,8 @@ export async function saveOutreachCampaign(input: unknown): Promise<OutreachActi
       complianceNote: parsed.complianceNote,
       unsubscribeNote: parsed.unsubscribeNote,
       senderNameOverride: parsed.senderNameOverride,
+      minReadinessScore: parsed.minReadinessScore,
+      maxApprovedProspects: parsed.maxApprovedProspects,
     };
 
     const campaign = id

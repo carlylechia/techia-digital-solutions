@@ -324,6 +324,20 @@ export async function runAssessmentStage(prospectId: string) {
     minReadinessScore: prospect.campaign.minReadinessScore,
   });
 
+  const qualifies = qualification.status === "QUALIFIED";
+  const needsReview = qualification.status === "REVIEW";
+  const blocked = Boolean(reconciled.doNotContactReason);
+
+  const nextStatus = blocked
+    ? "DISQUALIFIED"
+    : qualifies
+      ? "QUALIFIED"
+      : needsReview
+        ? "READY_FOR_REVIEW"
+        : prospect.opportunityScore >= prospect.campaign.minOpportunityScore && !reconciled.doNotContactReason
+          ? "QUALIFIED"
+          : "DISQUALIFIED";
+
   // Historical assessments are appended, never overwritten.
   await prisma.$transaction(async (tx) => {
     await tx.outreachAssessment.updateMany({ where: { prospectId, isCurrent: true }, data: { isCurrent: false } });
@@ -351,13 +365,10 @@ export async function runAssessmentStage(prospectId: string) {
       },
     });
 
-    const qualifies = qualification.status === "QUALIFIED";
-    const blocked = Boolean(reconciled.doNotContactReason);
-
     await tx.outreachProspect.update({
       where: { id: prospectId },
       data: {
-        status: blocked ? "DISQUALIFIED" : qualifies ? "QUALIFIED" : "DISQUALIFIED",
+        status: nextStatus,
         opportunityScore: prospect.opportunityScore,
         recommendedServices: reconciled.recommendedServices,
         aiSummary: reconciled.summary,
@@ -372,10 +383,8 @@ export async function runAssessmentStage(prospectId: string) {
       },
     });
   });
-
-  const nextStatus = prospect.opportunityScore >= prospect.campaign.minOpportunityScore && !reconciled.doNotContactReason ? "QUALIFIED" : "DISQUALIFIED";
   await recordEvent({
-    type: nextStatus === "QUALIFIED" ? "QUALIFIED" : "DISQUALIFIED",
+    type: nextStatus === "QUALIFIED" ? "QUALIFIED" : nextStatus === "READY_FOR_REVIEW" ? "QUALIFIED" : "DISQUALIFIED",
     campaignId: prospect.campaignId,
     prospectId,
     summary: reconciled.summary.slice(0, 200),
@@ -396,9 +405,13 @@ export async function runAssessmentStage(prospectId: string) {
     campaignId: prospect.campaignId,
     from: prospect.status,
     to: nextStatus,
-    reason: nextStatus === "QUALIFIED" ? `Score ${prospect.opportunityScore} >= ${prospect.campaign.minOpportunityScore}` : "Below threshold or do-not-contact",
+    reason: nextStatus === "QUALIFIED"
+      ? `Score ${prospect.opportunityScore} >= ${prospect.campaign.minOpportunityScore}`
+      : nextStatus === "READY_FOR_REVIEW"
+        ? "Needs human review"
+        : "Below threshold or do-not-contact",
   });
-  await incrementDailyStat(prospect.campaignId, nextStatus === "QUALIFIED" ? "qualified" : "disqualified", 1, now);
+  await incrementDailyStat(prospect.campaignId, nextStatus === "QUALIFIED" || nextStatus === "READY_FOR_REVIEW" ? "qualified" : "disqualified", 1, now);
 
   if (nextStatus === "QUALIFIED") {
     await enqueueJob({

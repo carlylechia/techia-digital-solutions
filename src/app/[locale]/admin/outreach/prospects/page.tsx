@@ -232,10 +232,12 @@ export default async function AdminOutreachProspectsPage({
                     </span>
                     <span className="text-xs text-muted">/100</span>
                   </OutreachTd>
-                  <OutreachTd className="text-xs text-muted">{prospect.primaryOpportunity || "—"}</OutreachTd>
-                  <OutreachTd className="text-xs text-muted">
+                  <OutreachTd className="max-w-[180px] text-xs text-muted">
+                    <span className="break-words">{prospect.primaryOpportunity || "—"}</span>
+                  </OutreachTd>
+                  <OutreachTd className="max-w-[200px] text-xs text-muted">
                     {prospect.publicEmail ? (
-                      <a href={`mailto:${prospect.publicEmail}`} className="hover:text-accent">
+                      <a href={`mailto:${prospect.publicEmail}`} className="break-all hover:text-accent">
                         {prospect.publicEmail}
                       </a>
                     ) : (

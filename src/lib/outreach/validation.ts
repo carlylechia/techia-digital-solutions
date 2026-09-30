@@ -78,7 +78,7 @@ export const outreachCampaignSchema = z
     sendingWindowEnd: clockField.default("17:00"),
     timezone: timezoneField.default("Africa/Douala"),
     minReadinessScore: z.coerce.number().int().min(0).max(100).default(70),
-    maxApprovedProspects: z.coerce.number().int().min(1).max(500).optional().or(z.literal("")),
+    maxApprovedProspects: z.coerce.number().int().min(1).max(500).optional().or(z.literal("").transform(() => null)),
     // Provider selection is validated here on the server, so a client cannot
     // pin an arbitrary provider to bypass campaign or job controls.
     discoveryProviderMode: z.enum(DISCOVERY_PROVIDER_MODES).default("AUTO"),

@@ -46,12 +46,14 @@ export function OutreachStatCard({
   hint?: string;
   tone?: Tone;
 }) {
+  const isLongText = typeof value === "string" && value.length > 20;
   return (
     <div className="subtle-tile rounded-[1.25rem] px-4 py-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
       <p
         className={cn(
-          "mt-2 text-3xl font-semibold tabular-nums",
+          "mt-2 font-semibold tabular-nums",
+          isLongText ? "break-all text-lg" : "text-3xl",
           tone === "danger" && "text-red-300",
           tone === "warn" && "text-amber-300",
           tone === "good" && "text-emerald-300",

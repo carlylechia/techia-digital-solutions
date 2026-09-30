@@ -147,7 +147,7 @@ export default async function OutreachProspectDetailPage({ params }: { params: P
                   href={prospect.websiteUrl}
                   target="_blank"
                   rel="noreferrer nofollow noopener"
-                  className="text-accent hover:underline"
+                  className="break-all text-accent hover:underline"
                 >
                   {prospect.websiteUrl}
                 </a>
