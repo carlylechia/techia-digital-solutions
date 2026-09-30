@@ -90,11 +90,24 @@ function safeHref(value: string | null | undefined) {
 }
 
 function fromAddress(input: OutreachSendInput) {
+  // Use the same pattern as the main admin email service (lib/email.ts)
+  // to ensure compatibility with Resend's validation requirements.
   const explicit = cleanEnv(input.fromAddress ?? undefined) || cleanEnv(process.env.OUTREACH_FROM_EMAIL);
   const fallback = cleanEnv(process.env.RESEND_FROM_EMAIL) || "noreply@techiadigital.com";
   const address = explicit || fallback;
+  // If the address already contains a name (e.g., "Name <email>"), use it as-is
+  if (address.includes("<") && address.includes(">")) {
+    return address;
+  }
+  // If the address contains "Outreach", it's already a valid from string
+  if (address.includes("Outreach")) {
+    return address;
+  }
+  // Otherwise, format as "Name <email>" — but only if the name is simple
   const name = cleanEnv(input.fromName ?? undefined) || OUTREACH_SENDER.name;
-  return address.includes("Outreach") ? address : `${name} <${address}>`;
+  // Ensure the name doesn't contain characters that could break Resend's parsing
+  const safeName = name.replace(/[<>"\\]/g, "").trim();
+  return `${safeName} <${address}>`;
 }
 
 /**
