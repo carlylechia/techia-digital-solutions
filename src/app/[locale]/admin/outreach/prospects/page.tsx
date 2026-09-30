@@ -181,7 +181,7 @@ export default async function AdminOutreachProspectsPage({
             description="Clear the filters, or activate a campaign and run discovery to build an audience."
           />
         ) : (
-          <OutreachTable className="min-w-[1200px]">
+          <OutreachTable>
             <thead>
               <tr className="border-b border-border">
                 <OutreachTh>Business</OutreachTh>

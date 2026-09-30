@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { deleteOutreachCampaign, setOutreachCampaignStatus } from "@/app/[locale]/admin/outreach/actions";
+import { deleteOutreachCampaign, duplicateOutreachCampaign, setOutreachCampaignStatus } from "@/app/[locale]/admin/outreach/actions";
 import { OutreachButton } from "./outreach-ui";
 
 /**
@@ -45,12 +45,26 @@ export function OutreachCampaignActions({
     });
   }
 
+  function duplicate() {
+    setFeedback(null);
+    startTransition(async () => {
+      const result = await duplicateOutreachCampaign({ campaignId });
+      setFeedback(result.ok ? result.message : result.error);
+      if (result.ok) router.refresh();
+    });
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
         {canManage && status !== "ARCHIVED" ? (
           <OutreachButton type="button" tone="quiet" disabled={pending} onClick={archive}>
             Archive
+          </OutreachButton>
+        ) : null}
+        {canManage ? (
+          <OutreachButton type="button" tone="quiet" disabled={pending} onClick={duplicate}>
+            Duplicate
           </OutreachButton>
         ) : null}
         {canSend && status !== "ACTIVE" ? (

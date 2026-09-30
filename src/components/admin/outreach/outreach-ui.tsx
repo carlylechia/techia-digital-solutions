@@ -46,14 +46,14 @@ export function OutreachStatCard({
   hint?: string;
   tone?: Tone;
 }) {
-  const isLongText = typeof value === "string" && value.length > 20;
+  const isLongText = typeof value === "string" && value.length > 15;
   return (
-    <div className="subtle-tile rounded-[1.25rem] px-4 py-4">
+    <div className="subtle-tile overflow-hidden rounded-[1.25rem] px-4 py-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
       <p
         className={cn(
           "mt-2 font-semibold tabular-nums",
-          isLongText ? "break-all text-lg" : "text-3xl",
+          isLongText ? "break-all text-base leading-6" : "text-3xl",
           tone === "danger" && "text-red-300",
           tone === "warn" && "text-amber-300",
           tone === "good" && "text-emerald-300",
@@ -79,7 +79,7 @@ export function OutreachEmptyState({ title, description }: { title: string; desc
 
 export function OutreachTable({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("overflow-x-auto rounded-2xl border border-border bg-surface", className)}>
+    <div className={cn("max-w-full overflow-x-auto rounded-2xl border border-border bg-surface", className)}>
       <table className="w-full min-w-[720px] text-sm">{children}</table>
     </div>
   );

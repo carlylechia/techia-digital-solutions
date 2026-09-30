@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
   enqueueOutreachProspectJob,
+  instantAssessOutreachProspect,
+  instantGenerateOutreachMessage,
   recordOutreachReply,
   setOutreachProspectStatus,
   unsubscribeOutreachProspect,
@@ -53,13 +55,13 @@ export function OutreachProspectActions({
         <OutreachButton
           type="button"
           disabled={pending || !canManage}
-          onClick={() => run(() => enqueueOutreachProspectJob({ prospectId, step: "ASSESS" }))}
+          onClick={() => run(() => instantAssessOutreachProspect({ prospectId }))}
           className="px-4 py-2.5 text-base"
         >
           ⚡ Instant AI Assessment
         </OutreachButton>
         <p className="text-xs text-muted">
-          Runs AI analysis immediately to evaluate this prospect&apos;s digital presence and qualification.
+          Runs AI analysis immediately — no queue wait. Evaluates digital presence and qualification.
         </p>
       </div>
 
@@ -76,9 +78,9 @@ export function OutreachProspectActions({
           type="button"
           tone="good"
           disabled={pending || !canManage || !hasEmail}
-          onClick={() => run(() => enqueueOutreachProspectJob({ prospectId, step: "GENERATE_EMAIL" }))}
+          onClick={() => run(() => instantGenerateOutreachMessage({ prospectId }))}
         >
-          ✉️ Generate Message
+          ✉️ Generate Message Instantly
         </OutreachButton>
         <OutreachButton
           type="button"

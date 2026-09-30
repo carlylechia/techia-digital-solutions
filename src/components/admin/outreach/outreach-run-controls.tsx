@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import {
   runOutreachCampaignNow,
   runOutreachCampaignTest,
+  stopOutreachCampaignRun,
   type OutreachRunActionResult,
 } from "@/app/[locale]/admin/outreach/actions";
 import { OutreachButton } from "./outreach-ui";
@@ -88,6 +89,20 @@ export function OutreachRunControls({
   const busy = pending || state.kind === "busy";
   const locked = busy || runInProgress;
 
+  function stopRun() {
+    if (typeof window !== "undefined" && !window.confirm("Stop the current run? This will cancel all pending jobs and messages.")) return;
+    setState({ kind: "idle" });
+    startTransition(async () => {
+      const result = await stopOutreachCampaignRun({ campaignId });
+      if (result.ok) {
+        setState({ kind: "idle" });
+        router.refresh();
+      } else {
+        setState({ kind: "error", message: result.error });
+      }
+    });
+  }
+
   return (
     <div className="grid gap-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -107,6 +122,17 @@ export function OutreachRunControls({
         >
           {state.kind === "busy" && state.mode === "TEST" ? "Testing…" : "Test Run"}
         </OutreachButton>
+
+        {runInProgress ? (
+          <OutreachButton
+            type="button"
+            tone="danger"
+            disabled={busy || !canSend}
+            onClick={stopRun}
+          >
+            ⏹ Stop Run
+          </OutreachButton>
+        ) : null}
 
         {runInProgress && !busy ? (
           <span className="text-xs text-accent">A run is already in progress for this campaign.</span>

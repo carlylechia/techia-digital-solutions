@@ -685,6 +685,193 @@ export async function enqueueOutreachProspectJob(input: { prospectId: string; st
   }
 }
 
+/**
+ * Instant AI Assessment — runs the assessment pipeline stage directly,
+ * bypassing the job queue. This is a synchronous call that blocks until
+ * the AI assessment completes.
+ */
+export async function instantAssessOutreachProspect(input: { prospectId: string }): Promise<OutreachActionResult> {
+  try {
+    const actor = await requireOutreachActor("outreach.manage");
+    const db = await requireOutreachDatabase();
+    const prospectId = String(input.prospectId ?? "").slice(0, 64);
+    if (!prospectId) return { ok: false, error: "Invalid request." };
+
+    const prospect = await db.outreachProspect.findUnique({ where: { id: prospectId }, select: { id: true, campaignId: true, status: true } });
+    if (!prospect) return { ok: false, error: "Prospect not found." };
+
+    // Run the assessment stage directly (bypasses the queue)
+    const { runAssessmentStage } = await import("@/lib/outreach/pipeline");
+    const result = await runAssessmentStage(prospectId);
+
+    await auditOutreach({ actorId: actor.id, action: "outreach.assessment_instant", entityType: "OutreachProspect", entityId: prospectId, metadata: { status: result.status } });
+    revalidateOutreach(`/admin/outreach/prospects/${prospectId}`);
+    return { ok: true, message: `Assessment complete: ${result.status}` };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/**
+ * Instant Message Generation — runs the email generation pipeline stage
+ * directly, bypassing the job queue.
+ */
+export async function instantGenerateOutreachMessage(input: { prospectId: string }): Promise<OutreachActionResult> {
+  try {
+    const actor = await requireOutreachActor("outreach.manage");
+    const db = await requireOutreachDatabase();
+    const prospectId = String(input.prospectId ?? "").slice(0, 64);
+    if (!prospectId) return { ok: false, error: "Invalid request." };
+
+    const prospect = await db.outreachProspect.findUnique({ where: { id: prospectId }, select: { id: true, campaignId: true, status: true, publicEmail: true } });
+    if (!prospect) return { ok: false, error: "Prospect not found." };
+    if (!prospect.publicEmail) return { ok: false, error: "This prospect has no email address." };
+
+    // Run the email generation stage directly (bypasses the queue)
+    const { runEmailGenerationStage } = await import("@/lib/outreach/pipeline");
+    const result = await runEmailGenerationStage(prospectId, "INITIAL");
+
+    await auditOutreach({ actorId: actor.id, action: "outreach.message_instant", entityType: "OutreachProspect", entityId: prospectId, metadata: { status: result.status } });
+    revalidateOutreach(`/admin/outreach/prospects/${prospectId}`);
+    return { ok: true, message: `Message generated: ${result.status}` };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/**
+ * Stop a running campaign — cancels all pending jobs and marks the run as stopped.
+ */
+export async function stopOutreachCampaignRun(input: { campaignId: string }): Promise<OutreachActionResult> {
+  try {
+    const actor = await requireOutreachActor("outreach.send");
+    const db = await requireOutreachDatabase();
+    const campaignId = String(input.campaignId ?? "").slice(0, 64);
+    if (!campaignId) return { ok: false, error: "Invalid campaign." };
+
+    const campaign = await db.outreachCampaign.findUnique({ where: { id: campaignId }, select: { id: true, status: true, activeRunId: true } });
+    if (!campaign) return { ok: false, error: "Campaign not found." };
+
+    // Cancel all pending jobs
+    const cancelledJobs = await db.outreachJob.updateMany({
+      where: { campaignId, status: "PENDING" },
+      data: { status: "CANCELLED", completedAt: new Date() },
+    });
+
+    // Cancel queued/approved messages that haven't been sent
+    const cancelledMessages = await db.outreachMessage.updateMany({
+      where: { campaignId, status: { in: ["QUEUED", "APPROVED"] } },
+      data: { status: "CANCELLED", failureReason: "Run stopped by administrator." },
+    });
+
+    // Mark the run as stopped if there's an active one
+    if (campaign.activeRunId) {
+      await db.outreachRun.update({
+        where: { id: campaign.activeRunId },
+        data: { status: "CANCELLED", completedAt: new Date(), summary: "Stopped by administrator" },
+      });
+    }
+
+    // Clear the activeRunId
+    await db.outreachCampaign.update({
+      where: { id: campaignId },
+      data: { activeRunId: null },
+    });
+
+    await auditOutreach({ actorId: actor.id, action: "outreach.campaign_run_stopped", entityType: "OutreachCampaign", entityId: campaignId, metadata: { cancelledJobs: cancelledJobs.count, cancelledMessages: cancelledMessages.count } });
+    revalidateOutreach(`/admin/outreach/campaigns/${campaignId}`, "/admin/outreach/campaigns");
+    return { ok: true, message: `Run stopped. Cancelled ${cancelledJobs.count} job(s) and ${cancelledMessages.count} message(s).` };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
+/**
+ * Duplicate a campaign — creates a copy with "(Copy)" appended to the name.
+ */
+export async function duplicateOutreachCampaign(input: { campaignId: string }): Promise<OutreachActionResult> {
+  try {
+    const actor = await requireOutreachActor("outreach.manage");
+    const db = await requireOutreachDatabase();
+    const campaignId = String(input.campaignId ?? "").slice(0, 64);
+    if (!campaignId) return { ok: false, error: "Invalid campaign." };
+
+    const source = await db.outreachCampaign.findUnique({
+      where: { id: campaignId },
+      select: {
+        name: true,
+        description: true,
+        mode: true,
+        country: true,
+        regions: true,
+        cities: true,
+        industries: true,
+        businessTypes: true,
+        targetServices: true,
+        excludedIndustries: true,
+        excludedKeywords: true,
+        dailyDiscoveryLimit: true,
+        dailySendLimit: true,
+        minOpportunityScore: true,
+        dailyAiAssessLimit: true,
+        requireApproval: true,
+        followUpEnabled: true,
+        maxFollowUps: true,
+        sendingWindowStart: true,
+        sendingWindowEnd: true,
+        timezone: true,
+        discoveryProviderMode: true,
+        complianceBasis: true,
+        complianceNote: true,
+        senderNameOverride: true,
+        minReadinessScore: true,
+        maxApprovedProspects: true,
+      },
+    });
+    if (!source) return { ok: false, error: "Campaign not found." };
+
+    const newCampaign = await db.outreachCampaign.create({
+      data: {
+        name: `${source.name} (Copy)`,
+        description: source.description,
+        status: "DRAFT",
+        mode: source.mode,
+        country: source.country,
+        regions: source.regions,
+        cities: source.cities,
+        industries: source.industries,
+        businessTypes: source.businessTypes,
+        targetServices: source.targetServices,
+        excludedIndustries: source.excludedIndustries,
+        excludedKeywords: source.excludedKeywords,
+        dailyDiscoveryLimit: source.dailyDiscoveryLimit,
+        dailySendLimit: source.dailySendLimit,
+        minOpportunityScore: source.minOpportunityScore,
+        dailyAiAssessLimit: source.dailyAiAssessLimit,
+        requireApproval: source.requireApproval,
+        followUpEnabled: source.followUpEnabled,
+        maxFollowUps: source.maxFollowUps,
+        sendingWindowStart: source.sendingWindowStart,
+        sendingWindowEnd: source.sendingWindowEnd,
+        timezone: source.timezone,
+        discoveryProviderMode: source.discoveryProviderMode,
+        complianceBasis: source.complianceBasis,
+        complianceNote: source.complianceNote,
+        senderNameOverride: source.senderNameOverride,
+        minReadinessScore: source.minReadinessScore,
+        maxApprovedProspects: source.maxApprovedProspects,
+      },
+      select: { id: true },
+    });
+
+    await auditOutreach({ actorId: actor.id, action: "outreach.campaign_duplicated", entityType: "OutreachCampaign", entityId: newCampaign.id, metadata: { sourceCampaignId: campaignId } });
+    revalidateOutreach("/admin/outreach/campaigns", `/admin/outreach/campaigns/${newCampaign.id}`);
+    return { ok: true, message: `Campaign duplicated as "${source.name} (Copy)".` };
+  } catch (error) {
+    return toResult(error);
+  }
+}
+
 export async function cancelOutreachCampaignJobs(input: { campaignId: string }): Promise<OutreachActionResult> {
   try {
     const actor = await requireOutreachActor("outreach.send");
