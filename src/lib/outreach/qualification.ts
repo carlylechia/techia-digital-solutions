@@ -43,9 +43,9 @@ export type QualificationResult = {
 /**
  * Evaluate qualification conditions with a tiered approach.
  *
- * Hard blocks (suppressed, duplicate, always disqualify). Soft conditions
- * (evidence, service fit, opportunity) contribute to a points-based score.
- * A prospect with a contact method and reasonable readiness is at least REVIEW.
+ * Only suppressed prospects are a hard block. All other conditions are soft
+ * and contribute to a points-based score. A prospect with a high readiness
+ * score is at least REVIEW even when some conditions fail.
  */
 export function evaluateQualification(input: QualificationInput): QualificationResult {
   const hardFailures: string[] = [];
@@ -58,17 +58,17 @@ export function evaluateQualification(input: QualificationInput): QualificationR
     hardFailures.push("Prospect is suppressed");
   }
 
-  // 2. Duplicates are never qualified
+  // === SOFT CONDITIONS — contribute to score ===
+
+  // 2. Duplicates need review but don't auto-disqualify
   if (input.isDuplicate) {
-    hardFailures.push("Prospect is a duplicate");
+    softFailures.push("Prospect is a duplicate");
   }
 
   // 3. Already contacted in a conflicting campaign
   if (input.alreadyContacted) {
-    hardFailures.push("Already contacted in a conflicting campaign");
+    softFailures.push("Already contacted in a conflicting campaign");
   }
-
-  // === SOFT CONDITIONS — contribute to score ===
 
   // 4. Outreach Readiness Score >= threshold
   if (input.readinessScore < input.minReadinessScore) {
@@ -107,11 +107,11 @@ export function evaluateQualification(input: QualificationInput): QualificationR
     status = "DISQUALIFIED";
   } else if (softFailures.length === 0) {
     status = "QUALIFIED";
-  } else if (input.hasContactMethod && input.readinessScore >= input.minReadinessScore * 0.7) {
-    // Has contact method and reasonable readiness — needs human review
+  } else if (input.readinessScore >= input.minReadinessScore * 0.6) {
+    // Score is reasonably high but some conditions failed — needs human review
     status = "REVIEW";
-  } else if (input.hasContactMethod && input.readinessScore >= 30) {
-    // Has contact method but low readiness — still worth reviewing
+  } else if (input.readinessScore >= 30) {
+    // Has some readiness — still worth reviewing
     status = "REVIEW";
   } else {
     status = "DISQUALIFIED";
