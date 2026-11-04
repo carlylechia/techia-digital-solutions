@@ -2,6 +2,7 @@ import "server-only";
 
 import { Resend } from "resend";
 import { getErrorMessage } from "@/lib/prisma-errors";
+import { escapeEmailHtml, renderEmailLayout, safeEmailHref, sanitizeEmailHeader } from "@/lib/email-layout";
 import { OUTREACH_SENDER } from "./config";
 import { normalizeEmail } from "./limits";
 
@@ -56,38 +57,6 @@ function getOutreachResend() {
  * Strips control characters from a header value. Applied to the subject and to
  * the List-Unsubscribe URL, never to the body, so body formatting survives.
  */
-function stripControlCharacters(value: string, maxLength: number) {
-  return value
-    .replace(/[\r\n]+/g, " ")
-    .replace(/[\u0000-\u001F\u007F]/g, "")
-    .replace(/\s{2,}/g, " ")
-    .trim()
-    .slice(0, maxLength);
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-/**
- * Only absolute http/https links are ever emitted. Escaping alone is not enough
- * for an href, because a `javascript:` URL survives HTML escaping and still
- * executes in some mail clients.
- */
-function safeHref(value: string | null | undefined) {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
 
 function fromAddress(input: OutreachSendInput) {
   // Use the same pattern as the main admin email service (lib/email.ts)
@@ -116,17 +85,17 @@ function fromAddress(input: OutreachSendInput) {
  * address and a working one-click unsubscribe.
  */
 function complianceFooter(unsubscribeUrl: string | null, note: string | null) {
-  const href = safeHref(unsubscribeUrl);
+  const href = safeEmailHref(unsubscribeUrl);
   const unsubscribeBlock = href
-    ? `<p style="margin:0 0 8px;"><a href="${escapeHtml(href)}" style="color:#64748b;text-decoration:underline;">Unsubscribe from teChia business messages</a></p>`
+    ? `<p style="margin:0 0 10px;"><a href="${escapeEmailHtml(href)}" style="color:#94a3b8;text-decoration:underline;">Unsubscribe from teChia business messages</a></p>`
     : "";
-  const noteBlock = note ? `<p style="margin:0 0 8px;">${escapeHtml(note)}</p>` : "";
-  return `<div style="margin:0;padding:20px 32px;border-top:1px solid #1e1e2e;background:#0d0d1a;">
+  const noteBlock = note ? `<p style="margin:0 0 10px;color:#94a3b8;font-size:12px;line-height:1.7;">${escapeEmailHtml(note)}</p>` : "";
+  return `<div style="margin:0;">
     ${noteBlock}
     ${unsubscribeBlock}
-    <p style="margin:0;font-size:12px;color:#64748b;line-height:1.6;">
-      ${escapeHtml(OUTREACH_SENDER.name)} · ${escapeHtml(OUTREACH_SENDER.brand)} · ${escapeHtml(OUTREACH_SENDER.address)} ·
-      <a href="${escapeHtml(OUTREACH_SENDER.siteUrl)}" style="color:#06b6d4;text-decoration:none;">techiadigital.com</a>
+    <p style="margin:0;font-size:12px;color:#64748b;line-height:1.7;">
+      ${escapeEmailHtml(OUTREACH_SENDER.name)} · ${escapeEmailHtml(OUTREACH_SENDER.brand)} · ${escapeEmailHtml(OUTREACH_SENDER.address)} ·
+      <a href="${escapeEmailHtml(OUTREACH_SENDER.siteUrl)}" style="color:#06b6d4;text-decoration:none;">techiadigital.com</a>
     </p>
   </div>`;
 }
@@ -135,22 +104,17 @@ export function buildOutreachHtml(input: { subject: string; bodyText: string; un
   // The body is model-generated, so it is escaped rather than trusted. A prompt
   // injection that survives validation can therefore never inject markup or a
   // script into an email.
-  const subject = stripControlCharacters(input.subject, 180);
-  const bodyHtml = escapeHtml(input.bodyText.slice(0, 4_000)).replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br />");
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>${escapeHtml(subject)}</title></head>
-<body style="margin:0;padding:0;background:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0f;padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#111118;border:1px solid #1e1e2e;border-radius:16px;overflow:hidden;">
-        <tr><td style="padding:28px 32px;">
-          <p style="margin:0 0 18px;font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#06b6d4;">${escapeHtml(OUTREACH_SENDER.brand)}</p>
-          <p style="margin:0;font-size:15px;color:#e2e8f0;line-height:1.7;">${bodyHtml}</p>
-        </td></tr>
-        <tr><td>${complianceFooter(input.unsubscribeUrl, input.complianceNote)}</td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
+  const subject = sanitizeEmailHeader(input.subject, 180);
+  return renderEmailLayout({
+    subject,
+    // The first sentence doubles as an inbox preheader without duplicating the
+    // whole body in clients that render preview text.
+    preheader: input.bodyText.replace(/\s+/g, " ").trim().slice(0, 150),
+    eyebrow: OUTREACH_SENDER.brand,
+    title: subject,
+    bodyText: input.bodyText,
+    footerHtml: complianceFooter(input.unsubscribeUrl, input.complianceNote),
+  });
 }
 
 /**
@@ -179,13 +143,13 @@ export async function sendOutreachEmail(input: OutreachSendInput & { complianceN
 
   // Header injection and protocol confusion are both closed off by validating the
   // URL and stripping control characters before anything reaches the provider.
-  const listUnsubscribeUrl = safeHref(input.unsubscribeUrl);
+  const listUnsubscribeUrl = safeEmailHref(input.unsubscribeUrl);
   const headers: Record<string, string> = {};
   if (listUnsubscribeUrl) {
-    headers["List-Unsubscribe"] = `<${stripControlCharacters(listUnsubscribeUrl, 500)}>`;
+    headers["List-Unsubscribe"] = `<${sanitizeEmailHeader(listUnsubscribeUrl, 500)}>`;
     headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
   }
-  const subject = stripControlCharacters(input.subject, 180);
+  const subject = sanitizeEmailHeader(input.subject, 180);
   const from = fromAddress(input);
 
   try {

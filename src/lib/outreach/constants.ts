@@ -140,6 +140,89 @@ export const OUTREACH_SERVICE_LABELS: Record<string, string> = Object.fromEntrie
   OUTREACH_TARGET_SERVICES.map((entry) => [entry.value, entry.label])
 );
 
+/**
+ * Service playbooks used by the email writer.
+ *
+ * These are statements about what teChia can build, not claims about results or
+ * about the prospect. They give the model concrete, accurate language so an
+ * email can explain the relevant service without inventing capabilities,
+ * guarantees, prices or client stories.
+ */
+export type OutreachServicePlaybook = {
+  summary: string;
+  deliverables: string[];
+  /** What the service typically changes for a visitor or an operator. */
+  outcome: string;
+};
+
+export const OUTREACH_SERVICE_PLAYBOOK: Record<string, OutreachServicePlaybook> = {
+  WEBSITE: {
+    summary: "a fast, mobile-first business website that makes the company's services and next step obvious",
+    deliverables: ["clear service pages", "a mobile-friendly layout", "a visible enquiry path", "performance and SEO foundations"],
+    outcome: "visitors can understand the offer quickly and act without hunting for a contact route",
+  },
+  LEAD_CAPTURE: {
+    summary: "a structured enquiry journey that turns website interest into a usable business lead",
+    deliverables: ["a short, low-friction enquiry form", "clear confirmation messaging", "lead routing to the right inbox or workspace", "spam and duplicate protection"],
+    outcome: "enquiries arrive with the details needed to follow up instead of being lost in an unstructured inbox",
+  },
+  SEO_AND_GOOGLE_VISIBILITY: {
+    summary: "search and Google Business foundations that help the right local customers find the business",
+    deliverables: ["page titles and descriptions", "structured local content", "Google Business Profile alignment", "technical and internal-link checks"],
+    outcome: "the business is easier to find for the services and areas it already serves",
+  },
+  BOOKING_AND_QUOTES: {
+    summary: "an online booking or quote-request flow that removes manual back-and-forth",
+    deliverables: ["a guided request or appointment form", "availability or service selection", "confirmation messages", "a simple operator view"],
+    outcome: "customers can choose a time or request a quote at any hour without waiting for a reply",
+  },
+  ECOMMERCE: {
+    summary: "an online ordering or checkout experience built around the way the business actually sells",
+    deliverables: ["product or service listings", "a simple cart and checkout", "payment and delivery options", "order notifications"],
+    outcome: "customers can complete a purchase without a phone call or a direct message",
+  },
+  CATALOGUE: {
+    summary: "a clear online catalogue that presents the full range without a printed brochure",
+    deliverables: ["organised product or service categories", "searchable listings", "useful images and descriptions", "an enquiry action on each item"],
+    outcome: "visitors can explore the complete offer and start a conversation from the item that interests them",
+  },
+  SOCIAL_MEDIA: {
+    summary: "a practical social presence connected to the website and the sales process",
+    deliverables: ["profile alignment", "content pillars", "a simple publishing rhythm", "links back to the website's enquiry path"],
+    outcome: "social interest has a consistent route into the business rather than ending at a post",
+  },
+  BRANDING: {
+    summary: "a coherent visual and verbal identity that makes the business recognisable across every touchpoint",
+    deliverables: ["logo and colour direction", "typography and layout rules", "key message guidance", "templates for digital use"],
+    outcome: "the business looks consistent and credible wherever a customer meets it",
+  },
+  WORKFLOW_AUTOMATION: {
+    summary: "automation that connects enquiries, follow-ups and internal hand-offs so fewer steps depend on memory",
+    deliverables: ["enquiry routing", "automated acknowledgement and reminders", "status tracking", "a clear owner for each next step"],
+    outcome: "the team spends less time copying information and more time on the work that needs a person",
+  },
+  AI_ASSISTANT: {
+    summary: "a scoped AI assistant that answers common questions and captures the details a human needs",
+    deliverables: ["a knowledge base built from approved content", "guardrails for what it can answer", "lead capture and hand-off", "a reviewable conversation log"],
+    outcome: "routine questions are answered quickly while genuine enquiries reach the team with context",
+  },
+  BUSINESS_DASHBOARD: {
+    summary: "a single operational dashboard for the numbers and tasks that currently live across spreadsheets and messages",
+    deliverables: ["a focused set of metrics", "role-appropriate views", "data import or integration", "export and review workflows"],
+    outcome: "the team can see what needs attention without assembling a report by hand",
+  },
+  ANALYTICS: {
+    summary: "measurement that shows which pages, channels and enquiries actually produce business",
+    deliverables: ["event and conversion tracking", "a concise reporting view", "campaign and source attribution", "regular review checkpoints"],
+    outcome: "decisions are based on observed behaviour rather than assumptions",
+  },
+};
+
+export function getOutreachServicePlaybook(service: string | null | undefined): OutreachServicePlaybook {
+  if (!service) return OUTREACH_SERVICE_PLAYBOOK.WEBSITE;
+  return OUTREACH_SERVICE_PLAYBOOK[service] ?? OUTREACH_SERVICE_PLAYBOOK.WEBSITE;
+}
+
 export const OUTREACH_QUALIFICATION_STATUSES = ["QUALIFIED", "REVIEW", "DISQUALIFIED"] as const;
 export type OutreachQualificationStatusValue = (typeof OUTREACH_QUALIFICATION_STATUSES)[number];
 

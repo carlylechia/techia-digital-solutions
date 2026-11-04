@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import {
   convertAILeadToClientAction,
@@ -8,6 +8,7 @@ import {
   updateAILeadStatusAction,
 } from "@/app/[locale]/admin/actions";
 import type { Locale } from "@/content/site";
+import { AiEmailAssistant } from "@/components/admin/ai-email-assistant";
 
 const AI_LEAD_STATUSES = ["NEW", "CONTACTED", "QUALIFIED", "CLOSED", "CONVERTED"] as const;
 type AILeadStatus = (typeof AI_LEAD_STATUSES)[number];
@@ -88,19 +89,30 @@ export function AILeadEmailForm({
   leadName?: string | null;
   locale: Locale;
 }) {
-  const [state, action, pending] = useActionState(sendAILeadEmailAction, null);
-  const formRef = useRef<HTMLFormElement>(null);
-
-  useEffect(() => {
-    if (state?.success) formRef.current?.reset();
-  }, [state]);
-
   const defaultSubject = leadName
     ? `Following up — ${leadName}`
     : "Following up on your AI consultation";
+  const [subject, setSubject] = useState(defaultSubject);
+  const [body, setBody] = useState("");
+
+  // Clear the compose fields after a successful send. This is the last line of
+  // defence against a duplicate email being sent with the same content. The
+  // reset happens in the action wrapper rather than an effect so the fields are
+  // never briefly re-rendered with stale content.
+  const [state, action, pending] = useActionState(
+    async (previous: unknown, formData: FormData) => {
+      const result = await sendAILeadEmailAction(previous, formData);
+      if (result.success) {
+        setSubject("");
+        setBody("");
+      }
+      return result;
+    },
+    null
+  );
 
   return (
-    <form ref={formRef} action={action} className="flex flex-col gap-4">
+    <form action={action} className="flex flex-col gap-4">
       <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="leadId" value={leadId} />
 
@@ -120,7 +132,8 @@ export function AILeadEmailForm({
         <input
           name="subject"
           type="text"
-          defaultValue={defaultSubject}
+          value={subject}
+          onChange={(event) => setSubject(event.target.value)}
           required
           maxLength={180}
           className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none"
@@ -134,10 +147,23 @@ export function AILeadEmailForm({
           required
           rows={6}
           maxLength={10_000}
+          value={body}
+          onChange={(event) => setBody(event.target.value)}
           placeholder={`Hi ${leadName ?? "there"},\n\nThank you for your interest in our services…`}
           className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none resize-y"
         />
       </label>
+
+      <AiEmailAssistant
+        locale={locale}
+        contactName={leadName}
+        contactEmail={toEmail}
+        context={`AI consultation lead. Contact: ${leadName || "unknown"} (${toEmail}).`}
+        onDraft={(draft) => {
+          setSubject(draft.subject);
+          setBody(draft.body);
+        }}
+      />
 
       <button
         type="submit"

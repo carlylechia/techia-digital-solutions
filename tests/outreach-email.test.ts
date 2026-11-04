@@ -75,7 +75,7 @@ describe("outreach email rendering", () => {
 
   it("converts plain-text line breaks into paragraphs", () => {
     const html = buildOutreachHtml({ subject: "Hi", bodyText: "Line one\n\nLine two", unsubscribeUrl: null, complianceNote: null });
-    expect(html).toContain("</p><p>");
+    expect(html).toContain("</p><p style=");
   });
 
   it("always includes sender identity, address and the unsubscribe link", () => {
