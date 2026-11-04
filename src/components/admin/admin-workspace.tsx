@@ -104,6 +104,7 @@ import {
   deleteInquiryAction,
 } from "@/app/[locale]/admin/actions";
 import { AdminKanbanBoard } from "@/components/admin/admin-kanban-board";
+import { AiEmailAssistant } from "@/components/admin/ai-email-assistant";
 import { DatePicker } from "@/components/admin/date-picker";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useTheme } from "@/components/theme/theme-provider";
@@ -695,9 +696,27 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
             </Link>
           </div>
         ) : null}
-        {can("outreach.view") ? (
+        {can("requests.manage") || can("outreach.view") ? (
           <div className="mt-5 grid gap-2 border-t border-border pt-4">
             <p className="px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-accent">Growth</p>
+            {can("requests.manage") ? (
+              <Link
+                href="/admin/crm"
+                className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-background"
+              >
+                <span className="flex min-w-0 items-start gap-3">
+                  <Users className="mt-0.5 size-4 shrink-0 text-accent" />
+                  <span className="min-w-0">
+                    <span className="block break-words text-sm font-semibold text-primary">CRM</span>
+                    <span className="mt-0.5 block break-words text-xs text-muted">
+                      Contacts, conversations and AI-assisted email
+                    </span>
+                  </span>
+                </span>
+                <ExternalLink className="mt-0.5 size-4 shrink-0 text-muted" />
+              </Link>
+            ) : null}
+            {can("outreach.view") ? (
             <Link
               href="/admin/outreach"
               className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-background"
@@ -713,6 +732,7 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
               </span>
               <ExternalLink className="mt-0.5 size-4 shrink-0 text-muted" />
             </Link>
+            ) : null}
           </div>
         ) : null}
         {can("blog.dashboard.view") ? (
@@ -2857,15 +2877,36 @@ function RequestDetailDrawer({
 }) {
   const [clientState, clientAction, clientPending] = useActionState(createClientFromRequestAction, null);
   const [convState, convAction, convPending] = useActionState(createConversationAction, null);
-  const [emailState, emailAction, emailPending] = useActionState(sendConversationEmailAction, null);
   const [convertState, convertAction, convertPending] = useActionState(convertDemoToProjectAction, null);
   const [descState, descAction, descPending] = useActionState(updateDemoDescriptionAction, null);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const [emailInboundBody, setEmailInboundBody] = useState("");
+  const [emailInboundSubject, setEmailInboundSubject] = useState("");
+  const [emailInboundFrom, setEmailInboundFrom] = useState("");
+  const [showEmailInbound, setShowEmailInbound] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [editingDesc, setEditingDesc] = useState(false);
 
   const conv = request ? conversations.find((c) => c.requestType === request.type && c.requestId === request.id) : null;
+
+  // A sent message must not remain in the form. Clearing inside the action
+  // wrapper is the final guard against an accidental duplicate send.
+  const [emailState, emailAction, emailPending] = useActionState(
+    async (previous: unknown, formData: FormData) => {
+      const result = await sendConversationEmailAction(previous, formData);
+      if (result.success) {
+        setEmailSubject("");
+        setEmailBody("");
+        setEmailInboundBody("");
+        setEmailInboundSubject("");
+        setEmailInboundFrom("");
+        setShowEmailInbound(false);
+      }
+      return result;
+    },
+    null
+  );
 
   const handleWhatsapp = async () => {
     if (!request?.whatsapp) return;
@@ -3100,9 +3141,78 @@ function RequestDetailDrawer({
                   <form action={emailAction} className="grid gap-2">
                     <input type="hidden" name="locale" value={locale} />
                     <input type="hidden" name="conversationId" value={conv.id} />
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted">Compose</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowEmailInbound((value) => !value)}
+                        className="text-xs text-muted hover:text-primary"
+                      >
+                        {showEmailInbound ? "Hide received email" : "Paste received email"}
+                      </button>
+                    </div>
+                    {showEmailInbound ? (
+                      <div className="grid gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                        <input
+                          name="inboundFrom"
+                          value={emailInboundFrom}
+                          onChange={(e) => setEmailInboundFrom(e.target.value)}
+                          className="form-input text-sm"
+                          placeholder="Received from (email)"
+                        />
+                        <input
+                          name="inboundSubject"
+                          value={emailInboundSubject}
+                          onChange={(e) => setEmailInboundSubject(e.target.value)}
+                          className="form-input text-sm"
+                          placeholder="Received subject"
+                        />
+                        <textarea
+                          name="inboundBody"
+                          value={emailInboundBody}
+                          onChange={(e) => setEmailInboundBody(e.target.value)}
+                          className="form-input text-sm min-h-20"
+                          placeholder="Paste the email you received..."
+                        />
+                      </div>
+                    ) : null}
                     <input name="to" type="email" required defaultValue={request.email} className="form-input text-sm" placeholder="To (email)" />
                     <input name="subject" required value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} className="form-input text-sm" placeholder="Subject" />
                     <textarea name="body" required value={emailBody} onChange={(e) => setEmailBody(e.target.value)} className="form-input text-sm min-h-24" placeholder="Message..." />
+                    <AiEmailAssistant
+                      locale={locale}
+                      contactName={request.name}
+                      contactEmail={request.email}
+                      companyName={request.company}
+                      context={[
+                        `Request type: ${request.type}`,
+                        request.company ? `Company: ${request.company}` : null,
+                        request.demoTitle ? `Demo requested: ${request.demoTitle}` : null,
+                        request.projectNeed ? `Project need: ${request.projectNeed}` : null,
+                        request.businessType ? `Business type: ${request.businessType}` : null,
+                        request.budgetRange ? `Budget range: ${request.budgetRange}` : null,
+                        request.timeline ? `Timeline: ${request.timeline}` : null,
+                        request.country ? `Country: ${request.country}` : null,
+                        request.notes ? `Notes: ${request.notes}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join("\n")}
+                      inboundSubject={emailInboundSubject || undefined}
+                      history={conv?.messages.map((message) => ({
+                        direction: message.direction,
+                        subject: message.subject,
+                        body: message.body,
+                        sentAt: message.sentAt,
+                      }))}
+                      onDraft={(draft) => {
+                        setEmailSubject(draft.subject);
+                        setEmailBody(draft.body);
+                        if (draft.inboundBody) {
+                          setEmailInboundBody(draft.inboundBody);
+                          setShowEmailInbound(true);
+                        }
+                      }}
+                    />
                     <div className="flex flex-wrap gap-2">
                       <button type="submit" disabled={emailPending} className="flex items-center gap-1.5 rounded-lg bg-accent/10 border border-accent/20 px-3 py-2 text-xs font-semibold text-accent hover:bg-accent/20 transition disabled:opacity-60">
                         {emailPending ? <Loader2 className="size-3.5 animate-spin" /> : <Mail className="size-3.5" />}Send
@@ -3110,7 +3220,7 @@ function RequestDetailDrawer({
                       <button type="button" onClick={() => setShowEmailForm(false)} className="text-xs text-muted hover:text-primary">Cancel</button>
                     </div>
                     {emailState?.error ? <p className="text-xs text-red-400">{emailState.error}</p> : null}
-                    {emailState?.success ? <p className="text-xs text-emerald-400">Email sent.</p> : null}
+                    {emailState?.success ? <p className="text-xs text-emerald-400">Email sent. The form has been cleared.</p> : null}
                   </form>
                 ) : null}
               </div>
@@ -3151,15 +3261,34 @@ function InquiryDetailDrawer({
   const [notesState, notesAction, notesPending] = useActionState(updateInquiryNotesAction, null);
   const [convertState, convertAction, convertPending] = useActionState(convertInquiryToProjectAction, null);
   const [convState, convAction, convPending] = useActionState(createConversationAction, null);
-  const [emailState, emailAction, emailPending] = useActionState(sendConversationEmailAction, null);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const [emailInboundBody, setEmailInboundBody] = useState("");
+  const [emailInboundSubject, setEmailInboundSubject] = useState("");
+  const [emailInboundFrom, setEmailInboundFrom] = useState("");
+  const [showEmailInbound, setShowEmailInbound] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
 
   const conv = inquiry
     ? conversations.find((c) => c.requestType === "inquiry" && c.requestId === inquiry.id)
     : null;
+
+  const [emailState, emailAction, emailPending] = useActionState(
+    async (previous: unknown, formData: FormData) => {
+      const result = await sendConversationEmailAction(previous, formData);
+      if (result.success) {
+        setEmailSubject("");
+        setEmailBody("");
+        setEmailInboundBody("");
+        setEmailInboundSubject("");
+        setEmailInboundFrom("");
+        setShowEmailInbound(false);
+      }
+      return result;
+    },
+    null
+  );
 
   const handleWhatsapp = async () => {
     const number = inquiry?.lead?.whatsapp || inquiry?.lead?.phone;
@@ -3385,9 +3514,76 @@ function InquiryDetailDrawer({
                   <form action={emailAction} className="grid gap-2">
                     <input type="hidden" name="locale" value={locale} />
                     <input type="hidden" name="conversationId" value={conv.id} />
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted">Compose</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowEmailInbound((value) => !value)}
+                        className="text-xs text-muted hover:text-primary"
+                      >
+                        {showEmailInbound ? "Hide received email" : "Paste received email"}
+                      </button>
+                    </div>
+                    {showEmailInbound ? (
+                      <div className="grid gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                        <input
+                          name="inboundFrom"
+                          value={emailInboundFrom}
+                          onChange={(e) => setEmailInboundFrom(e.target.value)}
+                          className="form-input text-sm"
+                          placeholder="Received from (email)"
+                        />
+                        <input
+                          name="inboundSubject"
+                          value={emailInboundSubject}
+                          onChange={(e) => setEmailInboundSubject(e.target.value)}
+                          className="form-input text-sm"
+                          placeholder="Received subject"
+                        />
+                        <textarea
+                          name="inboundBody"
+                          value={emailInboundBody}
+                          onChange={(e) => setEmailInboundBody(e.target.value)}
+                          className="form-input text-sm min-h-20"
+                          placeholder="Paste the email you received..."
+                        />
+                      </div>
+                    ) : null}
                     <input name="to" type="email" required defaultValue={lead?.email ?? ""} className="form-input text-sm" placeholder="To (email)" />
                     <input name="subject" required value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} className="form-input text-sm" placeholder="Subject" />
                     <textarea name="body" required value={emailBody} onChange={(e) => setEmailBody(e.target.value)} className="form-input text-sm min-h-24" placeholder="Message…" />
+                    <AiEmailAssistant
+                      locale={locale}
+                      contactName={lead?.name}
+                      contactEmail={lead?.email}
+                      companyName={lead?.company}
+                      context={[
+                        lead?.company ? `Company: ${lead.company}` : null,
+                        inquiry.businessType ? `Business type: ${inquiry.businessType}` : null,
+                        inquiry.need ? `Need: ${inquiry.need}` : null,
+                        inquiry.budgetRange ? `Budget range: ${inquiry.budgetRange}` : null,
+                        inquiry.timeline ? `Timeline: ${inquiry.timeline}` : null,
+                        inquiry.details ? `Details: ${inquiry.details}` : null,
+                        inquiry.internalNotes ? `Internal notes: ${inquiry.internalNotes}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join("\n")}
+                      inboundSubject={emailInboundSubject || undefined}
+                      history={conv?.messages.map((message) => ({
+                        direction: message.direction,
+                        subject: message.subject,
+                        body: message.body,
+                        sentAt: message.sentAt,
+                      }))}
+                      onDraft={(draft) => {
+                        setEmailSubject(draft.subject);
+                        setEmailBody(draft.body);
+                        if (draft.inboundBody) {
+                          setEmailInboundBody(draft.inboundBody);
+                          setShowEmailInbound(true);
+                        }
+                      }}
+                    />
                     <div className="flex flex-wrap gap-2">
                       <button type="submit" disabled={emailPending} className="flex items-center gap-1.5 rounded-lg bg-accent/10 border border-accent/20 px-3 py-2 text-xs font-semibold text-accent hover:bg-accent/20 transition disabled:opacity-60">
                         {emailPending ? <Loader2 className="size-3.5 animate-spin" /> : <Mail className="size-3.5" />}Send
@@ -3395,7 +3591,7 @@ function InquiryDetailDrawer({
                       <button type="button" onClick={() => setShowEmailForm(false)} className="text-xs text-muted hover:text-primary">Cancel</button>
                     </div>
                     {emailState?.error ? <p className="text-xs text-red-400">{emailState.error}</p> : null}
-                    {emailState?.success ? <p className="text-xs text-emerald-400">Email sent.</p> : null}
+                    {emailState?.success ? <p className="text-xs text-emerald-400">Email sent. The form has been cleared.</p> : null}
                   </form>
                 ) : null}
               </div>

@@ -1,8 +1,9 @@
 import "server-only";
 
 import { z } from "zod";
-import { OUTREACH_AI_USAGE_REQUEST_TYPE, OUTREACH_SAFETY } from "./config";
+import { OUTREACH_AI_USAGE_REQUEST_TYPE, OUTREACH_PROMPTS, OUTREACH_SAFETY } from "./config";
 import { OUTREACH_REPLY_CATEGORIES, OUTREACH_SERVICE_LABELS, OUTREACH_TARGET_SERVICES } from "./constants";
+import type { OpportunityBrief } from "./opportunity-brief";
 import { OutreachAiError, callOutreachAi } from "./ai-client";
 import {
   ASSESSMENT_PROMPT_VERSION,
@@ -113,6 +114,7 @@ export async function runAssessment(input: {
   deterministicScore: number;
   recommendedByRules: string[];
   threshold: number;
+  verifiedGaps?: string[];
 }) {
   return callOutreachAi({
     system: ASSESSMENT_SYSTEM_PROMPT,
@@ -126,6 +128,7 @@ export async function runAssessment(input: {
       deterministicScore: input.deterministicScore,
       primaryServiceFromScore: input.recommendedByRules[0] ?? null,
       threshold: input.threshold,
+      verifiedGaps: input.verifiedGaps,
     }),
     schema: assessmentResultSchema,
     requestType: OUTREACH_AI_USAGE_REQUEST_TYPE.assessment,
@@ -137,8 +140,7 @@ export async function runEmailGeneration(input: {
   business: string;
   city: string;
   industry: string;
-  evidence: Record<string, unknown>;
-  primaryService: string;
+  brief: OpportunityBrief;
   messageType: "INITIAL" | "FOLLOW_UP_1" | "FOLLOW_UP_2";
   senderName: string;
 }) {
@@ -148,15 +150,13 @@ export async function runEmailGeneration(input: {
       business: input.business,
       city: input.city,
       industry: input.industry,
-      evidence: wrapUntrusted("website_evidence", input.evidence),
-      primaryService: input.primaryService,
-      primaryServiceLabel: OUTREACH_SERVICE_LABELS[input.primaryService] ?? "Digital improvement",
+      brief: input.brief,
       messageType: input.messageType,
       senderName: input.senderName,
     }),
     schema: emailResultSchema,
     requestType: OUTREACH_AI_USAGE_REQUEST_TYPE.email,
-    promptVersion: "OUTREACH_EMAIL_V1",
+    promptVersion: OUTREACH_PROMPTS.email,
   });
 }
 
