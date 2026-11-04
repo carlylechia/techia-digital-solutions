@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { escapeEmailHtml, renderEmailLayout, renderEmailText, safeEmailHref, sanitizeEmailHeader } from "@/lib/email-layout";
 
 /** Strip surrounding quotes that may be present if env values were pasted with quotes in Vercel. */
 function cleanEnv(value: string | undefined): string | undefined {
@@ -26,49 +27,21 @@ function officialInfo() {
   };
 }
 
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 function baseHtml(content: string, title: string) {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${title}</title>
-</head>
-<body style="margin:0;padding:0;background:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0f;padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#111118;border:1px solid #1e1e2e;border-radius:16px;overflow:hidden;">
-        <tr><td style="padding:32px 32px 0;border-bottom:1px solid #1e1e2e;">
-          <p style="margin:0 0 24px;font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#06b6d4;">teChia Digital Solutions</p>
-          <h1 style="margin:0 0 24px;font-size:22px;font-weight:700;color:#f8fafc;line-height:1.3;">${title}</h1>
-        </td></tr>
-        <tr><td style="padding:28px 32px;">${content}</td></tr>
-        <tr><td style="padding:24px 32px;border-top:1px solid #1e1e2e;background:#0d0d1a;">
-          <p style="margin:0;font-size:12px;color:#64748b;line-height:1.6;">
-            teChia Digital Solutions · <a href="https://techiadigital.com" style="color:#06b6d4;text-decoration:none;">techiadigital.com</a>
-          </p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  return renderEmailLayout({
+    subject: title,
+    title,
+    eyebrow: "teChia Digital Solutions",
+    bodyHtml: content,
+    footerHtml: `<p style="margin:0;font-size:12px;color:#64748b;line-height:1.7;">teChia Digital Solutions · <a href="https://techiadigital.com" style="color:#06b6d4;text-decoration:none;">techiadigital.com</a></p>`,
+  });
 }
 
 function fieldRow(label: string, value: string | null | undefined) {
   if (!value) return "";
   return `<tr>
-    <td style="padding:8px 0;font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;width:130px;vertical-align:top;">${label}</td>
-    <td style="padding:8px 0 8px 16px;font-size:14px;color:#e2e8f0;vertical-align:top;">${value}</td>
+    <td style="padding:8px 0;font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;width:130px;vertical-align:top;">${escapeEmailHtml(label)}</td>
+    <td style="padding:8px 0 8px 16px;font-size:14px;color:#e2e8f0;vertical-align:top;">${escapeEmailHtml(value)}</td>
   </tr>`;
 }
 
@@ -88,7 +61,8 @@ export async function sendLeadEmail(subject: string, html: string) {
     console.warn("[email] sendLeadEmail skipped: no recipient email configured (OFFICIAL_EMAIL / CONTACT_TO_EMAIL / ADMIN_EMAIL)");
     return { skipped: true };
   }
-  const { data, error } = await resend.emails.send({ from: info.from, to: info.email, replyTo: info.replyTo, subject, html });
+  const safeSubject = sanitizeEmailHeader(subject, 250);
+  const { data, error } = await resend.emails.send({ from: info.from, to: info.email, replyTo: info.replyTo, subject: safeSubject, html });
   if (error) {
     console.error("[email] sendLeadEmail failed — Resend API error", {
       name: error.name,
@@ -115,10 +89,10 @@ export async function sendContactNotification(data: {
     ])}
     <div style="background:#0a0a0f;border:1px solid #1e1e2e;border-radius:12px;padding:20px;margin:16px 0;">
       <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Message</p>
-      <p style="margin:0;font-size:14px;color:#e2e8f0;white-space:pre-wrap;line-height:1.7;">${data.message}</p>
+      <p style="margin:0;font-size:14px;color:#e2e8f0;white-space:pre-wrap;line-height:1.7;">${escapeEmailHtml(data.message)}</p>
     </div>
     ${data.whatsapp ? `<p style="margin:16px 0 0;"><a href="https://wa.me/${data.whatsapp.replace(/\D/g, "")}" style="background:#25D366;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Reply on WhatsApp</a></p>` : ""}
-    <p style="margin:16px 0 0;"><a href="mailto:${data.email}" style="background:#06b6d4;color:#0a0a0f;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Reply via Email</a></p>
+    <p style="margin:16px 0 0;"><a href="mailto:${escapeEmailHtml(data.email)}" style="background:#06b6d4;color:#0a0a0f;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Reply via Email</a></p>
   `;
   return sendLeadEmail(`New contact from ${data.name} · teChia`, baseHtml(content, `New contact: ${data.name}`));
 }
@@ -137,10 +111,10 @@ export async function sendProjectInquiryNotification(data: {
     ])}
     ${data.details ? `<div style="background:#0a0a0f;border:1px solid #1e1e2e;border-radius:12px;padding:20px;margin:16px 0;">
       <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Project Details</p>
-      <p style="margin:0;font-size:14px;color:#e2e8f0;white-space:pre-wrap;line-height:1.7;">${data.details}</p>
+      <p style="margin:0;font-size:14px;color:#e2e8f0;white-space:pre-wrap;line-height:1.7;">${escapeEmailHtml(data.details)}</p>
     </div>` : ""}
     ${data.whatsapp ? `<p style="margin:16px 0 0;"><a href="https://wa.me/${data.whatsapp.replace(/\D/g, "")}" style="background:#25D366;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Reply on WhatsApp</a></p>` : ""}
-    <p style="margin:8px 0 0;"><a href="mailto:${data.email}" style="background:#06b6d4;color:#0a0a0f;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Reply via Email</a></p>
+    <p style="margin:8px 0 0;"><a href="mailto:${escapeEmailHtml(data.email)}" style="background:#06b6d4;color:#0a0a0f;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Reply via Email</a></p>
   `;
   return sendLeadEmail(`New project inquiry from ${data.name} · teChia`, baseHtml(content, `Project inquiry: ${data.name}`));
 }
@@ -156,10 +130,10 @@ export async function sendDemoRequestNotification(data: {
     ])}
     ${data.message ? `<div style="background:#0a0a0f;border:1px solid #1e1e2e;border-radius:12px;padding:20px;margin:16px 0;">
       <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Message</p>
-      <p style="margin:0;font-size:14px;color:#e2e8f0;white-space:pre-wrap;line-height:1.7;">${data.message}</p>
+      <p style="margin:0;font-size:14px;color:#e2e8f0;white-space:pre-wrap;line-height:1.7;">${escapeEmailHtml(data.message)}</p>
     </div>` : ""}
     ${data.whatsapp ? `<p style="margin:16px 0 0;"><a href="https://wa.me/${data.whatsapp.replace(/\D/g, "")}" style="background:#25D366;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Reply on WhatsApp</a></p>` : ""}
-    <p style="margin:8px 0 0;"><a href="mailto:${data.email}" style="background:#06b6d4;color:#0a0a0f;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Reply via Email</a></p>
+    <p style="margin:8px 0 0;"><a href="mailto:${escapeEmailHtml(data.email)}" style="background:#06b6d4;color:#0a0a0f;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Reply via Email</a></p>
   `;
   return sendLeadEmail(`New demo request from ${data.name} · teChia`, baseHtml(content, `Demo request: ${data.name}`));
 }
@@ -186,15 +160,23 @@ export async function sendOutboundEmail(options: {
     );
   }
 
-  const content = options.html || `<div style="font-size:15px;color:#e2e8f0;line-height:1.7;white-space:pre-wrap;">${options.body.replace(/[<>]/g, (c) => (c === "<" ? "&lt;" : "&gt;")).replace(/\n/g, "<br>")}</div>`;
-  const html = options.html ? content : baseHtml(content, options.subject);
+  const safeSubject = sanitizeEmailHeader(options.subject, 180);
+  const html = options.html
+    ? options.html
+    : renderEmailLayout({
+        subject: safeSubject,
+        title: safeSubject,
+        eyebrow: "teChia Digital Solutions",
+        bodyHtml: renderEmailText(options.body),
+        footerHtml: `<p style="margin:0;font-size:12px;color:#64748b;line-height:1.7;">teChia Digital Solutions · <a href="https://techiadigital.com" style="color:#06b6d4;text-decoration:none;">techiadigital.com</a></p>`,
+      });
 
   const from = options.from || info.from;
   const { data, error } = await resend.emails.send({
     from,
     to: options.to,
     replyTo: options.replyTo || info.replyTo,
-    subject: options.subject,
+    subject: safeSubject,
     html,
     text: options.text || options.body,
     attachments: options.attachments?.map((attachment) => ({
@@ -211,12 +193,12 @@ export async function sendOutboundEmail(options: {
       statusCode: error.statusCode,
       from,
       to: options.to,
-      subject: options.subject
+      subject: safeSubject
     });
     throw new Error(`Failed to send email (${error.name}): ${error.message}`);
   }
 
-  console.info("[email] sendOutboundEmail delivered", { id: data?.id, to: options.to, subject: options.subject });
+  console.info("[email] sendOutboundEmail delivered", { id: data?.id, to: options.to, subject: safeSubject });
   return { skipped: false, id: data?.id };
 }
 
@@ -231,6 +213,7 @@ export async function sendCourseBonusClaimNotification(data: {
   proofNotes?: string | null;
   proofUrl?: string | null;
 }) {
+  const safeProofUrl = data.proofUrl ? safeEmailHref(data.proofUrl) : null;
   const content = `
     <p style="color:#94a3b8;font-size:14px;margin:0 0 16px;">A new course bonus claim was submitted and is ready for admin review.</p>
     ${infoTable([
@@ -243,13 +226,13 @@ export async function sendCourseBonusClaimNotification(data: {
     ])}
     <div style="background:#0a0a0f;border:1px solid #1e1e2e;border-radius:12px;padding:20px;margin:16px 0;">
       <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Requested bonus files</p>
-      <p style="margin:0;font-size:14px;color:#e2e8f0;line-height:1.7;">${data.requestedBonusTitles.join("<br />")}</p>
+      <p style="margin:0;font-size:14px;color:#e2e8f0;line-height:1.7;">${data.requestedBonusTitles.map(escapeEmailHtml).join("<br />")}</p>
     </div>
     ${data.proofNotes ? `<div style="background:#0a0a0f;border:1px solid #1e1e2e;border-radius:12px;padding:20px;margin:16px 0;">
       <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Proof notes</p>
-      <p style="margin:0;font-size:14px;color:#e2e8f0;white-space:pre-wrap;line-height:1.7;">${data.proofNotes}</p>
+      <p style="margin:0;font-size:14px;color:#e2e8f0;white-space:pre-wrap;line-height:1.7;">${escapeEmailHtml(data.proofNotes)}</p>
     </div>` : ""}
-    ${data.proofUrl ? `<p style="margin:16px 0 0;"><a href="${data.proofUrl}" style="background:#06b6d4;color:#0a0a0f;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">View uploaded proof</a></p>` : ""}
+    ${safeProofUrl ? `<p style="margin:16px 0 0;"><a href="${escapeEmailHtml(safeProofUrl)}" style="background:#06b6d4;color:#0a0a0f;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">View uploaded proof</a></p>` : ""}
   `;
   return sendLeadEmail(
     `New academy bonus claim from ${data.buyerName} · teChia`,
@@ -263,9 +246,9 @@ export async function sendWriterInviteEmail(data: {
   temporaryPassword: string;
   loginUrl: string;
 }) {
-  const name = escapeHtml(data.toName);
-  const password = escapeHtml(data.temporaryPassword);
-  const loginUrl = escapeHtml(data.loginUrl);
+  const name = escapeEmailHtml(data.toName);
+  const password = escapeEmailHtml(data.temporaryPassword);
+  const safeLoginUrl = safeEmailHref(data.loginUrl);
   const subject = "Your teChia writer account";
   const text = [
     `Hello ${data.toName},`,
@@ -291,7 +274,7 @@ export async function sendWriterInviteEmail(data: {
       <pre style="margin:0;padding:16px;background:#111827;border:1px solid #334155;border-radius:10px;color:#f8fafc;font-family:Menlo,Monaco,Consolas,'Courier New',monospace;font-size:20px;line-height:1.4;letter-spacing:0.04em;word-break:break-all;user-select:all;-webkit-user-select:all;">${password}</pre>
       <p style="margin:12px 0 0;color:#94a3b8;font-size:12px;line-height:1.6;">Select the password above and copy it directly into the password field.</p>
     </div>
-    <p style="margin:0 0 20px;"><a href="${loginUrl}" style="display:inline-block;background:#06b6d4;color:#04101c;text-decoration:none;padding:13px 22px;border-radius:9px;font-size:14px;font-weight:700;">Open writer sign-in</a></p>
+    ${safeLoginUrl ? `<p style="margin:0 0 20px;"><a href="${escapeEmailHtml(safeLoginUrl)}" style="display:inline-block;background:#06b6d4;color:#04101c;text-decoration:none;padding:13px 22px;border-radius:9px;font-size:14px;font-weight:700;">Open writer sign-in</a></p>` : `<p style="margin:0 0 20px;font-size:13px;color:#94a3b8;">Sign-in URL: ${escapeEmailHtml(data.loginUrl)}</p>`}
     <p style="color:#94a3b8;font-size:14px;line-height:1.7;margin:0 0 16px;">After signing in, open your Author profile and change the temporary password.</p>
     <p style="color:#94a3b8;font-size:13px;line-height:1.7;margin:0;">This account can only access your own drafts, author profile, media uploads, and review submissions. It cannot publish or manage site settings.</p>
   `;
@@ -326,7 +309,7 @@ export async function sendDemoLabNotification(data: {
   projectNeed?: string | null; budgetRange?: string | null; timeline?: string | null; source?: string;
 }) {
   const content = `
-    <p style="color:#94a3b8;font-size:14px;margin:0 0 16px;">A new Demo Lab request was submitted from <strong style="color:#f8fafc;">${data.demoTitle}</strong>.</p>
+    <p style="color:#94a3b8;font-size:14px;margin:0 0 16px;">A new Demo Lab request was submitted from <strong style="color:#f8fafc;">${escapeEmailHtml(data.demoTitle)}</strong>.</p>
     ${infoTable([
       ["Name", data.name], ["Email", data.email], ["Phone", data.phone],
       ["WhatsApp", data.whatsapp], ["Company", data.companyName],
@@ -337,10 +320,10 @@ export async function sendDemoLabNotification(data: {
     ])}
     ${data.projectNeed ? `<div style="background:#0a0a0f;border:1px solid #1e1e2e;border-radius:12px;padding:20px;margin:16px 0;">
       <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">What They Want to Build</p>
-      <p style="margin:0;font-size:14px;color:#e2e8f0;white-space:pre-wrap;line-height:1.7;">${data.projectNeed}</p>
+      <p style="margin:0;font-size:14px;color:#e2e8f0;white-space:pre-wrap;line-height:1.7;">${escapeEmailHtml(data.projectNeed)}</p>
     </div>` : ""}
     ${data.whatsapp ? `<p style="margin:16px 0 0;"><a href="https://wa.me/${data.whatsapp.replace(/\D/g, "")}" style="background:#25D366;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Reply on WhatsApp</a></p>` : ""}
-    <p style="margin:8px 0 0;"><a href="mailto:${data.email}" style="background:#06b6d4;color:#0a0a0f;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Reply via Email</a></p>
+    <p style="margin:8px 0 0;"><a href="mailto:${escapeEmailHtml(data.email)}" style="background:#06b6d4;color:#0a0a0f;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">Reply via Email</a></p>
   `;
   return sendLeadEmail(
     `New Demo Lab request from ${data.name} · ${data.demoTitle} · teChia`,
@@ -361,9 +344,14 @@ export async function sendPortalInviteEmail(data: {
   if (!resend) return { skipped: true, error: "Email service not configured." };
   if (!data.toEmail) return { skipped: true, error: "No client email on file." };
 
+  const portalName = escapeEmailHtml(data.toName);
+  const portalEmail = escapeEmailHtml(data.toEmail);
+  const portalCode = escapeEmailHtml(data.accessCode);
+  const safePortalLoginUrl = safeEmailHref(data.loginUrl);
+
   const content = `
     <p style="color:#94a3b8;font-size:15px;margin:0 0 24px;line-height:1.7;">
-      Hello <strong style="color:#f8fafc;">${data.toName}</strong>,
+      Hello <strong style="color:#f8fafc;">${portalName}</strong>,
     </p>
     <p style="color:#94a3b8;font-size:15px;margin:0 0 24px;line-height:1.7;">
       Your dedicated client portal is ready. Use the credentials below to log in and access your projects, invoices, files, and messages from our team — all in one place.
@@ -373,20 +361,20 @@ export async function sendPortalInviteEmail(data: {
       <tr>
         <td style="padding:6px 0;">
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#64748b;">Email</p>
-          <p style="margin:0;font-size:15px;color:#e2e8f0;">${data.toEmail}</p>
+          <p style="margin:0;font-size:15px;color:#e2e8f0;">${portalEmail}</p>
         </td>
       </tr>
       <tr><td style="padding:12px 0 0;">
         <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#64748b;">Access Code</p>
         <div style="display:inline-block;background:#0f172a;border:1.5px solid #06b6d4;border-radius:10px;padding:12px 24px;">
-          <span style="font-family:'Courier New',Courier,monospace;font-size:26px;font-weight:700;letter-spacing:0.35em;color:#06b6d4;">${data.accessCode}</span>
+          <span style="font-family:'Courier New',Courier,monospace;font-size:26px;font-weight:700;letter-spacing:0.35em;color:#06b6d4;">${portalCode}</span>
         </div>
       </td></tr>
     </table>
 
-    <p style="margin:0 0 24px;">
-      <a href="${data.loginUrl}" style="display:inline-block;background:linear-gradient(135deg,#06b6d4,#3b82f6);color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:700;letter-spacing:0.02em;">Access Your Portal →</a>
-    </p>
+    ${safePortalLoginUrl ? `<p style="margin:0 0 24px;">
+      <a href="${escapeEmailHtml(safePortalLoginUrl)}" style="display:inline-block;background:linear-gradient(135deg,#06b6d4,#3b82f6);color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:700;letter-spacing:0.02em;">Access Your Portal →</a>
+    </p>` : `<p style="margin:0 0 24px;font-size:13px;color:#94a3b8;">Portal URL: ${escapeEmailHtml(data.loginUrl)}</p>`}
 
     <p style="color:#64748b;font-size:13px;margin:0 0 8px;line-height:1.7;">
       Your portal gives you real-time visibility into your project progress, file deliveries, invoices, and direct messaging with our team.
