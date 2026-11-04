@@ -14,8 +14,9 @@ import { evaluateQualification } from "./qualification";
 import { canGenerateOutreach } from "./limits";
 import { getOutreachDailyTokenUsage } from "./ai-client";
 import { OutreachJobError } from "./jobs";
-import { reconcileAssessment, runAssessment, runEmailGeneration } from "./ai-services";
+import { OutreachAiError, reconcileAssessment, runAssessment, runEmailGeneration } from "./ai-services";
 import { enqueueJob } from "./jobs";
+import { buildFallbackEmail, buildOpportunityBrief, finalizeEmailDraft } from "./opportunity-brief";
 
 /**
  * Pipeline stages that turn a discovered place into a reviewable, evidence-backed
@@ -31,6 +32,60 @@ function googleEvidenceFor(snapshot: WebsiteSnapshot | null, rating: number | nu
     primaryType: snapshot?.errorCategory === null ? "unknown" : "unknown",
     websiteListed: Boolean(snapshot),
   };
+}
+
+/**
+ * A neutral snapshot for records that were created before enrichment ran, or
+ * whose stored snapshot is missing. It carries no implied facts: every signal is
+ * false and the error category says the site was not inspected.
+ */
+function emptyWebsiteSnapshot(errorCategory: string): WebsiteSnapshot {
+  return {
+    fetchedAt: new Date().toISOString(),
+    url: "",
+    status: 0,
+    https: false,
+    title: null,
+    metaDescription: null,
+    hasH1: false,
+    h1Text: null,
+    viewportPresent: false,
+    canonicalPresent: false,
+    textExcerpt: "",
+    socialPlatforms: [],
+    contactMethods: [],
+    trustSignals: [],
+    testimonialSignals: 0,
+    leadCaptureForm: false,
+    hasBooking: false,
+    hasQuoteOrForm: false,
+    hasEcommerce: false,
+    hasCatalogue: false,
+    clearCallToAction: false,
+    hoursOrLocationInfo: false,
+    repetitiveContentBlocks: 0,
+    existingChatOrAutomation: false,
+    localAreaSignals: [],
+    serviceKeywords: [],
+    industryKeywords: [],
+    contactPageUrl: null,
+    publishedEmails: [],
+    robotsRespected: true,
+    errorCategory,
+    hasPropertyListings: false,
+    hasPropertyEnquiry: false,
+    hasPhoneCta: false,
+    hasWhatsAppCta: false,
+    hasViewingRequest: false,
+    hasLocationInfo: false,
+    hasServicesListed: false,
+    hasAgentProfiles: false,
+    hasPropertyReviews: false,
+  };
+}
+
+function scoringEvidenceFor(snapshot: WebsiteSnapshot | null) {
+  return snapshot ? evidenceFrom(snapshot) : evidenceFrom(emptyWebsiteSnapshot("no_snapshot"));
 }
 
 export async function runEnrichment(prospectId: string) {
@@ -194,18 +249,6 @@ export async function runAssessmentStage(prospectId: string) {
   if (!prospect) throw new OutreachJobError("Prospect not found", { retryable: false });
   if (prospect.status === "DISQUALIFIED") return { skipped: "disqualified" as const };
 
-  // Ensure the new fields are available (they may be null for older records).
-  const prospectWithReadiness = {
-    ...prospect,
-    outreachReadinessScore: prospect.outreachReadinessScore ?? 0,
-    qualificationStatus: prospect.qualificationStatus ?? null,
-    qualificationConfidence: prospect.qualificationConfidence ?? null,
-    primaryOpportunity: prospect.primaryOpportunity ?? null,
-    qualificationReason: prospect.qualificationReason ?? null,
-    disqualificationReason: prospect.disqualificationReason ?? null,
-    recommendedNextAction: prospect.recommendedNextAction ?? null,
-  };
-
   const dayStart = startOfUtcDay();
   const assessedToday = await prisma.outreachJob.count({
     where: { campaignId: prospect.campaignId, type: "ASSESS", status: "COMPLETED", createdAt: { gte: dayStart } },
@@ -244,6 +287,21 @@ export async function runAssessmentStage(prospectId: string) {
   };
   const socialEvidence = { platforms: snapshot?.socialPlatforms ?? [], testimonials: snapshot?.testimonialSignals ?? 0 };
 
+  // The brief is deterministic. It is built before the model call so the model
+  // sees the same facts an operator can audit, and it is reused for the
+  // qualification decision rather than trusting the model's self-assessment.
+  const evidence = scoringEvidenceFor(snapshot);
+  const websiteInspectionFailed = Boolean(prospect.websiteUrl) && (!snapshot || Boolean(snapshot.errorCategory));
+  const brief = buildOpportunityBrief({
+    businessName: prospect.businessName,
+    city: prospect.city,
+    industry: prospect.industry,
+    evidence,
+    preferredService: prospect.recommendedServices[0] ?? null,
+    websiteUrl: prospect.websiteUrl,
+    websiteInspectionFailed,
+  });
+
   const result = await runAssessment({
     business: prospect.businessName,
     location: [prospect.city, prospect.region, prospect.country].filter(Boolean).join(", ") || "unknown",
@@ -254,6 +312,7 @@ export async function runAssessmentStage(prospectId: string) {
     deterministicScore: prospect.opportunityScore,
     recommendedByRules: prospect.recommendedServices,
     threshold: prospect.campaign.minOpportunityScore,
+    verifiedGaps: brief.gaps.slice(0, 4).map((gap) => gap.observation),
   });
 
   const reconciled = reconcileAssessment(
@@ -262,81 +321,43 @@ export async function runAssessmentStage(prospectId: string) {
     result.data
   );
 
-  // Compute qualification using the hard rules.
-  // Rebuild evidence from the stored snapshot for the qualification input.
-  const evidence = snapshot
-    ? evidenceFrom(snapshot)
-    : evidenceFrom({
-        fetchedAt: new Date().toISOString(),
-        url: "",
-        status: 0,
-        https: false,
-        title: null,
-        metaDescription: null,
-        hasH1: false,
-        h1Text: null,
-        viewportPresent: false,
-        canonicalPresent: false,
-        textExcerpt: "",
-        socialPlatforms: [],
-        contactMethods: [],
-        trustSignals: [],
-        testimonialSignals: 0,
-        leadCaptureForm: false,
-        hasBooking: false,
-        hasQuoteOrForm: false,
-        hasEcommerce: false,
-        hasCatalogue: false,
-        clearCallToAction: false,
-        hoursOrLocationInfo: false,
-        repetitiveContentBlocks: 0,
-        existingChatOrAutomation: false,
-        localAreaSignals: [],
-        serviceKeywords: [],
-        industryKeywords: [],
-        contactPageUrl: null,
-        publishedEmails: [],
-        robotsRespected: true,
-        errorCategory: "no_snapshot",
-        hasPropertyListings: false,
-        hasPropertyEnquiry: false,
-        hasPhoneCta: false,
-        hasWhatsAppCta: false,
-        hasViewingRequest: false,
-        hasLocationInfo: false,
-        hasServicesListed: false,
-        hasAgentProfiles: false,
-        hasPropertyReviews: false,
-      } as WebsiteSnapshot);
+  // The deterministic gap wins over the model's service preference. The model
+  // may explain the opportunity, but it cannot invent one.
+  const groundedService = brief.primaryGap?.service ?? reconciled.primaryService;
+  const groundedServices = brief.primaryGap && !reconciled.recommendedServices.includes(brief.service)
+    ? [brief.service, ...reconciled.recommendedServices].slice(0, 6)
+    : reconciled.recommendedServices;
+
   const readiness = scoreReadiness(evidence);
   const qualification = evaluateQualification({
-    readinessScore: prospectWithReadiness.outreachReadinessScore,
+    // Recompute from evidence rather than a stale stored number. Older records
+    // may have a 0 stored even though their snapshot is rich.
+    readinessScore: readiness.total,
     readiness,
     evidence,
-    hasConcreteOpportunity: reconciled.opportunities.length > 0,
+    hasConcreteOpportunity: brief.gaps.length > 0,
     hasContactMethod: prospect.publicEmail !== null || prospect.publicPhone !== null,
     appearsActive: prospect.websiteSnapshot !== null || prospect.googlePlaceId !== null,
-    hasServiceFit: reconciled.recommendedServices.length > 0,
+    hasServiceFit: Boolean(brief.primaryGap?.service || reconciled.recommendedServices.length > 0),
     isSuppressed: false, // Checked at send time
     isDuplicate: prospect.possibleDuplicateOfId !== null,
     alreadyContacted: prospect.emailsSentCount > 0,
-    hasEnoughEvidence: reconciled.observations.length > 0,
+    // A blocked or missing page is not evidence of a weak site, but an
+    // inspected page (even a healthy one) is enough to personalize from.
+    hasEnoughEvidence: brief.gaps.length > 0 || Boolean(snapshot && !snapshot.errorCategory),
     minReadinessScore: prospect.campaign.minReadinessScore,
   });
 
-  const qualifies = qualification.status === "QUALIFIED";
-  const needsReview = qualification.status === "REVIEW";
+  const primaryOpportunity = brief.primaryGap?.observation ?? qualification.primaryOpportunity;
   const blocked = Boolean(reconciled.doNotContactReason);
-
-  const nextStatus = blocked
+  // Qualification is authoritative. The old fallback let a high opportunity
+  // score turn a DISQUALIFIED result back into QUALIFIED, which defeated the
+  // deterministic hard rules.
+  const nextStatus = blocked || qualification.status === "DISQUALIFIED"
     ? "DISQUALIFIED"
-    : qualifies
+    : qualification.status === "QUALIFIED"
       ? "QUALIFIED"
-      : needsReview
-        ? "READY_FOR_REVIEW"
-        : prospect.opportunityScore >= prospect.campaign.minOpportunityScore && !reconciled.doNotContactReason
-          ? "QUALIFIED"
-          : "DISQUALIFIED";
+      : "READY_FOR_REVIEW";
 
   // Historical assessments are appended, never overwritten.
   await prisma.$transaction(async (tx) => {
@@ -346,18 +367,34 @@ export async function runAssessmentStage(prospectId: string) {
         prospectId,
         model: result.model,
         promptVersion: result.promptVersion,
-        sourceData: { google: googleEvidence, website: { ...websiteEvidence, pageText: undefined }, social: socialEvidence, deterministicScore: prospect.opportunityScore },
+        sourceData: {
+          google: googleEvidence,
+          website: { ...websiteEvidence, pageText: undefined },
+          social: socialEvidence,
+          deterministicScore: prospect.opportunityScore,
+          opportunityBrief: {
+            primaryGap: brief.primaryGap?.id ?? null,
+            primaryObservation: brief.primaryGap?.observation ?? null,
+            service: groundedService,
+            verifiedFacts: brief.evidenceFacts,
+          },
+        },
         opportunityScore: prospect.opportunityScore,
         confidence: reconciled.confidence,
-        findings: { observations: reconciled.observations, opportunities: reconciled.opportunities, dimensions: assessment?.dimensions ?? [] },
-        recommendations: { services: reconciled.recommendedServices, primaryService: reconciled.primaryService, reason: reconciled.reason },
+        findings: {
+          observations: reconciled.observations,
+          opportunities: reconciled.opportunities.length > 0 ? reconciled.opportunities : brief.gaps.map((gap) => gap.observation),
+          dimensions: assessment?.dimensions ?? [],
+          evidenceGaps: brief.gaps.map((gap) => ({ id: gap.id, service: gap.service, observation: gap.observation })),
+        },
+        recommendations: { services: groundedServices, primaryService: groundedService, reason: reconciled.reason },
         summary: reconciled.summary,
-        primaryService: reconciled.primaryService,
+        primaryService: groundedService,
         doNotContactReason: reconciled.doNotContactReason,
-        outreachReadinessScore: prospect.outreachReadinessScore,
+        outreachReadinessScore: readiness.total,
         qualificationStatus: qualification.status,
         qualificationConfidence: qualification.confidence,
-        primaryOpportunity: qualification.primaryOpportunity,
+        primaryOpportunity,
         qualificationReason: qualification.reason,
         disqualificationReason: qualification.disqualificationReason,
         recommendedNextAction: qualification.recommendedNextAction,
@@ -370,13 +407,13 @@ export async function runAssessmentStage(prospectId: string) {
       data: {
         status: nextStatus,
         opportunityScore: prospect.opportunityScore,
-        recommendedServices: reconciled.recommendedServices,
+        recommendedServices: groundedServices,
         aiSummary: reconciled.summary,
         aiReasoning: reconciled.reason,
         automationStoppedReason: blocked ? (reconciled.doNotContactReason ?? "do_not_contact") : null,
         qualificationStatus: qualification.status,
         qualificationConfidence: qualification.confidence,
-        primaryOpportunity: qualification.primaryOpportunity,
+        primaryOpportunity,
         qualificationReason: qualification.reason,
         disqualificationReason: qualification.disqualificationReason,
         recommendedNextAction: qualification.recommendedNextAction,
@@ -393,7 +430,9 @@ export async function runAssessmentStage(prospectId: string) {
       promptVersion: result.promptVersion,
       deterministicScore: prospect.opportunityScore,
       confidence: reconciled.confidence,
-      primaryService: reconciled.primaryService,
+      primaryService: groundedService,
+      primaryGap: brief.primaryGap?.id ?? null,
+      readinessScore: readiness.total,
       doNotContactReason: reconciled.doNotContactReason,
       inputTokens: result.inputTokens,
       outputTokens: result.outputTokens,
@@ -406,10 +445,10 @@ export async function runAssessmentStage(prospectId: string) {
     from: prospect.status,
     to: nextStatus,
     reason: nextStatus === "QUALIFIED"
-      ? `Score ${prospect.opportunityScore} >= ${prospect.campaign.minOpportunityScore}`
+      ? qualification.reason
       : nextStatus === "READY_FOR_REVIEW"
-        ? "Needs human review"
-        : "Below threshold or do-not-contact",
+        ? qualification.reason
+        : qualification.disqualificationReason ?? "Disqualified by hard qualification rules",
   });
   await incrementDailyStat(prospect.campaignId, nextStatus === "QUALIFIED" || nextStatus === "READY_FOR_REVIEW" ? "qualified" : "disqualified", 1, now);
 
@@ -423,7 +462,7 @@ export async function runAssessmentStage(prospectId: string) {
     });
   }
 
-  return { skipped: null, status: nextStatus, service: reconciled.primaryService };
+  return { skipped: null, status: nextStatus, service: groundedService };
 }
 
 /**
@@ -455,37 +494,63 @@ export async function runEmailGenerationStage(
   if (existing && existing.status !== "DRAFT") return { skipped: "already_generated" as const };
 
   const assessment = prospect.assessments[0] ?? null;
-  const primaryService = assessment?.primaryService ?? prospect.recommendedServices[0] ?? "WEBSITE";
   const snapshot = (prospect.websiteSnapshot ?? null) as WebsiteSnapshot | null;
+  const senderName = prospect.campaign.senderNameOverride ?? "Chia Carlyle";
   const now = new Date();
 
-  const result = await runEmailGeneration({
-    business: prospect.businessName,
-    city: prospect.city ?? "",
-    industry: prospect.industry ?? "",
-    evidence: {
-      observedWebsiteFacts: snapshot
-        ? {
-            title: snapshot.title,
-            hasBooking: snapshot.hasBooking,
-            hasEcommerce: snapshot.hasEcommerce,
-            hasCatalogue: snapshot.hasCatalogue,
-            leadCaptureForm: snapshot.leadCaptureForm,
-            contactMethods: snapshot.contactMethods,
-            socialPlatforms: snapshot.socialPlatforms,
-            trustSignals: snapshot.trustSignals,
-            clearCallToAction: snapshot.clearCallToAction,
-            hoursOrLocationInfo: snapshot.hoursOrLocationInfo,
-          }
-        : "unknown",
-      deterministicScore: prospect.opportunityScore,
-      city: prospect.city,
-      industry: prospect.industry,
-    },
-    primaryService,
-    messageType,
-    senderName: prospect.campaign.senderNameOverride ?? "Chia Carlyle",
+  const evidence = scoringEvidenceFor(snapshot);
+  // The brief selects a real observed gap. The model can no longer be talked
+  // into a generic pitch by the deterministic score alone. A site that exists
+  // but could not be read yields no gaps instead of false negatives.
+  const websiteInspectionFailed = Boolean(prospect.websiteUrl) && (!snapshot || Boolean(snapshot.errorCategory));
+  const brief = buildOpportunityBrief({
+    businessName: prospect.businessName,
+    city: prospect.city,
+    industry: prospect.industry,
+    evidence,
+    preferredService: assessment?.primaryService ?? prospect.recommendedServices[0] ?? null,
+    websiteUrl: prospect.websiteUrl,
+    websiteInspectionFailed,
   });
+
+  let draft: { subject: string; body: string };
+  let model = "deterministic-fallback";
+  let promptVersion = "OUTREACH_FALLBACK_V1";
+  let qualityIssues: string[] = [];
+  let usedFallback = true;
+
+  try {
+    const result = await runEmailGeneration({
+      business: prospect.businessName,
+      city: prospect.city ?? "",
+      industry: prospect.industry ?? "",
+      brief,
+      messageType,
+      senderName,
+    });
+    const finalized = finalizeEmailDraft({
+      subject: result.data.subject,
+      body: result.data.body,
+      brief,
+      messageType,
+      senderName,
+    });
+    draft = { subject: finalized.subject, body: finalized.body };
+    model = finalized.usedFallback ? "deterministic-fallback" : result.model;
+    promptVersion = finalized.usedFallback ? "OUTREACH_FALLBACK_V1" : result.promptVersion;
+    qualityIssues = finalized.issues;
+    usedFallback = finalized.usedFallback;
+  } catch (error) {
+    // A malformed model response is recoverable: use the grounded fallback and
+    // record why. Provider, quota and timeout failures still propagate so the
+    // job system can retry them instead of quietly degrading every message.
+    if (!(error instanceof OutreachAiError) || error.category !== "malformed_output") throw error;
+    draft = buildFallbackEmail({ brief, messageType, senderName });
+    qualityIssues = ["malformed_model_output"];
+    model = "deterministic-fallback";
+    promptVersion = "OUTREACH_FALLBACK_V1";
+    usedFallback = true;
+  }
 
   // A test run never produces a sendable message. Forcing DRAFT here means the
   // message is not merely unsent by convention: `deliverOutreachMessage` requires
@@ -495,10 +560,10 @@ export async function runEmailGenerationStage(
     ? await prisma.outreachMessage.update({
         where: { id: existing.id },
         data: {
-          subject: result.data.subject,
-          bodyText: result.data.body,
+          subject: draft.subject,
+          bodyText: draft.body,
           aiGenerated: true,
-          aiPromptVersion: result.promptVersion,
+          aiPromptVersion: promptVersion,
           status,
           failureReason: null,
         },
@@ -510,10 +575,10 @@ export async function runEmailGenerationStage(
           campaignId: prospect.campaignId,
           type: messageType,
           status,
-          subject: result.data.subject,
-          bodyText: result.data.body,
+          subject: draft.subject,
+          bodyText: draft.body,
           aiGenerated: true,
-          aiPromptVersion: result.promptVersion,
+          aiPromptVersion: promptVersion,
           scheduledAt: now,
         },
         select: { id: true },
@@ -524,10 +589,19 @@ export async function runEmailGenerationStage(
     campaignId: prospect.campaignId,
     prospectId,
     messageId: message.id,
-    summary: result.data.subject.slice(0, 160),
+    summary: draft.subject.slice(0, 160),
     // `testRun` is recorded so a test artefact is identifiable in the event log
     // and in the run history, rather than looking like ordinary output.
-    metadata: { messageType, model: result.model, promptVersion: result.promptVersion, status, testRun },
+    metadata: {
+      messageType,
+      model,
+      promptVersion,
+      status,
+      testRun,
+      primaryGap: brief.primaryGap?.id ?? null,
+      usedFallback,
+      qualityIssues,
+    },
   });
 
   // A campaign that opted out of human review moves straight to the queue. The
