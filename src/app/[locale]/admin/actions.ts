@@ -1538,7 +1538,10 @@ const sendEmailSchema = z.object({
   conversationId: z.string().min(1),
   to: z.string().trim().toLowerCase().email().max(180),
   subject: shortText,
-  body: z.string().trim().min(1).max(10_000)
+  body: z.string().trim().min(1).max(10_000),
+  inboundFrom: z.string().trim().max(180).optional().or(z.literal("")),
+  inboundSubject: z.string().trim().max(180).optional().or(z.literal("")),
+  inboundBody: z.string().trim().max(10_000).optional().or(z.literal(""))
 });
 
 export async function sendConversationEmailAction(
@@ -1570,6 +1573,23 @@ export async function sendConversationEmailAction(
       body: safeBody
     });
 
+    // When the operator pasted the email they are replying to, store it as an
+    // inbound message first. This happens only after the send succeeded, so a
+    // failed provider call cannot leave a half-written thread.
+    if (data.inboundBody) {
+      await prisma.conversationMessage.create({
+        data: {
+          conversationId: conv.id,
+          channel: "email",
+          direction: "inbound",
+          from: data.inboundFrom ? sanitizeText(data.inboundFrom) : data.to,
+          to: fromEmail,
+          subject: data.inboundSubject ? sanitizeText(data.inboundSubject) : "Received email",
+          body: cleanLong(data.inboundBody)
+        }
+      });
+    }
+
     await prisma.conversationMessage.create({
       data: {
         conversationId: conv.id,
@@ -1583,7 +1603,7 @@ export async function sendConversationEmailAction(
       }
     });
 
-    await writeAuditLog({ actorId: actor.id, action: "conversation.email_sent", entityType: "Conversation", entityId: conv.id, metadata: { to: data.to } });
+    await writeAuditLog({ actorId: actor.id, action: "conversation.email_sent", entityType: "Conversation", entityId: conv.id, metadata: { to: data.to, loggedInbound: Boolean(data.inboundBody) } });
     revalidateAdmin(data.locale);
     return { success: true };
   } catch (err) {
