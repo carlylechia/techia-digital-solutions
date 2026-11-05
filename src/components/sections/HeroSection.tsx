@@ -30,7 +30,7 @@ const heroContent = {
   en: {
     eyebrow: "Digitalize. Simplify. Grow.",
     headingLead: "Grow your business with ",
-    headingHighlight: "modern digital solutions",
+    headingHighlight: "Techia Digital web and business solutions",
     headingEnd: ".",
     description:
       "From social media management and digital marketing to branding, AI, premium websites, automation, and business software, teChia helps ambitious companies attract customers, improve operations, and scale with confidence.",
@@ -52,7 +52,7 @@ const heroContent = {
   fr: {
     eyebrow: "Digitaliser. Simplifier. Grandir.",
     headingLead: "Faites grandir votre entreprise avec des ",
-    headingHighlight: "solutions digitales modernes",
+    headingHighlight: "solutions web et business Techia Digital",
     headingEnd: ".",
     description:
       "De la gestion des réseaux sociaux et du marketing digital au branding, à l’IA, aux sites premium, à l’automatisation et aux logiciels métier, teChia aide les entreprises ambitieuses à attirer des clients, mieux opérer et passer à l’échelle.",

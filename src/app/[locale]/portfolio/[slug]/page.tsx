@@ -11,7 +11,8 @@ import {
   type Locale,
 } from "@/content/site";
 import { loadPortfolioCards } from "@/lib/public-showcase";
-import { createMetadata } from "@/lib/seo";
+import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
+import { JsonLd } from "@/components/ui/json-ld";
 
 export function generateStaticParams() {
   return locales.flatMap((locale) =>
@@ -31,11 +32,15 @@ export async function generateMetadata({
   const dict = getDictionary(locale);
   const studies = await loadPortfolioCards(locale);
   const item = studies.find((study) => study.slug === slug);
+  const caseStudyTitle =
+    slug === "teloh-global-business"
+      ? "Teloh Global Business Case Study by Techia Digital"
+      : item
+        ? `${item.title} ${dict.pages.portfolio.caseStudySuffix}`
+        : dict.pages.portfolio.caseStudySuffix;
   return createMetadata({
     locale,
-    title: item
-      ? `${item.title} ${dict.pages.portfolio.caseStudySuffix} — teChia`
-      : `${dict.pages.portfolio.caseStudySuffix} — teChia`,
+    title: `${caseStudyTitle} — teChia`,
     description: item?.description || dict.pages.portfolio.metaDescription,
     path: `/portfolio/${slug}`,
   });
@@ -53,13 +58,30 @@ export default async function CaseStudyPage({
   const studies = await loadPortfolioCards(locale);
   const study = studies.find((item) => item.slug === slug);
   if (!study) notFound();
+  const caseStudyTitle =
+    slug === "teloh-global-business"
+      ? "Teloh Global Business Case Study by Techia Digital"
+      : study.title;
+  const caseStudyIntro =
+    slug === "teloh-global-business"
+      ? locale === "fr"
+        ? "Ce projet a permis à Teloh Global Business de disposer d’un site web multilingue et d’une présence digitale structurée pour la logistique, les produits domestiques, les carrières, la capture de prospects et des flux e-commerce évolutifs."
+        : "This project delivered a multilingual web presence and structured digital experience for Teloh Global Business, covering logistics, household products, careers, lead capture, and scalable e-commerce workflows."
+      : study.description;
   return (
     <main>
+      <JsonLd
+        data={breadcrumbJsonLd(locale, [
+          { name: locale === "fr" ? "Accueil" : "Home", path: "" },
+          { name: dict.nav.portfolio, path: "/portfolio" },
+          { name: caseStudyTitle, path: `/portfolio/${slug}` },
+        ])}
+      />
       <PremiumPageHero
         locale={locale}
         eyebrow={study.eyebrow}
-        title={study.title}
-        description={study.description}
+        title={caseStudyTitle}
+        description={caseStudyIntro}
         badges={dict.pages.portfolio.detailSections}
         actions={[{ href: "/start-project", label: dict.common.buildLikeThis }]}
       />

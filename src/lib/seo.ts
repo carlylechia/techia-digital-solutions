@@ -141,6 +141,21 @@ export function rootGatewayJsonLd() {
   };
 }
 
+export function websiteJsonLd(locale: Locale) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: siteConfig.name,
+    alternateName: siteConfig.shortName,
+    url: siteConfig.url,
+    inLanguage: locale,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${siteConfig.url}/blog?q={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+}
 export function breadcrumbJsonLd(
   locale: Locale,
   items: { name: string; path: string }[],
