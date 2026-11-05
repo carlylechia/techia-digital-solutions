@@ -18,6 +18,14 @@ export type PublicFaqItem = {
   answer: string;
 };
 
+export type PublicHomepageMetric = {
+  id: string;
+  label: string;
+  value: number;
+  prefix: string;
+  suffix: string;
+};
+
 type LocalizedFeedbackRow = {
   id: string;
   quote: string;
@@ -65,6 +73,31 @@ function homepageFaqFallback(locale: Locale): PublicFaqItem[] {
     id: `homepage-faq-fallback-${index}`,
     question: item.question,
     answer: item.answer,
+  }));
+}
+
+function homepageMetricFallback(locale: Locale): PublicHomepageMetric[] {
+  const metrics =
+    locale === "fr"
+      ? [
+          { label: "Projets et systèmes livrés", value: 40, suffix: "+" },
+          { label: "Secteurs accompagnés", value: 12, suffix: "+" },
+          { label: "Services de croissance", value: 10, suffix: "" },
+          { label: "Délai de première réponse", value: 24, suffix: "h" },
+        ]
+      : [
+          { label: "Projects and systems delivered", value: 40, suffix: "+" },
+          { label: "Industries served", value: 12, suffix: "+" },
+          { label: "Core growth services", value: 10, suffix: "" },
+          { label: "Average first response", value: 24, suffix: "h" },
+        ];
+
+  return metrics.map((metric, index) => ({
+    id: `homepage-metric-fallback-${index}`,
+    label: metric.label,
+    value: metric.value,
+    prefix: "",
+    suffix: metric.suffix,
   }));
 }
 
@@ -289,6 +322,37 @@ export async function loadHomepageFaqs(locale: Locale): Promise<PublicFaqItem[]>
       message: error instanceof Error ? error.message : error,
     });
     return homepageFaqFallback(locale);
+  }
+}
+
+export async function loadHomepageMetrics(
+  locale: Locale,
+): Promise<PublicHomepageMetric[]> {
+  const prisma = getPrisma();
+  if (!prisma) return homepageMetricFallback(locale);
+
+  try {
+    const metrics = await prisma.homepageMetric.findMany({
+      where: { visible: true },
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+      take: 8,
+    });
+
+    if (!metrics.length) return homepageMetricFallback(locale);
+
+    return metrics.map((item) => ({
+      id: item.id,
+      label:
+        fromLocale(locale, item.labelEn, item.labelFr) || item.labelEn,
+      value: item.value,
+      prefix: item.prefix,
+      suffix: item.suffix,
+    }));
+  } catch (error) {
+    console.error("[public-showcase] homepage metrics query failed", {
+      message: error instanceof Error ? error.message : error,
+    });
+    return homepageMetricFallback(locale);
   }
 }
 
