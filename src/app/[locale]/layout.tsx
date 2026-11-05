@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
+import { JsonLd } from "@/components/ui/json-ld";
 import { LocaleChrome } from "@/components/layout/locale-chrome";
 import { isLocale, locales, type Locale } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
+import { websiteJsonLd } from "@/lib/seo";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -27,8 +29,11 @@ export default async function LocaleLayout({ children, params }: { children: Rea
   }
 
   return (
-    <LocaleChrome locale={locale} navItems={navItems}>
-      {children}
-    </LocaleChrome>
+    <>
+      <JsonLd data={websiteJsonLd(locale)} />
+      <LocaleChrome locale={locale} navItems={navItems}>
+        {children}
+      </LocaleChrome>
+    </>
   );
 }
