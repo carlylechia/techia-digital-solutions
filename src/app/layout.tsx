@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Cormorant_Garamond, Great_Vibes, Manrope } from "next/font/google";
 import "./globals.css";
 import { brandIconAssets } from "@/components/brand/logo-assets";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -11,20 +10,6 @@ import {
   THEME_STORAGE_KEY
 } from "@/components/theme/theme-config";
 import { siteConfig } from "@/content/site";
-
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin"],
-  variable: "--font-display",
-  weight: ["500", "600", "700"],
-  display: "swap"
-});
-const greatVibes = Great_Vibes({
-  subsets: ["latin"],
-  variable: "--font-script",
-  weight: "400",
-  display: "swap"
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -85,13 +70,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
         <Script
           id="techia-initial-theme"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: initialThemeScript }}
         />
       </head>
-      <body className={`${manrope.variable} ${cormorant.variable} ${greatVibes.variable}`}>
+      <body>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
