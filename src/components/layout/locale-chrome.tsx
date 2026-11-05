@@ -23,7 +23,7 @@ export function LocaleChrome({ children, locale, navItems = [] }: { children: Re
   }, [locale]);
 
   return (
-    <div className="page-frame relative min-h-screen">
+    <div className="page-frame relative flex min-h-[100svh] flex-col">
       {!isInternal ? <Analytics /> : null}
       {!isInternal ? <PublicScrollEffects /> : null}
       {!isInternal ? (
@@ -33,7 +33,9 @@ export function LocaleChrome({ children, locale, navItems = [] }: { children: Re
       ) : null}
       {!isInternal ? <LanguageGate locale={locale} /> : null}
       {!isInternal ? <SiteHeader locale={locale} navItems={navItems} /> : null}
-      <div id="content-start">{children}</div>
+      <div id="content-start" className="flex-1">
+        {children}
+      </div>
       {!isInternal ? <SiteFooter locale={locale} /> : null}
       {!isInternal ? <AIChatWidget /> : null}
     </div>

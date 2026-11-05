@@ -75,22 +75,24 @@ export function SiteFooter({ locale }: { locale: Locale }) {
   ];
 
   return (
-    <footer className="footer-stage">
+    <footer className="footer-stage shrink-0">
       <div className="container py-6">
         <div className="gradient-border rounded-[2rem] footer-callout">
           <div className="elevated-panel px-6 py-8 md:px-10 md:py-10">
-            <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div className="grid gap-8 text-center lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:text-left">
               <div>
                 <p className="font-script text-3xl text-accent-3 md:text-4xl">
                   {accentScript}
                 </p>
-                <p className="eyebrow mt-3">{footerCallout.eyebrow}</p>
-                <h2 className="mt-4 max-w-3xl text-balance text-4xl font-semibold md:text-6xl">
+                <p className="eyebrow mt-3 justify-center lg:justify-start">
+                  {footerCallout.eyebrow}
+                </p>
+                <h2 className="mx-auto mt-4 max-w-3xl text-balance text-4xl font-semibold md:text-6xl lg:mx-0">
                   <span className="headline-gradient">
                     {footerCallout.title}
                   </span>
                 </h2>
-                <p className="mt-5 max-w-2xl text-base leading-8 text-muted md:text-lg">
+                <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-muted md:text-lg lg:mx-0">
                   {footerCallout.body}
                 </p>
               </div>
@@ -136,15 +138,15 @@ export function SiteFooter({ locale }: { locale: Locale }) {
           </div>
         </div>
 
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
           {groups.map((group) => (
-            <div key={group.title}>
-              <h3 className="text-sm font-semibold text-primary">
+            <div key={group.title} className="min-w-0 text-center sm:text-left">
+              <h3 className="break-words text-sm font-semibold text-primary">
                 {group.title}
               </h3>
-              <ul className="mt-4 grid gap-3 text-sm text-muted">
+              <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm text-muted sm:grid-cols-1">
                 {group.links.map(([label, href]) => (
-                  <li key={href}>
+                  <li key={href} className="min-w-0">
                     <Link
                       href={
                         href.startsWith("/client-portal")
@@ -153,7 +155,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
                             ? getBlogIndexPath(locale)
                             : getLocalizedHref(locale, href)
                       }
-                      className="footer-link inline-flex"
+                      className="footer-link inline-block max-w-full break-words"
                     >
                       {label}
                     </Link>
@@ -165,7 +167,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
         </div>
       </div>
 
-      <div className="container flex flex-col gap-3 border-t border-border py-6 text-xs text-muted md:flex-row md:items-center md:justify-between">
+      <div className="container flex flex-col items-center gap-3 border-t border-border py-6 text-center text-xs text-muted md:flex-row md:justify-between md:text-left">
         <p>
           © {new Date().getFullYear()} {siteConfig.name}.{" "}
           {dict.ui.allRightsReserved}
