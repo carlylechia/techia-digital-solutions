@@ -103,6 +103,11 @@ body {
   overflow-x: clip;
 }
 
+main > section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 700px;
+}
+
 body {
   margin: 0;
   min-height: 100svh;
@@ -1702,6 +1707,9 @@ textarea {
     top: calc(100% + 0.55rem);
     z-index: 70;
     width: min(31rem, calc(100vw - 2.5rem));
+    max-width: calc(100vw - 1.5rem);
+    min-width: 0;
+    overflow: hidden;
     padding: 0.6rem;
     transform: translateX(-50%);
     border: 1px solid color-mix(in srgb, var(--accent-2) 14%, var(--border));
@@ -1777,10 +1785,15 @@ textarea {
   .desktop-nav-panel-description {
     display: -webkit-box;
     overflow: hidden;
+    max-width: 100%;
+    min-width: 0;
     padding: 0 0.65rem 0.55rem;
     color: var(--muted);
     font-size: 0.72rem;
     line-height: 1.5;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
   }
@@ -2382,6 +2395,7 @@ textarea {
 
   .services-marquee-track {
     gap: 0;
+    min-width: 0;
     will-change: transform;
   }
 
@@ -2391,19 +2405,35 @@ textarea {
   }
 
   .services-marquee-item {
+    display: inline-flex;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    align-items: center;
     gap: 1.05rem;
     padding-inline: 1.05rem;
+    max-width: none;
     white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+    line-height: 1;
     color: color-mix(in srgb, var(--foreground) 88%, var(--muted) 12%);
     font-size: 0.94rem;
     font-weight: 650;
     letter-spacing: -0.01em;
   }
 
+  .services-marquee-item > span {
+    display: inline-block;
+    white-space: nowrap;
+    line-height: 1;
+  }
+
   .services-marquee-star {
+    display: block;
     width: 0.9rem;
     height: 0.9rem;
     flex-shrink: 0;
+    align-self: center;
     fill: color-mix(in srgb, var(--sun-amber) 82%, var(--accent-3));
     color: color-mix(in srgb, var(--sun-amber) 82%, var(--accent-3));
     filter: drop-shadow(
@@ -2440,6 +2470,50 @@ textarea {
     );
     background-size: 220% 100%;
     animation: stat-skeleton 1.5s ease-in-out infinite;
+  }
+
+  .hero-slide {
+    opacity: 0;
+    transform: scale(1.03);
+    animation: hero-slide-fade 22.4s linear infinite;
+  }
+
+  .hero-slide--first {
+    opacity: 1;
+  }
+
+  @keyframes hero-slide-fade {
+    0% {
+      opacity: 1;
+      transform: scale(1.03);
+    }
+
+    20% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+
+    25% {
+      opacity: 0;
+      transform: scale(1.03);
+    }
+
+    100% {
+      opacity: 0;
+      transform: scale(1.03);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-slide {
+      animation: none;
+      opacity: 0;
+      transform: none;
+    }
+
+    .hero-slide--first {
+      opacity: 1;
+    }
   }
 
   .homepage-stat-loader {

@@ -1,7 +1,7 @@
 "use server";
 
 import type { LeadStatus, Prisma, PrismaClient } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { ADMIN_PERMISSIONS, normalizePermissions } from "@/lib/admin/permissions";
 import { requireAdmin, writeAuditLog } from "@/lib/admin/session";
@@ -388,6 +388,10 @@ function revalidatePublicShowcase() {
     revalidatePath(`/${locale}/portfolio`);
     revalidatePath(`/${locale}/founder`);
   }
+  revalidateTag("homepage", { expire: 0 });
+  revalidateTag("feedback", { expire: 0 });
+  revalidateTag("faqs", { expire: 0 });
+  revalidateTag("metrics", { expire: 0 });
 }
 
 function requireDatabase() {
@@ -925,6 +929,7 @@ export async function createNavItemAction(formData: FormData) {
     }
   });
   revalidatePath("/");
+  revalidateTag("nav", { expire: 0 });
   revalidateAdmin(data.locale);
 }
 
@@ -944,6 +949,7 @@ export async function updateNavItemAction(formData: FormData) {
     }
   });
   revalidatePath("/");
+  revalidateTag("nav", { expire: 0 });
   revalidateAdmin(data.locale);
 }
 
@@ -963,6 +969,7 @@ export async function reorderNavItemsAction(formData: FormData) {
     ids.map((id, index) => prisma.navMenuItem.update({ where: { id }, data: { position: index } }))
   );
   revalidatePath("/");
+  revalidateTag("nav", { expire: 0 });
   revalidateAdmin(data.locale);
 }
 
@@ -972,6 +979,7 @@ export async function deleteNavItemAction(formData: FormData) {
   const data = deleteNavItemSchema.parse(formEntries(formData));
   await prisma.navMenuItem.delete({ where: { id: data.id } });
   revalidatePath("/");
+  revalidateTag("nav", { expire: 0 });
   revalidateAdmin(data.locale);
 }
 

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { getFounderContent, type FounderProject } from "@/content/founder";
 import { getDictionary, type CardItem, type Locale } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
@@ -287,73 +288,97 @@ export async function loadFounderProjects(locale: Locale): Promise<FounderProjec
   });
 }
 
+const cachedHomepageFeedback = unstable_cache(
+  async (locale: Locale): Promise<PublicFeedbackItem[]> => {
+    const feedback = await loadLocalizedFeedback(locale, "showOnHomepage", 8);
+    return feedback ?? homepageFallback(locale);
+  },
+  ["homepage-feedback"],
+  { revalidate: 300, tags: ["homepage", "feedback"] },
+);
+
 export async function loadHomepageFeedback(locale: Locale): Promise<PublicFeedbackItem[]> {
-  const feedback = await loadLocalizedFeedback(locale, "showOnHomepage", 8);
-  return feedback ?? homepageFallback(locale);
+  return cachedHomepageFeedback(locale);
 }
+
+const cachedHomepageFaqs = unstable_cache(
+  async (locale: Locale): Promise<PublicFaqItem[]> => {
+    const prisma = getPrisma();
+    if (!prisma) return homepageFaqFallback(locale);
+
+    try {
+      const faqs = await prisma.homepageFaq.findMany({
+        where: { showOnHomepage: true },
+        orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+        take: 12,
+        select: {
+          id: true,
+          questionEn: true,
+          questionFr: true,
+          answerEn: true,
+          answerFr: true,
+        },
+      });
+
+      if (!faqs.length) return homepageFaqFallback(locale);
+
+      return faqs.map((item) => ({
+        id: item.id,
+        question: fromLocale(locale, item.questionEn, item.questionFr) || item.questionEn,
+        answer: fromLocale(locale, item.answerEn, item.answerFr) || item.answerEn,
+      }));
+    } catch (error) {
+      console.error("[public-showcase] homepage faq query failed", {
+        message: error instanceof Error ? error.message : error,
+      });
+      return homepageFaqFallback(locale);
+    }
+  },
+  ["homepage-faqs"],
+  { revalidate: 300, tags: ["homepage", "faqs"] },
+);
 
 export async function loadHomepageFaqs(locale: Locale): Promise<PublicFaqItem[]> {
-  const prisma = getPrisma();
-  if (!prisma) return homepageFaqFallback(locale);
-
-  try {
-    const faqs = await prisma.homepageFaq.findMany({
-      where: { showOnHomepage: true },
-      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
-      take: 12,
-      select: {
-        id: true,
-        questionEn: true,
-        questionFr: true,
-        answerEn: true,
-        answerFr: true,
-      },
-    });
-
-    if (!faqs.length) return homepageFaqFallback(locale);
-
-    return faqs.map((item) => ({
-      id: item.id,
-      question: fromLocale(locale, item.questionEn, item.questionFr) || item.questionEn,
-      answer: fromLocale(locale, item.answerEn, item.answerFr) || item.answerEn,
-    }));
-  } catch (error) {
-    console.error("[public-showcase] homepage faq query failed", {
-      message: error instanceof Error ? error.message : error,
-    });
-    return homepageFaqFallback(locale);
-  }
+  return cachedHomepageFaqs(locale);
 }
+
+const cachedHomepageMetrics = unstable_cache(
+  async (locale: Locale): Promise<PublicHomepageMetric[]> => {
+    const prisma = getPrisma();
+    if (!prisma) return homepageMetricFallback(locale);
+
+    try {
+      const metrics = await prisma.homepageMetric.findMany({
+        where: { visible: true },
+        orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+        take: 8,
+      });
+
+      if (!metrics.length) return homepageMetricFallback(locale);
+
+      return metrics.map((item) => ({
+        id: item.id,
+        label:
+          fromLocale(locale, item.labelEn, item.labelFr) || item.labelEn,
+        value: item.value,
+        prefix: item.prefix,
+        suffix: item.suffix,
+      }));
+    } catch (error) {
+      console.error("[public-showcase] homepage metrics query failed", {
+        message: error instanceof Error ? error.message : error,
+      });
+      return homepageMetricFallback(locale);
+    }
+  },
+  ["homepage-metrics"],
+  { revalidate: 300, tags: ["homepage", "metrics"] },
+);
 
 export async function loadHomepageMetrics(
   locale: Locale,
 ): Promise<PublicHomepageMetric[]> {
-  const prisma = getPrisma();
-  if (!prisma) return homepageMetricFallback(locale);
-
-  try {
-    const metrics = await prisma.homepageMetric.findMany({
-      where: { visible: true },
-      orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-      take: 8,
-    });
-
-    if (!metrics.length) return homepageMetricFallback(locale);
-
-    return metrics.map((item) => ({
-      id: item.id,
-      label:
-        fromLocale(locale, item.labelEn, item.labelFr) || item.labelEn,
-      value: item.value,
-      prefix: item.prefix,
-      suffix: item.suffix,
-    }));
-  } catch (error) {
-    console.error("[public-showcase] homepage metrics query failed", {
-      message: error instanceof Error ? error.message : error,
-    });
-    return homepageMetricFallback(locale);
-  }
+  return cachedHomepageMetrics(locale);
 }
 
 export async function loadFounderFeedback(locale: Locale): Promise<PublicFeedbackItem[]> {
@@ -411,3 +436,40 @@ export async function loadPortfolioFeedback(locale: Locale): Promise<PublicFeedb
 
   return legacy;
 }
+
+export const loadPublicNavItems = unstable_cache(
+  async (): Promise<
+    Array<{
+      id: string;
+      labelEn: string;
+      labelFr: string;
+      href: string;
+      visible: boolean;
+      position: number;
+      openNewTab: boolean;
+    }>
+  > => {
+    const prisma = getPrisma();
+    if (!prisma) return [];
+
+    try {
+      return await prisma.navMenuItem.findMany({
+        where: { visible: true },
+        orderBy: { position: "asc" },
+        select: {
+          id: true,
+          labelEn: true,
+          labelFr: true,
+          href: true,
+          visible: true,
+          position: true,
+          openNewTab: true,
+        },
+      });
+    } catch {
+      return [];
+    }
+  },
+  ["public-nav-items"],
+  { revalidate: 300, tags: ["nav"] },
+);

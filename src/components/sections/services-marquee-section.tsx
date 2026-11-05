@@ -39,6 +39,7 @@ export function ServicesMarqueeSection({
             <span
               key={`${service.slug}-${index}`}
               className="marquee-item services-marquee-item"
+              style={{ display: "inline-flex", flexWrap: "nowrap", whiteSpace: "nowrap" }}
               aria-hidden={index >= services.length || undefined}
             >
               <span>{service.title}</span>

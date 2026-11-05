@@ -1,16 +1,11 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
-import { useEffect, useState } from "react";
 import { buttonVariants } from "@/components/site/button";
 import { getLocalizedHref, type Locale } from "@/content/site";
 import { cn } from "@/lib/utils";
 
 const HERO_MIN_HEIGHT = "max(720px, calc(100svh - 5rem))";
-const HERO_ROTATION_MS = 5600;
 
 type HeroCopy = {
   eyebrow: string;
@@ -95,48 +90,8 @@ const heroSlides = [
   },
 ] as const;
 
-const contentVariants = {
-  hidden: {},
-  show: {
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.1,
-    },
-  },
-} as const;
-
-const fadeUpVariants = {
-  hidden: { opacity: 0, y: 24 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.56,
-      ease: [0.16, 1, 0.3, 1],
-    },
-  },
-} as const;
-
 export function HeroSection({ locale = "en" }: { locale?: Locale }) {
-  const reduceMotion = useReducedMotion();
-  const [activeSlide, setActiveSlide] = useState(0);
   const copy = heroContent[locale];
-  const visibleSlide = reduceMotion ? 0 : activeSlide;
-  const motionState = reduceMotion
-    ? { initial: false }
-    : { initial: false, animate: "show" as const };
-
-  useEffect(() => {
-    if (reduceMotion) return;
-
-    const intervalId = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % heroSlides.length);
-    }, HERO_ROTATION_MS);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [reduceMotion]);
 
   return (
     <section
@@ -145,58 +100,12 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
       style={{ minHeight: HERO_MIN_HEIGHT }}
     >
       <div className="absolute inset-x-0 bottom-0 -top-8 overflow-hidden sm:-top-8">
-        {heroSlides.map((slide, index) => {
-          const isActive = index === visibleSlide;
-
-          return (
-            <motion.div
-              key={slide.src}
-              className="absolute inset-0"
-              initial={false}
-              animate={
-                reduceMotion
-                  ? {
-                      opacity: index === 0 ? 1 : 0,
-                      scale: 1,
-                    }
-                  : isActive
-                    ? {
-                        opacity: 1,
-                        scale: [1.03, 1.08],
-                      }
-                    : {
-                        opacity: 0,
-                        scale: 1.03,
-                      }
-              }
-              transition={
-                reduceMotion
-                  ? { duration: 0 }
-                  : isActive
-                    ? {
-                        opacity: {
-                          duration: 0.9,
-                          ease: [0.16, 1, 0.3, 1],
-                        },
-                        scale: {
-                          duration: 6.4,
-                          repeat: Number.POSITIVE_INFINITY,
-                          repeatType: "mirror",
-                          ease: "easeInOut",
-                        },
-                      }
-                    : {
-                        opacity: {
-                          duration: 0.9,
-                          ease: [0.16, 1, 0.3, 1],
-                        },
-                        scale: {
-                          duration: 0.9,
-                          ease: [0.16, 1, 0.3, 1],
-                        },
-                      }
-              }
-            >
+        {heroSlides.map((slide, index) => (
+          <div
+            key={slide.src}
+            className={cn("hero-slide absolute inset-0", index === 0 && "hero-slide--first")}
+            style={{ animationDelay: `${index * 5.6}s` }}
+          >
               <Image
                 src={slide.src}
                 alt=""
@@ -213,9 +122,8 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
                   className={cn("absolute inset-0", slide.scrimClassName)}
                 />
               ) : null}
-            </motion.div>
-          );
-        })}
+            </div>
+          ))}
       </div>
 
       <div className="absolute inset-x-0 bottom-0 -top-8 bg-[rgba(4,8,18,0.18)] md:bg-[rgba(4,8,18,0.1)]" />
@@ -226,7 +134,7 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
       <div className="absolute inset-x-0 bottom-0 -top-8 sm:hidden bg-[linear-gradient(180deg,rgba(4,8,18,0.94)_0%,rgba(4,8,18,0.52)_34%,rgba(4,8,18,0.72)_100%),linear-gradient(90deg,rgba(4,8,18,0.96)_0%,rgba(4,8,18,0.88)_62%,rgba(4,8,18,0.44)_100%)]" />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 -top-8 opacity-35 [background-image:linear-gradient(to_right,rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.08)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]"
+        className="pointer-events-none absolute inset-x-0 bottom-0 -top-8 hidden opacity-35 sm:block [background-image:linear-gradient(to_right,rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.08)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]"
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
@@ -236,27 +144,23 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute left-0 top-6 z-0 h-[calc(100%-4rem)] w-full max-w-[48rem] rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(4,8,18,0.62),rgba(4,8,18,0.24))] shadow-[0_40px_120px_rgba(4,8,18,0.28)] backdrop-blur-[3px] sm:top-8 sm:max-w-[50rem] sm:rounded-[2.35rem] lg:top-10 lg:max-w-[52rem] lg:bg-[linear-gradient(180deg,rgba(4,8,18,0.42),rgba(4,8,18,0.06))]"
+          className="pointer-events-none absolute left-0 top-6 z-0 h-[calc(100%-4rem)] w-full max-w-[48rem] rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(4,8,18,0.62),rgba(4,8,18,0.24))] shadow-[0_40px_120px_rgba(4,8,18,0.28)] sm:top-8 sm:max-w-[50rem] sm:rounded-[2.35rem] lg:top-10 lg:max-w-[52rem] lg:bg-[linear-gradient(180deg,rgba(4,8,18,0.42),rgba(4,8,18,0.06))]"
         />
-        <motion.div
+        <div
           className="relative z-[1] w-full max-w-[58rem] text-center md:text-left"
-          variants={reduceMotion ? undefined : contentVariants}
-          {...motionState}
         >
-          <motion.div
-            variants={reduceMotion ? undefined : fadeUpVariants}
-            className="inline-flex max-w-full items-center justify-center gap-2 rounded-full border border-white/12 bg-white/[0.09] px-3 py-2 text-center text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-[#CFFAFE] shadow-[0_18px_50px_rgba(5,7,13,0.18)] backdrop-blur-xl sm:px-4 sm:text-[0.69rem] md:justify-start"
+          <div
+            className="inline-flex max-w-full items-center justify-center gap-2 rounded-full border border-white/12 bg-white/[0.09] px-3 py-2 text-center text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-[#CFFAFE] shadow-[0_18px_50px_rgba(5,7,13,0.18)] sm:px-4 sm:text-[0.69rem] md:justify-start"
           >
             <span
               aria-hidden="true"
               className="size-2 rounded-full bg-[#22D3EE] shadow-[0_0_18px_rgba(34,211,238,0.7)]"
             />
             {copy.eyebrow}
-          </motion.div>
+</div>
 
-          <motion.h1
+          <h1
             id="homepage-hero-heading"
-            variants={reduceMotion ? undefined : fadeUpVariants}
             className="mx-auto mt-4 max-w-[min(92vw,20ch)] text-balance text-[clamp(2.15rem,5.6vw,4rem)] font-semibold leading-[0.98] tracking-[-0.04em] text-white sm:max-w-[min(84vw,19ch)] md:mx-0 md:max-w-[min(66vw,18ch)] lg:max-w-[min(48vw,18ch)] xl:max-w-[min(44vw,18ch)]"
           >
             <span>{copy.headingLead}</span>
@@ -264,23 +168,20 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
               {copy.headingHighlight}
             </span>
             <span>{copy.headingEnd}</span>
-          </motion.h1>
+</h1>
 
-          <motion.div
-            variants={reduceMotion ? undefined : fadeUpVariants}
+          <div
             className="headline-underline mx-auto mt-6 lg:mx-0"
             aria-hidden="true"
           />
 
-          <motion.p
-            variants={reduceMotion ? undefined : fadeUpVariants}
+          <p
             className="mx-auto mt-5 max-w-[37rem] text-pretty text-[0.98rem] leading-7 text-[#D7E3F1] sm:text-[1.02rem] sm:leading-8 md:mx-0 md:max-w-[39rem] md:text-[1.06rem] lg:text-[1.09rem]"
           >
             {copy.description}
-          </motion.p>
+</p>
 
-          <motion.div
-            variants={reduceMotion ? undefined : fadeUpVariants}
+          <div
             className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap md:justify-start"
           >
             <Link
@@ -303,23 +204,21 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
               href={getLocalizedHref(locale, "/services")}
               className={cn(
                 buttonVariants({ variant: "secondary", size: "lg" }),
-                "w-full justify-center border border-white/16 bg-white/[0.08] px-6 py-4 text-[0.98rem] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md sm:w-auto",
+                "w-full justify-center border border-white/16 bg-white/[0.08] px-6 py-4 text-[0.98rem] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] sm:w-auto",
                 "hover:border-cyan-300/50 hover:bg-white/[0.12] hover:text-white focus-visible:border-cyan-300/60 focus-visible:bg-white/[0.12]",
               )}
             >
               {copy.secondaryLabel}
             </Link>
-          </motion.div>
+</div>
 
-          <motion.p
-            variants={reduceMotion ? undefined : fadeUpVariants}
+          <p
             className="mx-auto mt-5 max-w-[38rem] text-balance text-[0.92rem] font-medium leading-7 text-[#D7E3F1] sm:text-[0.96rem] md:mx-0"
           >
             {copy.supportLine}
-          </motion.p>
+</p>
 
-          <motion.p
-            variants={reduceMotion ? undefined : fadeUpVariants}
+          <p
             className="mx-auto mt-3.5 max-w-[35rem] text-[0.92rem] leading-7 text-[#B7C6D8] md:mx-0"
           >
             {copy.helperLead}{" "}
@@ -329,8 +228,8 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
             >
               {copy.helperLinkLabel}
             </Link>
-          </motion.p>
-        </motion.div>
+</p>
+</div>
       </div>
     </section>
   );

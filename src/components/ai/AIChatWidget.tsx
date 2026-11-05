@@ -1,7 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { AIChatPanel } from "./AIChatPanel";
+
+const AIChatPanel = dynamic(() => import("./AIChatPanel").then((module) => module.AIChatPanel), {
+  ssr: false,
+  loading: () => null,
+});
 import { MessageCircleMore, Sparkles, X } from "lucide-react";
 
 export function AIChatWidget() {

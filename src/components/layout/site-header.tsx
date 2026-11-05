@@ -55,7 +55,6 @@ export function SiteHeader({
   const [open, setOpen] = useState(false);
   const mobilePrompt =
     locale === "fr" ? "naviguer dans le flagship" : "navigate the flagship";
-  const launchModeLabel = locale === "fr" ? "Mode lancement" : "Launch Mode";
   const coreNavOrder = [
     { href: getLocalizedHref(locale, "/services"), label: dict.nav.services },
     { href: getLocalizedHref(locale, "/courses"), label: dict.nav.courses },
@@ -532,9 +531,6 @@ export function SiteHeader({
                   className="border-white/10 bg-white/[0.06] text-white"
                 />
               </div>
-              <span className="header-status-pill border-white/10 text-white">
-                {launchModeLabel}
-              </span>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
 import { brandIconAssets } from "@/components/brand/logo-assets";
@@ -10,6 +11,27 @@ import {
   THEME_STORAGE_KEY
 } from "@/components/theme/theme-config";
 import { siteConfig } from "@/content/site";
+
+const manrope = localFont({
+  src: "../fonts/manrope-latin.woff2",
+  variable: "--font-inter",
+  display: "swap",
+  weight: "400 700",
+});
+
+const cormorant = localFont({
+  src: "../fonts/cormorant-garamond-latin.woff2",
+  variable: "--font-display",
+  display: "swap",
+  weight: "500 700",
+});
+
+const greatVibes = localFont({
+  src: "../fonts/great-vibes-latin.woff2",
+  variable: "--font-script",
+  display: "swap",
+  weight: "400",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -68,15 +90,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   });
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${manrope.variable} ${cormorant.variable} ${greatVibes.variable}`} suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
         <Script
           id="techia-initial-theme"
           strategy="beforeInteractive"
