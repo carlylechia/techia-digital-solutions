@@ -32,7 +32,7 @@ export async function generateMetadata({
     locale,
     title: "Official teChia Buyer Bonus | teChia Digital Academy",
     description:
-      "Buy through the official teChia Digital Academy page and claim practical bonus resources, including learning roadmaps, skill monetization guides, trackers, and digital growth templates.",
+      "Buy via official teChia Digital Academy and claim practical bonus resources: learning roadmaps, monetization guides, trackers, and templates.",
     path: "/courses/bonuses",
   });
 }
