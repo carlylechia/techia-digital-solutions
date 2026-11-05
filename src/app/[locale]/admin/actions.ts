@@ -231,6 +231,21 @@ const updateHomepageFaqSchema = z.object({
   displayOrder: optionalOrder,
 });
 
+const createHomepageMetricSchema = z.object({
+  locale: localeSchema,
+  labelEn: shortText,
+  labelFr: shortText,
+  value: z.coerce.number().int().min(0).max(1_000_000),
+  prefix: z.string().trim().max(12).optional().or(z.literal("")),
+  suffix: z.string().trim().max(12).optional().or(z.literal("")),
+  displayOrder: optionalOrder,
+  visible: z.preprocess((value) => value === true || value === "true" || value === "on", z.boolean()),
+});
+
+const updateHomepageMetricSchema = createHomepageMetricSchema.extend({
+  id: z.string().min(1),
+});
+
 const createContentPageSchema = z.object({
   locale: localeSchema,
   slug: z.string().trim().min(2).max(120).optional().or(z.literal("")),
@@ -2505,6 +2520,107 @@ export async function deleteHomepageFaqAction(
     return { success: true };
   } catch (err) {
     console.error("[actions] deleteHomepageFaqAction failed", {
+      message: err instanceof Error ? err.message : err,
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+    return { success: false, error: err instanceof Error ? err.message : "Delete failed." };
+  }
+}
+
+// ─── Homepage Metrics ─────────────────────────────────────────────────────────
+
+export async function createHomepageMetricAction(formData: FormData) {
+  const actor = await requireAdmin("content.manage");
+  const prisma = requireDatabase();
+  const data = createHomepageMetricSchema.parse(formEntries(formData));
+
+  const metric = await prisma.homepageMetric.create({
+    data: {
+      labelEn: sanitizeText(data.labelEn),
+      labelFr: sanitizeText(data.labelFr),
+      value: data.value,
+      prefix: sanitizeText(data.prefix ?? ""),
+      suffix: sanitizeText(data.suffix ?? ""),
+      displayOrder: data.displayOrder,
+      visible: data.visible,
+    },
+  });
+
+  await writeAuditLog({
+    actorId: actor.id,
+    action: "homepage_metric.created",
+    entityType: "HomepageMetric",
+    entityId: metric.id,
+    metadata: { value: data.value, visible: data.visible },
+  });
+  revalidateAdmin(data.locale);
+  revalidatePublicShowcase();
+}
+
+export async function updateHomepageMetricAction(
+  _prevState: unknown,
+  formData: FormData,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const actor = await requireAdmin("content.manage");
+    const prisma = requireDatabase();
+    const data = updateHomepageMetricSchema.parse(formEntries(formData));
+
+    const metric = await prisma.homepageMetric.update({
+      where: { id: data.id },
+      data: {
+        labelEn: sanitizeText(data.labelEn),
+        labelFr: sanitizeText(data.labelFr),
+        value: data.value,
+        prefix: sanitizeText(data.prefix ?? ""),
+        suffix: sanitizeText(data.suffix ?? ""),
+        displayOrder: data.displayOrder,
+        visible: data.visible,
+      },
+    });
+
+    await writeAuditLog({
+      actorId: actor.id,
+      action: "homepage_metric.updated",
+      entityType: "HomepageMetric",
+      entityId: metric.id,
+      metadata: { value: data.value, visible: data.visible },
+    });
+    revalidateAdmin(data.locale);
+    revalidatePublicShowcase();
+    return { success: true };
+  } catch (err) {
+    console.error("[actions] updateHomepageMetricAction failed", {
+      message: err instanceof Error ? err.message : err,
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+    return { success: false, error: err instanceof Error ? err.message : "Update failed." };
+  }
+}
+
+export async function deleteHomepageMetricAction(
+  _prevState: unknown,
+  formData: FormData,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const actor = await requireAdmin("content.manage");
+    const prisma = requireDatabase();
+    const id = z.string().min(1).parse(formData.get("id"));
+    const locale = localeSchema.parse(formData.get("locale"));
+
+    await prisma.homepageMetric.delete({ where: { id } });
+
+    await writeAuditLog({
+      actorId: actor.id,
+      action: "homepage_metric.deleted",
+      entityType: "HomepageMetric",
+      entityId: id,
+    });
+    revalidateAdmin(locale);
+    revalidatePublicShowcase();
+    return { success: true };
+  } catch (err) {
+    console.error("[actions] deleteHomepageMetricAction failed", {
       message: err instanceof Error ? err.message : err,
       stack: err instanceof Error ? err.stack : undefined,
     });

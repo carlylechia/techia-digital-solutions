@@ -56,6 +56,7 @@ import {
   createConversationAction,
   createNavItemAction,
   createHomepageFaqAction,
+  createHomepageMetricAction,
   createProjectWithTaskAction,
   createRoleAction,
   createTaskAction,
@@ -66,6 +67,7 @@ import {
   deleteContentPageAction,
   deleteNavItemAction,
   deleteHomepageFaqAction,
+  deleteHomepageMetricAction,
   deleteRoleAction,
   getWhatsappLinkAction,
   reorderNavItemsAction,
@@ -76,6 +78,7 @@ import {
   updateInquiryNotesAction,
   updateNavItemAction,
   updateHomepageFaqAction,
+  updateHomepageMetricAction,
   updatePageSectionsAction,
   updatePageStatusAction,
   updateRequestStatusAction,
@@ -4350,6 +4353,73 @@ function Content({ data, locale }: { data: AdminDashboardData; locale: Locale })
         </div>
       </Panel>
 
+      <Panel title="Homepage Statistics" eyebrow="Animated metrics">
+        <div className="grid gap-5 xl:grid-cols-[24rem_1fr]">
+          <div>
+            <p className="mb-3 text-sm text-muted">
+              These metrics power the animated count-up section on the homepage.
+              Use a whole number for the value and add a prefix or suffix for
+              symbols such as +, % or h.
+            </p>
+            <ActionForm
+              action={createHomepageMetricAction}
+              className="grid gap-3"
+              successMessage="Metric created"
+            >
+              <input type="hidden" name="locale" value={locale} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Label (EN)">
+                  <Input name="labelEn" required maxLength={180} />
+                </Field>
+                <Field label="Label (FR)">
+                  <Input name="labelFr" required maxLength={180} />
+                </Field>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Field label="Value">
+                  <Input name="value" type="number" min={0} required />
+                </Field>
+                <Field label="Prefix">
+                  <Input name="prefix" maxLength={12} placeholder="€" />
+                </Field>
+                <Field label="Suffix">
+                  <Input name="suffix" maxLength={12} placeholder="+" />
+                </Field>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Display order">
+                  <Input
+                    name="displayOrder"
+                    type="number"
+                    min={0}
+                    defaultValue={data.homepageMetrics.length}
+                  />
+                </Field>
+                <label className="flex items-center gap-2 self-end rounded-lg border border-border bg-background px-3 py-3 text-sm text-primary">
+                  <input
+                    type="checkbox"
+                    name="visible"
+                    defaultChecked
+                    className="size-4 accent-cyan-400"
+                  />
+                  Visible on homepage
+                </label>
+              </div>
+              <SubmitButton>Create metric</SubmitButton>
+            </ActionForm>
+          </div>
+
+          <div className="grid gap-3">
+            {data.homepageMetrics.map((item) => (
+              <HomepageMetricCard key={item.id} item={item} locale={locale} />
+            ))}
+            {!data.homepageMetrics.length ? (
+              <EmptyState title="No homepage metrics yet." />
+            ) : null}
+          </div>
+        </div>
+      </Panel>
+
       {/* Pages */}
       <div className="grid gap-5 xl:grid-cols-[25rem_1fr]">
         <Panel title="Create Page" eyebrow="Content">
@@ -4572,6 +4642,145 @@ function FeedbackModerationCard({
             </button>
             <button type="button" onClick={() => setConfirmDelete(false)} className="text-xs text-muted hover:text-primary">Cancel</button>
             {deleteState?.error ? <p className="w-full text-xs text-red-400">{deleteState.error}</p> : null}
+          </form>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function HomepageMetricCard({
+  item,
+  locale,
+}: {
+  item: AdminDashboardData["homepageMetrics"][number];
+  locale: Locale;
+}) {
+  const [updateState, updateAction, updatePending] = useActionState(
+    updateHomepageMetricAction,
+    null,
+  );
+  const [deleteState, deleteAction, deletePending] = useActionState(
+    deleteHomepageMetricAction,
+    null,
+  );
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  return (
+    <article className="rounded-lg border border-border bg-background p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-semibold text-primary">
+            {item.prefix}
+            {item.value}
+            {item.suffix}{" "}
+            <span className="font-normal text-muted">— {item.labelEn}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted">{item.labelFr}</p>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {item.visible ? <Pill tone="good">Homepage</Pill> : <Pill tone="quiet">Hidden</Pill>}
+          <Pill tone="quiet">Order {item.displayOrder}</Pill>
+        </div>
+      </div>
+
+      <form
+        action={updateAction}
+        className="mt-3 grid gap-3 rounded-lg border border-border bg-surface p-3"
+      >
+        <input type="hidden" name="id" value={item.id} />
+        <input type="hidden" name="locale" value={locale} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Label (EN)">
+            <Input name="labelEn" defaultValue={item.labelEn} required />
+          </Field>
+          <Field label="Label (FR)">
+            <Input name="labelFr" defaultValue={item.labelFr} required />
+          </Field>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label="Value">
+            <Input
+              name="value"
+              type="number"
+              min={0}
+              defaultValue={item.value}
+              required
+            />
+          </Field>
+          <Field label="Prefix">
+            <Input name="prefix" defaultValue={item.prefix} maxLength={12} />
+          </Field>
+          <Field label="Suffix">
+            <Input name="suffix" defaultValue={item.suffix} maxLength={12} />
+          </Field>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Display order">
+            <Input
+              name="displayOrder"
+              type="number"
+              min={0}
+              defaultValue={item.displayOrder}
+            />
+          </Field>
+          <label className="flex items-center gap-2 self-end rounded-lg border border-border bg-background px-3 py-3 text-sm text-primary">
+            <input
+              type="checkbox"
+              name="visible"
+              defaultChecked={item.visible}
+              className="size-4 accent-cyan-400"
+            />
+            Visible on homepage
+          </label>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="submit"
+            disabled={updatePending}
+            className="rounded-lg border border-accent/30 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent disabled:opacity-60"
+          >
+            {updatePending ? "Saving..." : "Save metric"}
+          </button>
+          {updateState?.error ? (
+            <p className="text-xs text-red-400">{updateState.error}</p>
+          ) : null}
+          {updateState?.success ? (
+            <p className="text-xs text-emerald-400">Saved.</p>
+          ) : null}
+        </div>
+      </form>
+
+      <div className="mt-2">
+        {!confirmDelete ? (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="text-xs font-semibold text-red-400 hover:text-red-300"
+          >
+            Delete metric
+          </button>
+        ) : (
+          <form action={deleteAction} className="flex flex-wrap items-center gap-2">
+            <input type="hidden" name="id" value={item.id} />
+            <input type="hidden" name="locale" value={locale} />
+            <button
+              type="submit"
+              disabled={deletePending}
+              className="rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-xs font-semibold text-red-400 disabled:opacity-60"
+            >
+              {deletePending ? "Deleting..." : "Confirm delete"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="text-xs text-muted hover:text-primary"
+            >
+              Cancel
+            </button>
+            {deleteState?.error ? (
+              <p className="w-full text-xs text-red-400">{deleteState.error}</p>
+            ) : null}
           </form>
         )}
       </div>

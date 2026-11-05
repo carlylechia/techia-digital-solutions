@@ -34,6 +34,16 @@ type SeededHomepageFaq = {
   answerFr: string;
 };
 
+type SeededHomepageMetric = {
+  id: string;
+  displayOrder: number;
+  labelEn: string;
+  labelFr: string;
+  value: number;
+  prefix: string;
+  suffix: string;
+};
+
 type ShowcaseProject = {
   slug: string;
   titleEn: string;
@@ -281,6 +291,45 @@ const homepageFaqs: SeededHomepageFaq[] = dictionaries.en.faqs.map((item, index)
   };
 });
 
+const homepageMetrics: SeededHomepageMetric[] = [
+  {
+    id: "seed-homepage-metric-01",
+    displayOrder: 0,
+    labelEn: "Projects and systems delivered",
+    labelFr: "Projets et systèmes livrés",
+    value: 40,
+    prefix: "",
+    suffix: "+",
+  },
+  {
+    id: "seed-homepage-metric-02",
+    displayOrder: 1,
+    labelEn: "Industries served",
+    labelFr: "Secteurs accompagnés",
+    value: 12,
+    prefix: "",
+    suffix: "+",
+  },
+  {
+    id: "seed-homepage-metric-03",
+    displayOrder: 2,
+    labelEn: "Core growth services",
+    labelFr: "Services de croissance",
+    value: 10,
+    prefix: "",
+    suffix: "",
+  },
+  {
+    id: "seed-homepage-metric-04",
+    displayOrder: 3,
+    labelEn: "Average first response",
+    labelFr: "Délai de première réponse",
+    value: 24,
+    prefix: "",
+    suffix: "h",
+  },
+];
+
 async function seedShowcaseProjects(prisma: PrismaClient) {
   // Upsert the internal system client that owns all showcase/portfolio projects.
   const systemClient = await prisma.client.upsert({
@@ -458,6 +507,35 @@ async function seedHomepageFaqs(prisma: PrismaClient) {
   console.log(`Seeded ${homepageFaqs.length} homepage FAQs`);
 }
 
+async function seedHomepageMetrics(prisma: PrismaClient) {
+  for (const metric of homepageMetrics) {
+    await prisma.homepageMetric.upsert({
+      where: { id: metric.id },
+      update: {
+        labelEn: metric.labelEn,
+        labelFr: metric.labelFr,
+        value: metric.value,
+        prefix: metric.prefix,
+        suffix: metric.suffix,
+        displayOrder: metric.displayOrder,
+        visible: true,
+      },
+      create: {
+        id: metric.id,
+        labelEn: metric.labelEn,
+        labelFr: metric.labelFr,
+        value: metric.value,
+        prefix: metric.prefix,
+        suffix: metric.suffix,
+        displayOrder: metric.displayOrder,
+        visible: true,
+      },
+    });
+  }
+
+  console.log(`Seeded ${homepageMetrics.length} homepage metrics`);
+}
+
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
@@ -559,6 +637,7 @@ async function main() {
   await seedShowcaseProjects(prisma);
   await seedHomepageTestimonials(prisma);
   await seedHomepageFaqs(prisma);
+  await seedHomepageMetrics(prisma);
 
   console.log("Seed complete");
 }

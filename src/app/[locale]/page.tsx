@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { HeroSection } from "@/components/sections/HeroSection";
+import { HomepageStatsSection } from "@/components/sections/homepage-stats-section";
 import { HomepageConversionFlow } from "@/components/sections/homepage-conversion-flow";
+import { ServicesMarqueeSection } from "@/components/sections/services-marquee-section";
 import { JsonLd } from "@/components/ui/json-ld";
 import { getDictionary, isLocale, type Locale } from "@/content/site";
 import {
   loadHomepageFaqs,
   loadHomepageFeedback,
+  loadHomepageMetrics,
 } from "@/lib/public-showcase";
 import { createMetadata, organizationJsonLd } from "@/lib/seo";
 import { getHomepageBlogPosts } from "@/lib/blog/queries";
@@ -38,10 +41,11 @@ export default async function HomePage({
   if (!isLocale(rawLocale)) notFound();
   const locale = rawLocale as Locale;
   const dict = getDictionary(locale);
-  const [feedbackItems, faqItems, featuredPosts] = await Promise.all([
+  const [feedbackItems, faqItems, featuredPosts, metrics] = await Promise.all([
     loadHomepageFeedback(locale),
     loadHomepageFaqs(locale),
     getHomepageBlogPosts(locale as BlogLocale).catch(() => null),
+    loadHomepageMetrics(locale),
   ]);
   const latestBlogCards = (featuredPosts || []).map((post) => ({
     slug: post.slug,
@@ -57,6 +61,8 @@ export default async function HomePage({
     <main id="main-content">
       <JsonLd data={organizationJsonLd(locale)} />
       <HeroSection locale={locale} />
+      <ServicesMarqueeSection locale={locale} />
+      <HomepageStatsSection metrics={metrics} locale={locale} />
       <HomepageConversionFlow
         locale={locale}
         blogPosts={latestBlogCards.length ? latestBlogCards : dict.blog.slice(0, 3)}

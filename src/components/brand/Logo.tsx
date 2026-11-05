@@ -139,6 +139,7 @@ export function Logo({
   const altText = decorative ? "" : alt;
   const imageSizeClass = getSizeClass(variant, size);
   const imageClassName = cn("block shrink-0", imageSizeClass);
+  const isAutoHorizontal = theme === "auto" && variant === "horizontal";
   const asset = useMemo(() => {
     const activeTheme = theme === "auto" ? resolvedTheme : theme;
     return resolveThemeAsset(variant, activeTheme);
@@ -146,12 +147,33 @@ export function Logo({
 
   const content = (
     <span className={cn(imageClassName, "logo-media relative z-[1]")}>
-      <LogoImage
-        asset={asset}
-        alt={altText}
-        priority={priority}
-        decorative={decorative}
-      />
+      {isAutoHorizontal ? (
+        <>
+          <span className="block dark:hidden">
+            <LogoImage
+              asset={logoAssets.monochromeBlack}
+              alt={altText}
+              priority={priority}
+              decorative={decorative}
+            />
+          </span>
+          <span className="hidden dark:block">
+            <LogoImage
+              asset={logoAssets.monochromeWhite}
+              alt={altText}
+              priority={priority}
+              decorative={decorative}
+            />
+          </span>
+        </>
+      ) : (
+        <LogoImage
+          asset={asset}
+          alt={altText}
+          priority={priority}
+          decorative={decorative}
+        />
+      )}
     </span>
   );
 
