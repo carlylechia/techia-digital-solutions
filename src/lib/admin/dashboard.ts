@@ -132,6 +132,37 @@ async function loadAdminFeedback(prisma: NonNullable<ReturnType<typeof import("@
   }
 }
 
+async function loadAdminHomepageMetrics(
+  prisma: NonNullable<ReturnType<typeof import("@/lib/prisma").getPrisma>>,
+) {
+  try {
+    return await prisma.homepageMetric
+      .findMany({
+        orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+        take: 20,
+      })
+      .then((items) =>
+        items.map((item) => ({
+          id: item.id,
+          labelEn: item.labelEn,
+          labelFr: item.labelFr,
+          value: item.value,
+          prefix: item.prefix,
+          suffix: item.suffix,
+          displayOrder: item.displayOrder,
+          visible: item.visible,
+          createdAt: iso(item.createdAt),
+          updatedAt: iso(item.updatedAt),
+        })),
+      );
+  } catch (error) {
+    console.error("[admin-dashboard] homepage metric query failed", {
+      message: error instanceof Error ? error.message : error,
+    });
+    return [];
+  }
+}
+
 async function loadAdminHomepageFaqs(
   prisma: NonNullable<ReturnType<typeof import("@/lib/prisma").getPrisma>>,
 ) {
@@ -195,7 +226,8 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
     boards,
     auditLogs,
     navItems,
-    faqs
+    faqs,
+    homepageMetrics
   ] = await Promise.all([
     prisma.lead.count(),
     prisma.contactMessage.count(),
@@ -359,7 +391,8 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
       include: { actor: { select: { name: true, email: true } } }
     }),
     prisma.navMenuItem.findMany({ orderBy: [{ position: "asc" }, { createdAt: "asc" }] }),
-    loadAdminHomepageFaqs(prisma)
+    loadAdminHomepageFaqs(prisma),
+    loadAdminHomepageMetrics(prisma)
   ]);
 
   const toCounts = (items: { status: LeadStatus; _count: { status: number } }[]) => {
@@ -729,7 +762,8 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
       }))
     })),
     feedback: await loadAdminFeedback(prisma),
-    faqs
+    faqs,
+    homepageMetrics
   };
 }
 

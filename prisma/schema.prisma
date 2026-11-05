@@ -741,6 +741,21 @@ model HomepageFaq {
   @@index([showOnHomepage, displayOrder])
 }
 
+model HomepageMetric {
+  id           String   @id @default(cuid())
+  labelEn      String
+  labelFr      String
+  value        Int
+  prefix       String   @default("")
+  suffix       String   @default("")
+  displayOrder Int      @default(0)
+  visible      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([visible, displayOrder])
+}
+
 model ContentPage {
   id             String               @id @default(cuid())
   slug           String               @unique
