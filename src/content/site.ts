@@ -4,7 +4,7 @@ export const locales = ["en", "fr"] as const;
 export type Locale = (typeof locales)[number];
 
 function normalizeSiteUrl(value?: string) {
-  const fallback = "https://techiadigital.com";
+  const fallback = "https://www.techiadigital.com";
   const rawValue = value?.trim() || fallback;
 
   try {
@@ -18,8 +18,8 @@ function normalizeSiteUrl(value?: string) {
       url.protocol = "https:";
     }
 
-    if (url.hostname === "www.techiadigital.com") {
-      url.hostname = "techiadigital.com";
+    if (url.hostname === "techiadigital.com") {
+      url.hostname = "www.techiadigital.com";
     }
 
     url.pathname = "";
