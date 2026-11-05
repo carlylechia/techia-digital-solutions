@@ -78,6 +78,15 @@ function getPreferredLocale(request: NextRequest): Locale {
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get("host") || "";
+
+  // Canonicalize www to non-www production host.
+  if (host.toLowerCase().startsWith("www.")) {
+    const url = request.nextUrl.clone();
+    url.host = host.replace(/^www\./i, "");
+    url.protocol = "https:";
+    return NextResponse.redirect(url, 308);
+  }
 
   if (
     pathname.startsWith("/_next") ||

@@ -21,7 +21,7 @@ export function ProcessTimeline({ steps }: { steps: string[] }) {
               <span className="font-display text-3xl font-semibold text-foreground">0{index + 1}</span>
               <span className="h-px flex-1 bg-gradient-to-r from-accent-2 via-accent/40 to-transparent" />
             </div>
-            <h3 className="mt-5 text-xl font-semibold text-foreground">{step}</h3>
+            <h2 className="mt-5 text-xl font-semibold text-foreground">{step}</h2>
           </div>
         </motion.div>
       ))}

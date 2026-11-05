@@ -588,8 +588,7 @@ const blogEn: CardItem[] = [
   },
   {
     slug: "website-vs-business-management-system",
-    title:
-      "Website vs Business Management System: What Does Your Company Need?",
+    title: "Website vs Business Management System",
     description:
       "How to decide between a marketing site, a dashboard, a portal, or a full operating system for your business.",
   },

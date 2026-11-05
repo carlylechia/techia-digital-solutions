@@ -195,7 +195,7 @@ const COURSE_PACK_DEFINITIONS: CoursePackDefinition[] = [
           "It gives you a practical starting point without forcing you into the full library on day one.",
         ],
         seoTitle:
-          "Digital Marketing & Online Business | teChia Digital Academy",
+          "Digital Marketing & Online Business | teChia Academy",
         seoDescription:
           "Learn practical digital marketing, e-commerce, community management, and YouTube growth skills with this teChia Digital Academy pack.",
       },
@@ -228,7 +228,7 @@ const COURSE_PACK_DEFINITIONS: CoursePackDefinition[] = [
           "Il vous donne un point de départ concret sans vous obliger à acheter toute la bibliothèque.",
         ],
         seoTitle:
-          "Marketing digital & business en ligne | teChia Digital Academy",
+          "Marketing digital & business en ligne | teChia",
         seoDescription:
           "Apprenez le marketing digital, l’e-commerce, le community management et la croissance YouTube avec ce pack teChia Digital Academy.",
       },
@@ -273,7 +273,7 @@ const COURSE_PACK_DEFINITIONS: CoursePackDefinition[] = [
           "It is useful for both business communication and creator-style content needs.",
           "It strengthens everyday content production skills you can apply immediately.",
         ],
-        seoTitle: "Creative Design & Content Creation | teChia Digital Academy",
+        seoTitle: "Creative Design & Content Creation | teChia Academy",
         seoDescription:
           "Build practical design, Canva, infographics, and video editing skills with this teChia Digital Academy creative pack.",
       },
@@ -306,7 +306,7 @@ const COURSE_PACK_DEFINITIONS: CoursePackDefinition[] = [
           "Il renforce des compétences de production que vous pouvez appliquer tout de suite.",
         ],
         seoTitle:
-          "Design créatif & création de contenu | teChia Digital Academy",
+          "Design créatif & création de contenu | teChia",
         seoDescription:
           "Développez vos compétences en design, Canva, infographies et montage vidéo avec ce pack créatif teChia Digital Academy.",
       },
@@ -431,7 +431,7 @@ const COURSE_PACK_DEFINITIONS: CoursePackDefinition[] = [
           "It combines productivity tools with business and people-process understanding.",
         ],
         seoTitle:
-          "Office, Business & Professional Skills | teChia Digital Academy",
+          "Office & Business Skills | teChia Academy",
         seoDescription:
           "Learn office tools, project management, HR, accounting awareness, and professional productivity with this teChia Digital Academy pack.",
       },
@@ -464,7 +464,7 @@ const COURSE_PACK_DEFINITIONS: CoursePackDefinition[] = [
           "Il combine outils de productivité, compréhension business et gestion des personnes.",
         ],
         seoTitle:
-          "Bureautique, business & compétences professionnelles | teChia Digital Academy",
+          "Bureautique & compétences pro | teChia",
         seoDescription:
           "Apprenez les outils bureautiques, la gestion de projet, les RH, les bases de comptabilité et la productivité professionnelle avec ce pack teChia Digital Academy.",
       },

@@ -4,7 +4,8 @@ import Link from "next/link";
 import { Zap, ChevronRight } from "lucide-react";
 import { getDictionary, isLocale, type Locale, getLocalizedHref } from "@/content/site";
 import { demosData, getDemoBySlug, demoLabUi, DEMO_SLUGS } from "@/content/demo-lab";
-import { createMetadata } from "@/lib/seo";
+import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
+import { JsonLd } from "@/components/ui/json-ld";
 import { RelatedDemos } from "@/components/demos/related-demos";
 import { DemoDetailCtaBar } from "./demo-detail-cta";
 
@@ -76,7 +77,13 @@ export default async function DemoDetailPage({
 
   return (
     <main className="pb-24">
-      {/* Breadcrumb */}
+      <JsonLd
+        data={breadcrumbJsonLd(locale, [
+          { name: locale === "fr" ? "Accueil" : "Home", path: "" },
+          { name: "Demo Lab", path: "/demo-lab" },
+          { name: demo.shortTitle[locale], path: `/demo-lab/${demo.slug}` },
+        ])}
+      />
       <div className="border-b border-border">
         <div className="container py-3">
           <nav className="flex flex-wrap items-center gap-1 text-xs text-muted" aria-label="Breadcrumb">
@@ -160,6 +167,49 @@ export default async function DemoDetailPage({
               </li>
             ))}
           </ul>
+        </div>
+      </section>
+
+      {/* SME Architecture & Workflows */}
+      <section className="border-t border-border bg-surface/30">
+        <div className="container py-10 md:py-14">
+          <p className="eyebrow mb-2">{locale === "fr" ? "Architecture et flux" : "Architecture and workflows"}</p>
+          <h2 className="mb-6 text-2xl font-bold text-primary md:text-3xl">
+            {locale === "fr" ? "Comment ce système fonctionne pour une PME" : "How this system works for an SME"}
+          </h2>
+          <div className="max-w-3xl space-y-4 text-sm leading-relaxed text-muted md:text-base">
+            {locale === "fr" ? (
+              <>
+                <p>
+                  Ce système a été conçu pour aider une entreprise à passer d’un fonctionnement dispersé sur WhatsApp, papier et tableurs à un parcours digital clair, traçable et professionnel. Chaque étape du flux collecte les bonnes informations, les structure, puis les présente à l’équipe dans un format exploitable, afin que le temps perdu en allers-retours manuels soit transformé en suivi fiable.
+                </p>
+                <p>
+                  L’architecture technique repose sur une interface moderne et responsive, une validation côté serveur, une gestion d’état cohérente et des notifications automatiques. Les données sont organisées par entité métier, ce qui permet de retrouver rapidement un client, une demande, un document ou un statut, et de préparer des rapports utiles à la prise de décision.
+                </p>
+                <p>
+                  Pour une PME, la valeur réside dans la simplicité d’adoption : les équipes n’ont pas besoin d’une formation lourde, et les clients bénéficient d’un parcours clair, rassurant et professionnel. Le système peut ensuite évoluer vers des tableaux de bord, des automatisations, des portails clients ou des assistants IA selon la croissance réelle de l’entreprise.
+                </p>
+                <p>
+                  teChia conçoit ces systèmes comme des outils de croissance et non comme de simples vitrines : ils améliorent la visibilité, la qualité du service, la rapidité de réponse et la capacité à gérer plus de demandes sans ajouter de charge manuelle. C’est cette approche qui rend la solution durable, crédible et réellement utile pour le quotidien de l’entreprise.
+                </p>
+              </>
+            ) : (
+              <>
+                <p>
+                  This system is designed to help a business move from scattered WhatsApp messages, paper notes, and spreadsheets to a clear, traceable, and professional digital workflow. Each step of the flow collects the right information, structures it, and presents it to the team in a usable format, so time lost to manual back-and-forth becomes reliable follow-up.
+                </p>
+                <p>
+                  The technical architecture is built on a modern responsive interface, server-side validation, consistent state management, and automated notifications. Data is organized by business entity, making it easy to find a customer, a request, a document, or a status quickly, and to prepare useful reports for decision-making.
+                </p>
+                <p>
+                  For an SME, the value comes from simple adoption: teams do not need heavy training, and customers benefit from a clear, reassuring, and professional journey. The system can then evolve toward dashboards, automation, client portals, or AI assistants as the business actually grows.
+                </p>
+                <p>
+                  teChia designs these systems as growth tools rather than simple showcases: they improve visibility, service quality, response speed, and the ability to handle more requests without adding manual workload. This approach makes the solution durable, credible, and genuinely useful in the company’s day-to-day operations.
+                </p>
+              </>
+            )}
+          </div>
         </div>
       </section>
 
