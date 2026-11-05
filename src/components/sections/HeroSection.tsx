@@ -23,7 +23,6 @@ type HeroCopy = {
   supportLine: string;
   helperLead: string;
   helperLinkLabel: string;
-  badges: string[];
 };
 
 const heroContent = {
@@ -40,14 +39,6 @@ const heroContent = {
       "Helping businesses grow through marketing, branding, AI and technology.",
     helperLead: "Want a faster recommendation before we talk?",
     helperLinkLabel: "Chat with the AI Consultant",
-    badges: [
-      "Social Media Management",
-      "Digital Marketing",
-      "Branding",
-      "Website Design",
-      "Automation",
-      "AI Solutions",
-    ],
   },
   fr: {
     eyebrow: "Digitaliser. Simplifier. Grandir.",
@@ -62,14 +53,6 @@ const heroContent = {
       "Nous aidons les entreprises à grandir grâce au marketing, au branding, à l’IA et à la technologie.",
     helperLead: "Vous voulez une recommandation plus rapide avant d’échanger ?",
     helperLinkLabel: "Parler à l’agent IA",
-    badges: [
-      "Réseaux sociaux",
-      "Marketing digital",
-      "Branding",
-      "Web",
-      "Automatisation",
-      "Solutions IA",
-    ],
   },
 } as const satisfies Record<Locale, HeroCopy>;
 
@@ -274,7 +257,7 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
           <motion.h1
             id="homepage-hero-heading"
             variants={reduceMotion ? undefined : fadeUpVariants}
-            className="mx-auto mt-4 max-w-[min(92vw,15ch)] text-balance text-[clamp(2.72rem,9vw,5.95rem)] font-semibold leading-[0.95] tracking-[-0.048em] text-white sm:max-w-[min(84vw,16ch)] md:mx-0 md:max-w-[min(70vw,15ch)] lg:max-w-[min(46vw,14ch)] xl:max-w-[min(43vw,15ch)]"
+            className="mx-auto mt-4 max-w-[min(92vw,20ch)] text-balance text-[clamp(2.15rem,5.6vw,4rem)] font-semibold leading-[0.98] tracking-[-0.04em] text-white sm:max-w-[min(84vw,19ch)] md:mx-0 md:max-w-[min(66vw,18ch)] lg:max-w-[min(48vw,18ch)] xl:max-w-[min(44vw,18ch)]"
           >
             <span>{copy.headingLead}</span>
             <span className="headline-gradient">
@@ -347,25 +330,6 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
               {copy.helperLinkLabel}
             </Link>
           </motion.p>
-
-          <motion.ul
-            variants={reduceMotion ? undefined : fadeUpVariants}
-            className="mt-5 flex flex-wrap justify-center gap-2.5 md:justify-start"
-            aria-label={locale === "fr" ? "Capacités teChia" : "teChia capabilities"}
-          >
-            {copy.badges.map((badge) => (
-              <li
-                key={badge}
-                className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3.5 py-2.5 text-left text-xs font-medium text-[#E2E8F0] shadow-[0_18px_34px_rgba(5,7,13,0.12)] backdrop-blur-xl sm:text-sm"
-              >
-                <span
-                  aria-hidden="true"
-                  className="size-1.5 rounded-full bg-[#22D3EE]"
-                />
-                {badge}
-              </li>
-            ))}
-          </motion.ul>
         </motion.div>
       </div>
     </section>
