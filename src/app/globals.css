@@ -2830,3 +2830,16 @@ textarea {
     display: none;
   }
 }
+
+.admin-portal .logo-lockup {
+  border: 1px solid rgba(239, 68, 68, 0.75);
+  border-radius: 0.75rem;
+  padding: 0.35rem 0.5rem;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.12);
+}
+
+.admin-portal .logo-lockup:hover,
+.admin-portal .logo-lockup:focus-visible {
+  border-color: rgba(239, 68, 68, 0.95);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.22);
+}
