@@ -41,9 +41,9 @@ export async function generateMetadata({
 
   return createMetadata({
     locale,
-    title: "teChia Digital Academy | Practical Digital Skills Courses",
+    title: "teChia Digital Academy | Digital Skills Courses",
     description:
-      "Explore practical digital skills courses by teChia Digital Academy. Learn digital marketing, AI, tech, business, office productivity, creative content, finance, and online business skills.",
+      "Explore practical digital skills courses by teChia Digital Academy across marketing, AI, tech, business, office, creative, finance, and online skills.",
     path: "/courses",
   });
 }

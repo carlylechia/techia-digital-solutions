@@ -3,7 +3,7 @@ import { ArrowUpRight } from "lucide-react";
 import type { CardItem, Locale } from "@/content/site";
 import { getLocalizedHref } from "@/content/site";
 
-export function FeatureCard({ item, locale, href, hrefBase, cta }: { item: CardItem; locale: Locale; href?: string; hrefBase?: string; cta?: string }) {
+export function FeatureCard({ item, locale, href, hrefBase, cta, as = "h3" }: { item: CardItem; locale: Locale; href?: string; hrefBase?: string; cta?: string; as?: "h2" | "h3" }) {
   const resolvedHref = href ? getLocalizedHref(locale, href) : hrefBase ? getLocalizedHref(locale, `${hrefBase}/${item.slug}`) : undefined;
   const card = (
     <article className="group premium-card panel-safe relative flex h-full flex-col justify-between rounded-[1.7rem] p-6 transition duration-500 hover:-translate-y-2 hover:border-cyan-300/40 hover:shadow-[0_30px_90px_rgba(8,20,36,0.12)]">
@@ -11,7 +11,11 @@ export function FeatureCard({ item, locale, href, hrefBase, cta }: { item: CardI
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.1),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(251,113,133,0.08),transparent_24%)] opacity-0 transition duration-500 group-hover:opacity-100" aria-hidden="true" />
       <div className="panel-safe relative z-[1]">
         {item.eyebrow || item.badge ? <p className="eyebrow mb-4">{item.eyebrow || item.badge}</p> : null}
-        <h3 className="break-safe text-2xl font-semibold text-primary">{item.title}</h3>
+        {as === "h2" ? (
+          <h2 className="break-safe text-2xl font-semibold text-primary">{item.title}</h2>
+        ) : (
+          <h3 className="break-safe text-2xl font-semibold text-primary">{item.title}</h3>
+        )}
         <p className="break-safe mt-3 text-sm leading-7 text-muted">{item.description}</p>
         {item.features?.length ? (
           <ul className="mt-5 grid gap-2.5 text-sm text-muted">

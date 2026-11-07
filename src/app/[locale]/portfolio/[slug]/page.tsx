@@ -34,14 +34,13 @@ export async function generateMetadata({
   const item = studies.find((study) => study.slug === slug);
   const caseStudyTitle =
     slug === "teloh-global-business"
-      ? "Teloh Global Business Case Study by Techia Digital"
+      ? "Teloh Global Business Case Study"
       : item
         ? `${item.title} ${dict.pages.portfolio.caseStudySuffix}`
         : dict.pages.portfolio.caseStudySuffix;
   return createMetadata({
     locale,
-    title: `${caseStudyTitle} — teChia`,
-    description: item?.description || dict.pages.portfolio.metaDescription,
+    title: `${caseStudyTitle} — teChia`,    description: item?.description || dict.pages.portfolio.metaDescription,
     path: `/portfolio/${slug}`,
   });
 }

@@ -37,10 +37,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
     default: "teChia Digital Solutions | Digitalize. Simplify. Grow.",
-    template: `%s | ${siteConfig.shortName}`
+    template: "%s"
   },
   description:
-    "teChia Digital Solutions helps businesses grow through social media management, digital marketing, branding, websites, SEO, automation, AI solutions, custom software, and digital transformation consulting.",
+    "teChia Digital Solutions helps SMEs grow with social media management, digital marketing, SEO, websites, automation, AI, and custom software.",
   alternates: {
     types: {
       "application/rss+xml": "/blog/feed.xml",
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "teChia Digital Solutions | Digitalize. Simplify. Grow.",
     description:
-      "teChia Digital Solutions helps businesses grow through social media management, digital marketing, branding, websites, SEO, automation, AI solutions, custom software, and digital transformation consulting.",
+      "teChia Digital Solutions helps SMEs grow with social media management, digital marketing, SEO, websites, automation, AI, and custom software.",
     url: siteConfig.url,
     siteName: siteConfig.name,
     type: "website",
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "teChia Digital Solutions | Digitalize. Simplify. Grow.",
     description:
-      "teChia Digital Solutions helps businesses grow through social media management, digital marketing, branding, websites, SEO, automation, AI solutions, custom software, and digital transformation consulting.",
+      "teChia Digital Solutions helps SMEs grow with social media management, digital marketing, SEO, websites, automation, AI, and custom software.",
     images: ["/og/og-default.svg"]
   }
 };

@@ -7,7 +7,7 @@ import { createMetadata } from "@/lib/seo";
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale: rawLocale } = await params; const locale = isLocale(rawLocale) ? rawLocale : "en";
   const dict = getDictionary(locale);
-  return createMetadata({ locale, title: `${dict.legal.terms} — teChia`, description: dict.legal.metaDescription, path: "/terms" });
+  return createMetadata({ locale, title: `${dict.legal.terms} — teChia`, description: dict.legal.termsMetaDescription, path: "/terms" });
 }
 
 export default async function LegalPage({ params }: { params: Promise<{ locale: string }> }) {
