@@ -172,9 +172,15 @@ function CardsSection({
                   />
                 </div>
               ) : null}
-              <h3 className="text-xl font-semibold text-foreground">
-                {item.title}
-              </h3>
+              {section.heading ? (
+                <h3 className="text-xl font-semibold text-foreground">
+                  {item.title}
+                </h3>
+              ) : (
+                <h2 className="text-xl font-semibold text-foreground">
+                  {item.title}
+                </h2>
+              )}
               <p className="mt-3 text-sm leading-7 text-muted">
                 {item.description}
               </p>

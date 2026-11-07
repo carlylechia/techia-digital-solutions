@@ -50,10 +50,11 @@ export function FounderHeroPortrait({ locale }: { locale: Locale }) {
           <Image
             src="/images/carlyle.png"
             alt={altText}
-            fill
+            width={1024}
+            height={1536}
             priority
             sizes="(max-width: 1024px) 100vw, 54vw"
-            className="object-cover object-top transition-transform duration-700 ease-out group-hover:scale-[1.045] sm:object-[center_18%]"
+            className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-[1.045] sm:object-[center_18%]"
           />
           <div
             className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,11,22,0.04)_0%,rgba(4,11,22,0.0)_28%,rgba(4,11,22,0.24)_68%,rgba(4,11,22,0.82)_100%)]"

@@ -26,7 +26,7 @@ export default async function PricingPage({ params }: { params: Promise<{ locale
         actions={[{ href: "/start-project", label: dict.common.requestQuote }]}
       />
       <section className="container py-6">
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-5">{dict.pricing.map((item) => <FeatureCard key={item.slug} item={item} locale={locale} href="/start-project" cta={item.cta || dict.common.requestQuote} />)}</div>
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-5">{dict.pricing.map((item) => <FeatureCard key={item.slug} item={item} locale={locale} href="/start-project" cta={item.cta || dict.common.requestQuote} as="h2" />)}</div>
       </section>
       <section className="container py-6">
         <div className="gradient-border rounded-[1.75rem]">

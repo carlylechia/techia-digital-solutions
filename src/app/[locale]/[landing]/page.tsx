@@ -35,7 +35,7 @@ export async function generateMetadata({
   if (staticPage) {
     return createMetadata({
       locale,
-      title: `${dict.pages.landing.titlePrefix} ${staticPage.service[locale]} ${dict.pages.landing.titleConnector} ${staticPage.market[locale]} — teChia`,
+      title: `${staticPage.service[locale]} ${dict.pages.landing.titleConnector} ${staticPage.market[locale]} — teChia`,
       description: dict.pages.landing.metaDescription,
       path: `/${landing}`,
     });

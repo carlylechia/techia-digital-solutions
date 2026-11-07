@@ -19,7 +19,7 @@ export async function generateMetadata({
 
   return createMetadata({
     locale,
-    title: "Claim Your Official teChia Buyer Bonus | teChia Digital Academy",
+    title: "Claim Your teChia Buyer Bonus",
     description:
       "Submit your verified purchase details to claim your Official teChia Buyer Bonus from teChia Digital Academy.",
     path: "/courses/claim-bonus",
