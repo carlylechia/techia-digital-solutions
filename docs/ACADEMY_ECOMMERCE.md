@@ -1,0 +1,65 @@
+# teChia Digital Academy e-commerce & payments
+
+This document describes the additive Academy catalog/checkout implementation shipped on `feature/academy-ecommerce-payments-ai`.
+
+## Catalog data model (Prisma)
+
+Additive models/enums: `AcademyCategory`, `AcademyCourse`, `AcademyLesson`, `AcademyCoursePack`, `AcademyCoursePackItem`, `AcademyOrder`, `AcademyOrderItem`, `AcademyPayment`, `AcademyWebhookEvent`, `AcademyOrderBonusGrant` and related enums. Migration: `prisma/migrations/20261110120000_add_academy_catalog_and_payments/migration.sql`.
+
+- Courses and packs are DB-backed and published-only on the storefront when the DB is connected.
+- Prices are **admin-configurable** and stored as integer minor units (`priceMinor`, `currency`, default XAF). **No individual/pack prices were supplied**; seeded prices are `null`.
+- Seed: `prisma/seed.ts` is idempotent and creates 16 courses, 48 lessons, 6 packs, 32 pack items from supplied catalog definitions. Existing Chariow product IDs are parsed where already present.
+
+## Storefront & admin
+
+- `/courses`: searchable/filterable/sortable storefront (server-side query params `q`, `category`, `sort`) with individual courses and preserved pack/bonus/FAQ content.
+- `/courses/[slug]`: resolves existing pack slugs first (preserved URLs), then published individual course slugs.
+- `/courses/checkout?item=<type>:<slug>` and `/courses/checkout/return`: internal hosted checkout flow (server-side return verification; redirect query params are never treated as payment proof).
+- `/admin/academy`: catalog/pricing/Chariow mapping management and recent orders view (requires `academy.catalog.manage` and/or `academy.orders.view`).
+
+## Payment integrations (official docs)
+
+Provider abstraction: `src/lib/payments/providers.ts`, `checkout.ts`, `fulfillment.ts`, `chariow.ts`, `moneroo.ts`, `signatures.ts`.
+
+- **Chariow**: `POST https://api.chariow.com/v1/checkout` (Bearer `CHARIOW_API_KEY`) with `product_id`, customer fields, `redirect_url`, `payment_currency`, `customer_ip`, `custom_metadata`; hosted `payment.checkout_url`. Sale verification: `GET /v1/sales/{saleId}`. Webhook signature `X-Pulse-Signature: sha256=<hex>` (HMAC-SHA256 raw body, `CHARIOW_WEBHOOK_SECRET`), dedupe via `X-Pulse-Delivery-Id`. Fulfillment requires verified `sale.status` `completed|settled` and `payment.status` `success`, plus currency and amount match (`amount.value` major units converted to minor units).
+- **Moneroo**: `POST https://api.moneroo.io/v1/payments/initialize` (`MONEROO_SECRET_KEY`) returning `data.checkout_url`/`data.id`; verify `GET /v1/payments/{paymentId}/verify`. Webhook `X-Moneroo-Signature` bare lowercase hex HMAC-SHA256 (`MONEROO_WEBHOOK_SECRET`), events `payment.success|failed|cancelled`. Amounts are integer smallest currency unit (XAF zero-decimal). Fulfillment requires verified `success`, currency match, and amount `>=` order total (per docs "at least expected amount").
+
+### Payment status distinctions
+
+- `PENDING`/`PROCESSING`: checkout initiated or awaiting final verification.
+- `PAID`/`SUCCEEDED`: provider-verified successful payment with amount/currency checks passed; order paid and eligible buyer bonuses granted idempotently.
+- `FAILED`/`CANCELLED`: provider-verified unsuccessful/cancelled state; no access/bonus fulfillment.
+- `REQUIRES_REVIEW`: verified payment signal but amount/currency mismatch or other condition needing manual review; no automatic fulfillment.
+- Redirect return page status is derived from server-side verification; **never trust client redirect status**.
+
+## Environment variables
+
+See `.env.example` for:
+- `ACADEMY_INTERNAL_CHECKOUT_ENABLED`
+- `CHARIOW_API_KEY`, `CHARIOW_WEBHOOK_SECRET`
+- `MONEROO_SECRET_KEY`, `MONEROO_WEBHOOK_SECRET`
+- Existing public course/support/bonus variables and `COURSE_BONUS_DELIVERY_SECRET`
+
+## Webhook setup (external)
+
+Configure HTTPS webhook endpoints in provider dashboards:
+- Chariow: `https://<domain>/api/courses/webhooks/chariow`
+- Moneroo: `https://<domain>/api/courses/webhooks/moneroo`
+
+Use the exact webhook secrets configured in env. Live end-to-end payment success **cannot be claimed without configured live credentials and dashboard webhook setup**.
+
+## AI course advisor
+
+`src/app/api/ai/techia-agent/route.ts` injects live published catalog context (`src/lib/ai/academy-catalog-context.ts`) so recommendations use DB-published courses/packs only, avoid unpublished items and invented details/prices, and include trading/crypto educational disclaimers.
+
+## Migrations
+
+```bash
+npx prisma validate
+npx prisma generate
+npx prisma migrate deploy   # production
+npx prisma migrate dev      # local dev, if needed
+pnpm seed                   # idempotent catalog seed
+```
+
+Applied locally in this implementation: `20261110120000_add_academy_catalog_and_payments`.
