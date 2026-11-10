@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Mail, MessageCircle } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -262,6 +263,34 @@ export default async function CoursesPage({
             variant: "secondary",
           },
         ]}
+        aside={
+          <div className="group relative aspect-[4/3] overflow-hidden rounded-[1.45rem] sm:aspect-[5/4] lg:aspect-[4/5] xl:aspect-[5/4]">
+            <Image
+              src="/images/courses/hero-learning.jpg"
+              alt={
+                locale === "fr"
+                  ? "Apprenants développant des compétences digitales sur ordinateur"
+                  : "Learners building digital skills on laptops"
+              }
+              fill
+              priority
+              sizes="(min-width: 1280px) 34vw, (min-width: 1024px) 40vw, 100vw"
+              className="object-cover transition duration-700 group-hover:scale-[1.03]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#040812]/75 via-[#040812]/10 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 via-transparent to-rose-500/20 mix-blend-screen" />
+            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">
+                {locale === "fr" ? "Apprendre. Pratiquer. Réussir." : "Learn. Practice. Grow."}
+              </p>
+              <p className="mt-2 max-w-xs text-lg font-semibold leading-snug text-white sm:text-xl">
+                {locale === "fr"
+                  ? "Des compétences digitales concrètes pour votre avenir."
+                  : "Real digital skills for your next opportunity."}
+              </p>
+            </div>
+          </div>
+        }
       />
 
       <section id="catalog" className="container scroll-mt-24 py-4 sm:py-6">
