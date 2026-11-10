@@ -8,7 +8,6 @@ import { BuyerBonusSection } from "@/components/courses/BuyerBonusSection";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { CourseCatalogFilters } from "@/components/courses/CourseCatalogFilters";
 import { CourseFaq } from "@/components/courses/CourseFaq";
-import { CourseHero } from "@/components/courses/CourseHero";
 import { CoursePackCard } from "@/components/courses/CoursePackCard";
 import { CourseCheckoutButton } from "@/components/courses/CourseCheckoutButton";
 import { FeaturedFullPack } from "@/components/courses/FeaturedFullPack";
@@ -249,49 +248,63 @@ export default async function CoursesPage({
         ])}
       />
 
-      <CourseHero
-        locale={locale}
-        eyebrow={copy.heroEyebrow}
-        title={copy.heroTitle}
-        description={copy.heroDescription}
-        badges={copy.heroBadges}
-        actions={[
-          { href: buildViewHref("packs", { q, category, sort }), label: copy.heroPrimary },
-          {
-            href: buildViewHref("courses", { q, category, sort }),
-            label: copy.heroSecondary,
-            variant: "secondary",
-          },
-        ]}
-        aside={
-          <div className="group relative aspect-[4/3] overflow-hidden rounded-[1.45rem] sm:aspect-[5/4] lg:aspect-[4/5] xl:aspect-[5/4]">
+      <section className="relative isolate overflow-hidden">
+        <div className="relative min-h-[78svh] w-full sm:min-h-[84svh] lg:min-h-[90svh]">
+          {/* Text layer (reduced, behind the image) */}
+          <div className="pointer-events-none absolute inset-0 z-0 flex items-end">
+            <div className="container pb-10 pt-28 sm:pb-14 sm:pt-32 lg:pb-16">
+              <div className="max-w-3xl opacity-[0.18] blur-[0.2px] saturate-75">
+                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-foreground/80">
+                  {copy.heroEyebrow}
+                </p>
+                <h1 className="mt-3 text-[clamp(2rem,6vw,4.2rem)] font-semibold leading-[0.95] text-foreground">
+                  {copy.heroTitle}
+                </h1>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-foreground/80 sm:text-base">
+                  {copy.heroDescription}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Full-length hero image (dominant, in front) */}
+          <div className="absolute inset-0 z-10 [mask-image:linear-gradient(to_right,transparent_0%,black_18%,black_100%)] sm:[mask-image:linear-gradient(to_right,transparent_0%,black_22%,black_100%)] lg:[mask-image:linear-gradient(to_right,transparent_0%,black_28%,black_100%)]">
             <Image
-              src="/images/courses/hero-learning.jpg"
+              src="/images/courses/hero-learning-black.jpg"
               alt={
                 locale === "fr"
-                  ? "Apprenants développant des compétences digitales sur ordinateur"
-                  : "Learners building digital skills on laptops"
+                  ? "Apprenants noirs développant des compétences digitales"
+                  : "Black learners building digital skills"
               }
               fill
               priority
-              sizes="(min-width: 1280px) 34vw, (min-width: 1024px) 40vw, 100vw"
-              className="object-cover transition duration-700 group-hover:scale-[1.03]"
+              sizes="100vw"
+              className="object-cover object-[70%_center] sm:object-[65%_center] lg:object-center"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#040812]/75 via-[#040812]/10 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 via-transparent to-rose-500/20 mix-blend-screen" />
-            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">
-                {locale === "fr" ? "Apprendre. Pratiquer. Réussir." : "Learn. Practice. Grow."}
-              </p>
-              <p className="mt-2 max-w-xs text-lg font-semibold leading-snug text-white sm:text-xl">
-                {locale === "fr"
-                  ? "Des compétences digitales concrètes pour votre avenir."
-                  : "Real digital skills for your next opportunity."}
-              </p>
+            <div className="absolute inset-0 bg-gradient-to-r from-[color:var(--background)]/70 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--background)]/35 via-transparent to-transparent" />
+          </div>
+
+          {/* Accessible actions (kept clear above image fade) */}
+          <div className="relative z-20 flex h-full min-h-[78svh] items-end sm:min-h-[84svh] lg:min-h-[90svh]">
+            <div className="container pb-8 pt-28 sm:pb-12 sm:pt-32 lg:pb-14">
+              <div className="max-w-xl">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                  <Link href={buildViewHref("packs", { q, category, sort })} className="btn-primary justify-center px-5 py-3">
+                    {copy.heroPrimary}
+                  </Link>
+                  <Link
+                    href={buildViewHref("courses", { q, category, sort })}
+                    className="btn-secondary justify-center px-5 py-3"
+                  >
+                    {copy.heroSecondary}
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
-        }
-      />
+        </div>
+      </section>
 
       <section id="catalog" className="container scroll-mt-24 py-4 sm:py-6">
         <div className="gradient-border rounded-[1.95rem]">
