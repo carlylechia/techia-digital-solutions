@@ -462,45 +462,45 @@ model DemoRequest {
 }
 
 model AdminUser {
-  id                    String                     @id @default(cuid())
-  email                 String                     @unique
-  name                  String?
-  passwordHash          String?
-  role                  String                     @default("admin")
-  roleId                String?
-  roleRef               AdminRole?                 @relation("RoleUsers", fields: [roleId], references: [id], onDelete: SetNull)
-  status                AdminStatus                @default(ACTIVE)
-  lastLoginAt           DateTime?
-  createdById           String?
-  createdBy             AdminUser?                 @relation("AdminCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAdmins         AdminUser[]                @relation("AdminCreator")
-  createdRoles          AdminRole[]                @relation("RoleCreator")
-  ownedClients          Client[]                   @relation("ClientOwner")
-  assignedProjects      ClientProject[]            @relation("ProjectOwner")
-  ownedBoards           ProcessBoard[]             @relation("BoardOwner")
-  assignedTasks         ProcessTask[]              @relation("TaskAssignee")
-  createdTasks          ProcessTask[]              @relation("TaskCreator")
-  authoredPages         ContentPage[]              @relation("ContentAuthor")
-  sentMessages          ConversationMessage[]      @relation("AdminSentMessages")
-  portalAccesses        ClientPortalAccess[]
-  portalMessages        PortalMessage[]
-  portalReplies         PortalMessageReply[]
-  portalFiles           PortalFile[]
-  portalPayments        PortalPayment[]            @relation("PaymentCreatedBy")
-  verifiedBonusClaims   CourseBonusClaim[]         @relation("VerifiedBonusClaims")
-  fulfilledBonusClaims  CourseBonusClaim[]         @relation("FulfilledBonusClaims")
-  courseBonusDeliveries CourseBonusClaimDelivery[] @relation("BonusDeliverySender")
-  auditLogs             AuditLog[]
-  blogAuthor            BlogAuthor?                @relation("BlogAuthorUser")
-  blogPostsCreated      BlogPost[]                 @relation("BlogPostCreator")
-  blogPostsEdited       BlogPost[]                 @relation("BlogPostEditor")
-  blogPostsPublished    BlogPost[]                 @relation("BlogPostPublisher")
-  blogMedia             BlogMedia[]                @relation("BlogMediaUploader")
-  blogReviewNotes       BlogReviewNote[]           @relation("BlogReviewNoteAuthor")
-  blogRevisions         BlogPostRevision[]         @relation("BlogRevisionCreator")
-  outreachMessagesApproved OutreachMessage[]        @relation("OutreachMessageApprover")
-  createdAt             DateTime                   @default(now())
-  updatedAt             DateTime                   @updatedAt
+  id                       String                     @id @default(cuid())
+  email                    String                     @unique
+  name                     String?
+  passwordHash             String?
+  role                     String                     @default("admin")
+  roleId                   String?
+  roleRef                  AdminRole?                 @relation("RoleUsers", fields: [roleId], references: [id], onDelete: SetNull)
+  status                   AdminStatus                @default(ACTIVE)
+  lastLoginAt              DateTime?
+  createdById              String?
+  createdBy                AdminUser?                 @relation("AdminCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAdmins            AdminUser[]                @relation("AdminCreator")
+  createdRoles             AdminRole[]                @relation("RoleCreator")
+  ownedClients             Client[]                   @relation("ClientOwner")
+  assignedProjects         ClientProject[]            @relation("ProjectOwner")
+  ownedBoards              ProcessBoard[]             @relation("BoardOwner")
+  assignedTasks            ProcessTask[]              @relation("TaskAssignee")
+  createdTasks             ProcessTask[]              @relation("TaskCreator")
+  authoredPages            ContentPage[]              @relation("ContentAuthor")
+  sentMessages             ConversationMessage[]      @relation("AdminSentMessages")
+  portalAccesses           ClientPortalAccess[]
+  portalMessages           PortalMessage[]
+  portalReplies            PortalMessageReply[]
+  portalFiles              PortalFile[]
+  portalPayments           PortalPayment[]            @relation("PaymentCreatedBy")
+  verifiedBonusClaims      CourseBonusClaim[]         @relation("VerifiedBonusClaims")
+  fulfilledBonusClaims     CourseBonusClaim[]         @relation("FulfilledBonusClaims")
+  courseBonusDeliveries    CourseBonusClaimDelivery[] @relation("BonusDeliverySender")
+  auditLogs                AuditLog[]
+  blogAuthor               BlogAuthor?                @relation("BlogAuthorUser")
+  blogPostsCreated         BlogPost[]                 @relation("BlogPostCreator")
+  blogPostsEdited          BlogPost[]                 @relation("BlogPostEditor")
+  blogPostsPublished       BlogPost[]                 @relation("BlogPostPublisher")
+  blogMedia                BlogMedia[]                @relation("BlogMediaUploader")
+  blogReviewNotes          BlogReviewNote[]           @relation("BlogReviewNoteAuthor")
+  blogRevisions            BlogPostRevision[]         @relation("BlogRevisionCreator")
+  outreachMessagesApproved OutreachMessage[]          @relation("OutreachMessageApprover")
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
 
   @@index([roleId])
   @@index([status])
@@ -1381,21 +1381,21 @@ enum OutreachMeetingStatus {
 }
 
 model OutreachCampaign {
-  id          String                  @id @default(cuid())
-  name        String
-  description String?                 @db.Text
-  status      OutreachCampaignStatus  @default(DRAFT)
-  mode        OutreachCampaignMode    @default(SEMI_AUTOMATIC)
-  country     String
-  regions     String[]                @default([])
-  cities      String[]                @default([])
-  industries  String[]                @default([])
+  id                 String                 @id @default(cuid())
+  name               String
+  description        String?                @db.Text
+  status             OutreachCampaignStatus @default(DRAFT)
+  mode               OutreachCampaignMode   @default(SEMI_AUTOMATIC)
+  country            String
+  regions            String[]               @default([])
+  cities             String[]               @default([])
+  industries         String[]               @default([])
   // Business type and target service are stored as plain lists so the discovery
   // query builder never has to join a taxonomy table that does not exist yet.
-  businessTypes          String[] @default([])
-  targetServices         String[] @default([])
-  excludedIndustries     String[] @default([])
-  excludedKeywords       String[] @default([])
+  businessTypes      String[]               @default([])
+  targetServices     String[]               @default([])
+  excludedIndustries String[]               @default([])
+  excludedKeywords   String[]               @default([])
 
   dailyDiscoveryLimit Int     @default(25)
   dailySendLimit      Int     @default(10)
@@ -1410,7 +1410,7 @@ model OutreachCampaign {
 
   // Outreach Readiness threshold. A prospect must score at least this many
   // points on the readiness scale before it can be considered for outreach.
-  minReadinessScore Int     @default(70)
+  minReadinessScore    Int  @default(70)
   // Maximum number of prospects that may be approved for outreach in this
   // campaign. Null means no cap beyond the daily send limit.
   maxApprovedProspects Int?
@@ -1439,7 +1439,7 @@ model OutreachCampaign {
   // than relying on the UI disabling the button. Null means "no run in flight".
   // Cron does not use it: the cron path processes the shared queue and is already
   // protected by job locking.
-  activeRunId String? @unique
+  activeRunId      String?   @unique
   // When the current lock was taken, so an abandoned lock left by a process that
   // died can be reclaimed instead of blocking manual runs forever.
   lastRunStartedAt DateTime?
@@ -1456,23 +1456,23 @@ model OutreachCampaign {
 }
 
 model OutreachProspect {
-  id        String                 @id @default(cuid())
+  id         String                 @id @default(cuid())
   campaignId String
-  campaign  OutreachCampaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  status    OutreachProspectStatus @default(DISCOVERED)
+  campaign   OutreachCampaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  status     OutreachProspectStatus @default(DISCOVERED)
 
-  businessName    String
-  country         String?
-  region          String?
-  city            String?
-  industry        String?
-  websiteUrl      String?
-  contactPageUrl  String?
+  businessName   String
+  country        String?
+  region         String?
+  city           String?
+  industry       String?
+  websiteUrl     String?
+  contactPageUrl String?
   // Only ever populated from evidence the business published itself.
-  publicEmail     String?
-  publicPhone     String?
-  contactName     String?
-  contactRole     String?
+  publicEmail    String?
+  publicPhone    String?
+  contactName    String?
+  contactRole    String?
 
   // Google place ID is the primary external deduplication key.
   googlePlaceId String?
@@ -1481,29 +1481,29 @@ model OutreachProspect {
   // Provider-agnostic provenance. providerPlaceId holds the provider's own
   // identifier so the same business found twice through one provider is
   // recognised, while dedup.ts handles cross-provider identity.
-  discoveryProvider OutreachDiscoveryProvider @default(GOOGLE_PLACES)
-  providerPlaceId   String?
-  sourceUrl         String?
-  latitude          Float?
-  longitude         Float?
+  discoveryProvider     OutreachDiscoveryProvider @default(GOOGLE_PLACES)
+  providerPlaceId       String?
+  sourceUrl             String?
+  latitude              Float?
+  longitude             Float?
   // Set when a cross-provider match was uncertain, so a human can merge later.
   possibleDuplicateOfId String?
 
   source String @default("google_places")
 
   // Structured evidence only. Raw third-party page bodies are never persisted.
-  websiteSnapshot  Json?
-  digitalAssessment Json?
-  opportunityScore Int                @default(0)
-  recommendedServices String[]        @default([])
-  aiSummary        String?            @db.Text
-  aiReasoning      String?            @db.Text
+  websiteSnapshot     Json?
+  digitalAssessment   Json?
+  opportunityScore    Int      @default(0)
+  recommendedServices String[] @default([])
+  aiSummary           String?  @db.Text
+  aiReasoning         String?  @db.Text
 
   // ─── Outreach Readiness & Qualification ─────────────────────────────────
   // The readiness score measures whether a business is a strong candidate for
   // personalized cold outreach right now. It is separate from opportunityScore,
   // which measures digital improvement opportunities.
-  outreachReadinessScore Int    @default(0)
+  outreachReadinessScore  Int     @default(0)
   // QUALIFIED | REVIEW | DISQUALIFIED — the outcome of the hard qualification
   // rules, not just the numeric score.
   qualificationStatus     String?
@@ -1512,14 +1512,14 @@ model OutreachProspect {
   // The single most important opportunity identified from evidence.
   primaryOpportunity      String?
   // Human-readable explanation of the qualification outcome.
-  qualificationReason    String?   @db.Text
-  disqualificationReason  String?   @db.Text
+  qualificationReason     String? @db.Text
+  disqualificationReason  String? @db.Text
   recommendedNextAction   String?
 
   // Follow-up state machine checkpoint. Automation stops whenever this is set.
   automationStoppedReason String?
-  emailsSentCount         Int       @default(0)
-  lastErrorMessage        String?   @db.Text
+  emailsSentCount         Int     @default(0)
+  lastErrorMessage        String? @db.Text
 
   discoveredAt    DateTime  @default(now())
   lastEnrichedAt  DateTime?
@@ -1528,11 +1528,11 @@ model OutreachProspect {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  assessments  OutreachAssessment[]
-  messages     OutreachMessage[]
-  events       OutreachEvent[]
-  jobs         OutreachJob[]
-  meetings     OutreachMeeting[]
+  assessments OutreachAssessment[]
+  messages    OutreachMessage[]
+  events      OutreachEvent[]
+  jobs        OutreachJob[]
+  meetings    OutreachMeeting[]
 
   @@unique([campaignId, googlePlaceId])
   @@unique([campaignId, discoveryProvider, providerPlaceId])
@@ -1551,72 +1551,72 @@ model OutreachProspect {
 }
 
 model OutreachAssessment {
-  id         String   @id @default(cuid())
+  id         String           @id @default(cuid())
   prospectId String
   prospect   OutreachProspect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
 
   // Audit trail: every qualification is attributable to a model, a prompt
   // revision and the exact evidence snapshot that produced it. Historical rows
   // are appended, never overwritten.
-  model            String
-  promptVersion    String
-  sourceData       Json
-  opportunityScore Int
-  confidence       Float
-  findings         Json
-  recommendations  Json
-  summary          String?  @db.Text
-  primaryService   String?
+  model              String
+  promptVersion      String
+  sourceData         Json
+  opportunityScore   Int
+  confidence         Float
+  findings           Json
+  recommendations    Json
+  summary            String? @db.Text
+  primaryService     String?
   doNotContactReason String?
 
   // Readiness and qualification fields mirror the prospect record so the
   // assessment history captures the full decision context.
-  outreachReadinessScore Int     @default(0)
+  outreachReadinessScore  Int     @default(0)
   qualificationStatus     String?
   qualificationConfidence Float?
   primaryOpportunity      String?
-  qualificationReason    String?   @db.Text
-  disqualificationReason  String?   @db.Text
+  qualificationReason     String? @db.Text
+  disqualificationReason  String? @db.Text
   recommendedNextAction   String?
 
-  isCurrent        Boolean  @default(true)
-  createdAt        DateTime @default(now())
+  isCurrent Boolean  @default(true)
+  createdAt DateTime @default(now())
 
   @@index([prospectId, createdAt(sort: Desc)])
   @@index([promptVersion])
 }
 
 model OutreachMessage {
-  id         String   @id @default(cuid())
+  id         String           @id @default(cuid())
   prospectId String
   prospect   OutreachProspect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
   campaignId String
   campaign   OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
-  type   OutreachMessageType
-  status OutreachMessageStatus @default(DRAFT)
+  type     OutreachMessageType
+  status   OutreachMessageStatus @default(DRAFT)
   subject  String
-  bodyText String  @db.Text
-  bodyHtml String? @db.Text
+  bodyText String                @db.Text
+  bodyHtml String?               @db.Text
 
-  aiGenerated     Boolean  @default(false)
+  aiGenerated     Boolean @default(false)
   aiPromptVersion String?
 
   // Provider-level idempotency. A retried send job reuses the same key so the
   // provider can never deliver the same message twice.
-  idempotencyKey   String?  @unique
+  idempotencyKey    String? @unique
   providerMessageId String? @unique
-  threadId         String?
+  threadId          String?
 
-  scheduledAt  DateTime?
-  approvedAt   DateTime?
-  approvedById String?
-  approvedBy   AdminUser? @relation("OutreachMessageApprover", fields: [approvedById], references: [id], onDelete: SetNull)
-  sentAt       DateTime?
-  deliveredAt  DateTime?
-  failureReason String?   @db.Text
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  scheduledAt   DateTime?
+  approvedAt    DateTime?
+  approvedById  String?
+  approvedBy    AdminUser? @relation("OutreachMessageApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  failureReason String?    @db.Text
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   events OutreachEvent[]
 
@@ -1628,7 +1628,7 @@ model OutreachMessage {
 }
 
 model OutreachEvent {
-  id         String   @id @default(cuid())
+  id         String            @id @default(cuid())
   campaignId String?
   prospectId String?
   messageId  String?
@@ -1636,7 +1636,7 @@ model OutreachEvent {
   summary    String?
   metadata   Json?
   actorId    String?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime          @default(now())
 
   campaign OutreachCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   prospect OutreachProspect? @relation(fields: [prospectId], references: [id], onDelete: Cascade)
@@ -1664,8 +1664,8 @@ model OutreachJob {
   completedAt  DateTime?
   // Optimistic lock. A claim only succeeds while the row is still PENDING and
   // unowned, so two workers can never process the same job.
-  lockedAt  DateTime?
-  lockToken String?
+  lockedAt     DateTime?
+  lockToken    String?
 
   attempts     Int     @default(0)
   maxAttempts  Int     @default(3)
@@ -1694,30 +1694,30 @@ model OutreachJob {
 /// messages stay DRAFT, which is what makes "a test run never sends" auditable
 /// after the fact rather than merely asserted.
 model OutreachRun {
-  id         String           @id @default(cuid())
+  id         String             @id @default(cuid())
   campaignId String
   trigger    OutreachRunTrigger
-  status     OutreachRunStatus @default(RUNNING)
+  status     OutreachRunStatus  @default(RUNNING)
 
   startedAt   DateTime  @default(now())
   completedAt DateTime?
 
   // Counts are per-run deltas, not campaign totals. Null means "not measured in
   // this run" so a scheduled run that skipped a phase is not misread as zero work.
-  discoveredCount     Int?
-  processedCount      Int?
-  qualifiedCount      Int?
+  discoveredCount      Int?
+  processedCount       Int?
+  qualifiedCount       Int?
   draftsGeneratedCount Int?
-  emailsSentCount     Int? @default(0)
-  skippedCount        Int?
-  failedCount         Int?
+  emailsSentCount      Int? @default(0)
+  skippedCount         Int?
+  failedCount          Int?
 
   // Short, human readable outcome. Never contains message bodies, recipient
   // addresses, credentials or provider payloads.
   summary String? @db.Text
 
   // The admin who started a manual or test run. Null for the scheduled cron.
-  createdById String?
+  createdById   String?
   // The run this one is continuing, when a bounded run defers the remainder and
   // the next daily cron picks it up. Set on the later run, not the earlier one.
   resumedFromId String?
@@ -1725,9 +1725,9 @@ model OutreachRun {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  campaign      OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  resumedFrom   OutreachRun?     @relation("OutreachRunResume", fields: [resumedFromId], references: [id], onDelete: SetNull)
-  resumedBy     OutreachRun[]    @relation("OutreachRunResume")
+  campaign    OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  resumedFrom OutreachRun?     @relation("OutreachRunResume", fields: [resumedFromId], references: [id], onDelete: SetNull)
+  resumedBy   OutreachRun[]    @relation("OutreachRunResume")
 
   @@index([campaignId, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
@@ -1735,13 +1735,13 @@ model OutreachRun {
 }
 
 model OutreachSuppression {
-  id     String                   @id @default(cuid())
-  email  String?
-  domain String?
-  reason OutreachSuppressionReason
-  source String                   @default("system")
-  notes  String?                  @db.Text
-  createdAt DateTime              @default(now())
+  id        String                    @id @default(cuid())
+  email     String?
+  domain    String?
+  reason    OutreachSuppressionReason
+  source    String                    @default("system")
+  notes     String?                   @db.Text
+  createdAt DateTime                  @default(now())
 
   // Nullable columns so a single suppression row can target either an exact
   // address or an entire domain, never both lists at once.
@@ -1752,49 +1752,49 @@ model OutreachSuppression {
 }
 
 model OutreachMeeting {
-  id          String               @id @default(cuid())
+  id          String                @id @default(cuid())
   prospectId  String
-  prospect    OutreachProspect     @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  prospect    OutreachProspect      @relation(fields: [prospectId], references: [id], onDelete: Cascade)
   status      OutreachMeetingStatus @default(SCHEDULED)
   scheduledAt DateTime
-  duration    Int                  @default(30)
+  duration    Int                   @default(30)
   bookingUrl  String?
   meetingUrl  String?
-  notes       String?              @db.Text
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  notes       String?               @db.Text
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
 
   @@index([prospectId, scheduledAt(sort: Desc)])
   @@index([status, scheduledAt])
 }
 
 model OutreachDailyStats {
-  id         String   @id @default(cuid())
+  id         String           @id @default(cuid())
   campaignId String
   campaign   OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   // Date column so one row exists per campaign per calendar day.
-  date DateTime @db.Date
+  date       DateTime         @db.Date
 
-  discovered  Int @default(0)
-  disqualified Int @default(0)
-  qualified   Int @default(0)
-  approved    Int @default(0)
-  emailsSent  Int @default(0)
-  delivered   Int @default(0)
-  opened      Int @default(0)
-  clicked     Int @default(0)
-  replies     Int @default(0)
-  interested  Int @default(0)
-  meetings    Int @default(0)
-  proposals   Int @default(0)
-  won         Int @default(0)
-  lost        Int @default(0)
+  discovered         Int      @default(0)
+  disqualified       Int      @default(0)
+  qualified          Int      @default(0)
+  approved           Int      @default(0)
+  emailsSent         Int      @default(0)
+  delivered          Int      @default(0)
+  opened             Int      @default(0)
+  clicked            Int      @default(0)
+  replies            Int      @default(0)
+  interested         Int      @default(0)
+  meetings           Int      @default(0)
+  proposals          Int      @default(0)
+  won                Int      @default(0)
+  lost               Int      @default(0)
   // Per-provider discovery volume and fallback count, so a campaign can be judged
   // by the source that actually produced its prospects.
-  discoveredGoogle Int @default(0)
-  discoveredOsm    Int @default(0)
-  discoveryFallbacks Int @default(0)
-  updatedAt   DateTime @updatedAt
+  discoveredGoogle   Int      @default(0)
+  discoveredOsm      Int      @default(0)
+  discoveryFallbacks Int      @default(0)
+  updatedAt          DateTime @updatedAt
 
   @@unique([campaignId, date])
   @@index([date])
@@ -1806,17 +1806,325 @@ model OutreachDailyStats {
 /// calling a known-failing Google API for a short cooldown and retry it later.
 /// No Redis or additional infrastructure is introduced.
 model OutreachProviderHealth {
-  provider OutreachDiscoveryProvider @id
+  provider            OutreachDiscoveryProvider @id
   // Consecutive eligible failures. Reset on any success.
-  consecutiveFailures Int       @default(0)
+  consecutiveFailures Int                       @default(0)
   // While set and in the future, AUTO mode skips this provider.
-  cooldownUntil        DateTime?
+  cooldownUntil       DateTime?
   lastFailureCategory String?
-  lastFailureMessage  String?  @db.Text
+  lastFailureMessage  String?                   @db.Text
   lastSuccessAt       DateTime?
   lastAttemptAt       DateTime?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
 
   @@index([cooldownUntil])
+}
+
+// ─── Academy Catalog & Commerce ──────────────────────────────────────────────
+// Fully additive. Existing course pack copy, Chariow hosted links, bonus claims
+// and every public route remain intact; these tables add editable catalog data,
+// order snapshots and verified payment records on top.
+//
+// Money is always stored as an integer in the currency's smallest unit. XAF and
+// XOF have zero decimal digits, so `priceMinor = 50000` means 50,000 XAF. USD
+// `priceMinor = 9900` means 99.00 USD. No Float column is used for money.
+
+enum AcademyCourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AcademyCourseLevel {
+  BEGINNER
+  BEGINNER_TO_INTERMEDIATE
+  INTERMEDIATE
+}
+
+enum AcademyOrderStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  REQUIRES_REVIEW
+}
+
+enum AcademyOrderItemType {
+  COURSE
+  PACK
+}
+
+enum AcademyPaymentProvider {
+  CHARIOW
+  MONEROO
+  MANUAL
+}
+
+enum AcademyPaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+  REQUIRES_REVIEW
+}
+
+enum AcademyWebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED
+  FAILED
+}
+
+model AcademyCourseCategory {
+  id            String          @id @default(cuid())
+  slug          String          @unique
+  nameEn        String
+  nameFr        String?
+  descriptionEn String?         @db.Text
+  descriptionFr String?         @db.Text
+  position      Int             @default(0)
+  isActive      Boolean         @default(true)
+  courses       AcademyCourse[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([isActive, position])
+}
+
+model AcademyCourse {
+  id                          String                  @id @default(cuid())
+  slug                        String                  @unique
+  categoryId                  String?
+  category                    AcademyCourseCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  titleEn                     String
+  titleFr                     String?
+  shortDescriptionEn          String                  @db.Text
+  shortDescriptionFr          String?                 @db.Text
+  descriptionEn               String                  @db.Text
+  descriptionFr               String?                 @db.Text
+  level                       AcademyCourseLevel      @default(BEGINNER_TO_INTERMEDIATE)
+  status                      AcademyCourseStatus     @default(DRAFT)
+  includedInFullPack          Boolean                 @default(true)
+  financialDisclaimerRequired Boolean                 @default(false)
+  skillsEn                    String[]                @default([])
+  skillsFr                    String[]                @default([])
+  // Nullable by design: no price was supplied for individual courses, so the
+  // public UI must never invent one. Administrators set this explicitly.
+  priceMinor                  Int?
+  compareAtPriceMinor         Int?
+  currency                    String                  @default("XAF")
+  chariowProductId            String?
+  imageUrl                    String?
+  seoTitleEn                  String?
+  seoTitleFr                  String?
+  seoDescriptionEn            String?                 @db.Text
+  seoDescriptionFr            String?                 @db.Text
+  position                    Int                     @default(0)
+  publishedAt                 DateTime?
+  lessons                     AcademyCourseLesson[]
+  packItems                   AcademyCoursePackItem[]
+  orderItems                  AcademyOrderItem[]
+  createdAt                   DateTime                @default(now())
+  updatedAt                   DateTime                @updatedAt
+
+  @@index([status, position])
+  @@index([categoryId, status, position])
+}
+
+model AcademyCourseLesson {
+  id            String        @id @default(cuid())
+  courseId      String
+  course        AcademyCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  slug          String
+  titleEn       String
+  titleFr       String?
+  descriptionEn String        @db.Text
+  descriptionFr String?       @db.Text
+  durationLabel String?
+  isPreview     Boolean       @default(false)
+  position      Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([courseId, slug])
+  @@index([courseId, position])
+}
+
+model AcademyCoursePack {
+  id                  String                  @id @default(cuid())
+  slug                String                  @unique
+  titleEn             String
+  titleFr             String?
+  shortTitleEn        String?
+  shortTitleFr        String?
+  categoryLabelEn     String
+  categoryLabelFr     String?
+  taglineEn           String                  @db.Text
+  taglineFr           String?                 @db.Text
+  summaryEn           String                  @db.Text
+  summaryFr           String?                 @db.Text
+  descriptionEn       String                  @db.Text
+  descriptionFr       String?                 @db.Text
+  bestForEn           String[]                @default([])
+  bestForFr           String[]                @default([])
+  learningOutcomesEn  String[]                @default([])
+  learningOutcomesFr  String[]                @default([])
+  whyChooseEn         String[]                @default([])
+  whyChooseFr         String[]                @default([])
+  level               AcademyCourseLevel      @default(BEGINNER_TO_INTERMEDIATE)
+  recommended         Boolean                 @default(false)
+  badgeEn             String?
+  badgeFr             String?
+  status              AcademyCourseStatus     @default(DRAFT)
+  priceMinor          Int?
+  compareAtPriceMinor Int?
+  currency            String                  @default("XAF")
+  chariowProductId    String?
+  imageUrl            String?
+  seoTitleEn          String?
+  seoTitleFr          String?
+  seoDescriptionEn    String?                 @db.Text
+  seoDescriptionFr    String?                 @db.Text
+  position            Int                     @default(0)
+  publishedAt         DateTime?
+  items               AcademyCoursePackItem[]
+  orderItems          AcademyOrderItem[]
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  @@index([status, position])
+  @@index([recommended, status, position])
+}
+
+model AcademyCoursePackItem {
+  id        String            @id @default(cuid())
+  packId    String
+  pack      AcademyCoursePack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    AcademyCourse     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  position  Int               @default(0)
+  createdAt DateTime          @default(now())
+
+  @@unique([packId, courseId])
+  @@index([packId, position])
+  @@index([courseId])
+}
+
+model AcademyOrder {
+  id                String                   @id @default(cuid())
+  reference         String                   @unique
+  // Client-supplied checkout key. A retried submission reuses the same order
+  // instead of creating a second charge attempt.
+  idempotencyKey    String?                  @unique
+  status            AcademyOrderStatus       @default(PENDING)
+  customerName      String
+  customerEmail     String
+  customerPhone     String
+  customerCountry   String?
+  locale            Locale                   @default(en)
+  currency          String                   @default("XAF")
+  subtotalMinor     Int
+  discountMinor     Int                      @default(0)
+  totalMinor        Int
+  provider          AcademyPaymentProvider?
+  providerPaymentId String?
+  checkoutUrl       String?                  @db.Text
+  paidAt            DateTime?
+  failedAt          DateTime?
+  notes             String?                  @db.Text
+  metadata          Json?
+  items             AcademyOrderItem[]
+  payments          AcademyPayment[]
+  bonusGrants       AcademyOrderBonusGrant[]
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([customerEmail])
+  @@index([provider, providerPaymentId])
+}
+
+model AcademyOrderItem {
+  id             String               @id @default(cuid())
+  orderId        String
+  order          AcademyOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type           AcademyOrderItemType
+  courseId       String?
+  course         AcademyCourse?       @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  packId         String?
+  pack           AcademyCoursePack?   @relation(fields: [packId], references: [id], onDelete: SetNull)
+  titleSnapshot  String
+  slugSnapshot   String
+  quantity       Int                  @default(1)
+  unitPriceMinor Int
+  totalMinor     Int
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+
+  @@index([orderId])
+  @@index([courseId])
+  @@index([packId])
+}
+
+model AcademyPayment {
+  id                String                 @id @default(cuid())
+  orderId           String
+  order             AcademyOrder           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider          AcademyPaymentProvider
+  status            AcademyPaymentStatus   @default(PENDING)
+  amountMinor       Int
+  currency          String                 @default("XAF")
+  providerPaymentId String?
+  providerReference String?
+  checkoutUrl       String?                @db.Text
+  idempotencyKey    String?                @unique
+  failureReason     String?                @db.Text
+  providerPayload   Json?
+  verifiedAt        DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@index([orderId, createdAt(sort: Desc)])
+  @@index([provider, providerPaymentId])
+  @@index([status, createdAt(sort: Desc)])
+}
+
+model AcademyOrderBonusGrant {
+  id        String       @id @default(cuid())
+  orderId   String
+  order     AcademyOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  bonusKey  String
+  status    String       @default("ELIGIBLE")
+  claimedAt DateTime?
+  metadata  Json?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([orderId, bonusKey])
+  @@index([bonusKey])
+  @@index([status])
+}
+
+model AcademyWebhookEvent {
+  id             String                    @id @default(cuid())
+  provider       AcademyPaymentProvider
+  eventType      String
+  // Provider delivery identifier, used as the idempotency key. Nullable because
+  // some providers do not send one on every event type.
+  deliveryId     String?
+  status         AcademyWebhookEventStatus @default(RECEIVED)
+  signatureValid Boolean                   @default(true)
+  payload        Json
+  error          String?                   @db.Text
+  processedAt    DateTime?
+  createdAt      DateTime                  @default(now())
+
+  @@unique([provider, deliveryId])
+  @@index([provider, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
 }
