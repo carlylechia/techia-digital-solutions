@@ -250,52 +250,40 @@ export default async function CoursesPage({
 
       <section className="relative isolate overflow-hidden">
         <div className="relative min-h-[78svh] w-full sm:min-h-[84svh] lg:min-h-[90svh]">
-          {/* Text layer (reduced, behind the image) */}
-          <div className="pointer-events-none absolute inset-0 z-0 flex items-end">
+          <Image
+            src="/images/courses/hero-learning-black.jpg"
+            alt={
+              locale === "fr"
+                ? "Apprenants noirs développant des compétences digitales"
+                : "Black learners building digital skills"
+            }
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-[65%_center] sm:object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
+
+          <div className="relative z-10 flex h-full min-h-[78svh] items-end sm:min-h-[84svh] lg:min-h-[90svh]">
             <div className="container pb-10 pt-28 sm:pb-14 sm:pt-32 lg:pb-16">
-              <div className="max-w-3xl opacity-[0.18] blur-[0.2px] saturate-75">
-                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-foreground/80">
+              <div className="max-w-3xl">
+                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-cyan-200/90">
                   {copy.heroEyebrow}
                 </p>
-                <h1 className="mt-3 text-[clamp(2rem,6vw,4.2rem)] font-semibold leading-[0.95] text-foreground">
+                <h1 className="mt-4 text-balance text-[clamp(2.4rem,6vw,4.8rem)] font-semibold leading-[0.95] text-white">
                   {copy.heroTitle}
                 </h1>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-foreground/80 sm:text-base">
+                <p className="mt-5 max-w-2xl text-pretty text-base leading-8 text-white/85 sm:text-lg">
                   {copy.heroDescription}
                 </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Full-length hero image (dominant, in front) */}
-          <div className="absolute inset-0 z-10 [mask-image:linear-gradient(to_right,transparent_0%,black_18%,black_100%)] sm:[mask-image:linear-gradient(to_right,transparent_0%,black_22%,black_100%)] lg:[mask-image:linear-gradient(to_right,transparent_0%,black_28%,black_100%)]">
-            <Image
-              src="/images/courses/hero-learning-black.jpg"
-              alt={
-                locale === "fr"
-                  ? "Apprenants noirs développant des compétences digitales"
-                  : "Black learners building digital skills"
-              }
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover object-[70%_center] sm:object-[65%_center] lg:object-center"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-[color:var(--background)]/70 via-transparent to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--background)]/35 via-transparent to-transparent" />
-          </div>
-
-          {/* Accessible actions (kept clear above image fade) */}
-          <div className="relative z-20 flex h-full min-h-[78svh] items-end sm:min-h-[84svh] lg:min-h-[90svh]">
-            <div className="container pb-8 pt-28 sm:pb-12 sm:pt-32 lg:pb-14">
-              <div className="max-w-xl">
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <Link href={buildViewHref("packs", { q, category, sort })} className="btn-primary justify-center px-5 py-3">
                     {copy.heroPrimary}
                   </Link>
                   <Link
                     href={buildViewHref("courses", { q, category, sort })}
-                    className="btn-secondary justify-center px-5 py-3"
+                    className="btn-secondary justify-center border-white/30 bg-white/10 px-5 py-3 text-white backdrop-blur-sm hover:bg-white/20"
                   >
                     {copy.heroSecondary}
                   </Link>
