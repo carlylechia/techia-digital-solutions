@@ -112,36 +112,32 @@ body {
   margin: 0;
   min-height: 100svh;
   background:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--background) 90%, transparent),
+      color-mix(in srgb, var(--background) 94%, transparent)
+    ),
     radial-gradient(
       circle at top left,
-      rgba(34, 211, 238, 0.16),
+      rgba(34, 211, 238, 0.14),
       transparent 28%
     ),
     radial-gradient(
       circle at top right,
-      rgba(251, 113, 133, 0.12),
+      rgba(251, 113, 133, 0.1),
       transparent 22%
     ),
     radial-gradient(
       circle at 50% 100%,
-      rgba(245, 185, 66, 0.1),
+      rgba(245, 185, 66, 0.08),
       transparent 26%
     ),
+    url("/images/backgrounds/office-workspace.jpg") center / cover no-repeat fixed,
     linear-gradient(
       180deg,
       color-mix(in srgb, var(--background) 95%, white 5%),
       var(--background)
     );
-  background-size:
-    72px 72px,
-    72px 72px,
-    auto,
-    auto,
-    auto,
-    auto;
-  background-position: center top;
   color: var(--foreground);
   font-family:
     var(--font-inter),
@@ -161,32 +157,28 @@ body[data-scroll-locked="true"] {
 
 .dark body {
   background:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(
+      180deg,
+      rgba(4, 8, 18, 0.84),
+      rgba(8, 20, 36, 0.9)
+    ),
     radial-gradient(
       circle at top left,
-      rgba(34, 211, 238, 0.15),
+      rgba(34, 211, 238, 0.14),
       transparent 28%
     ),
     radial-gradient(
       circle at top right,
-      rgba(251, 113, 133, 0.13),
+      rgba(251, 113, 133, 0.12),
       transparent 24%
     ),
     radial-gradient(
       circle at 50% 100%,
-      rgba(245, 185, 66, 0.08),
+      rgba(245, 185, 66, 0.07),
       transparent 28%
     ),
+    url("/images/backgrounds/office-workspace.jpg") center / cover no-repeat fixed,
     linear-gradient(180deg, #040812, #081424 55%, #040812);
-  background-size:
-    72px 72px,
-    72px 72px,
-    auto,
-    auto,
-    auto,
-    auto;
-  background-position: center top;
 }
 
 a {
