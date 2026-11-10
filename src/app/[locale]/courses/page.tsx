@@ -271,7 +271,7 @@ export default async function CoursesPage({
                 <p className="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-cyan-200/90">
                   {copy.heroEyebrow}
                 </p>
-                <h1 className="mt-4 text-balance text-[clamp(2.4rem,6vw,4.8rem)] font-semibold leading-[0.95] text-white">
+                <h1 className="headline-gradient mt-4 text-balance text-[clamp(2.4rem,6vw,4.8rem)] font-semibold leading-[0.95]">
                   {copy.heroTitle}
                 </h1>
                 <p className="mt-5 max-w-2xl text-pretty text-base leading-8 text-white/85 sm:text-lg">
