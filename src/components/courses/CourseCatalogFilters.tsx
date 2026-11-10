@@ -53,7 +53,7 @@ export function CourseCatalogFilters({
       const params = new URLSearchParams(searchParams.toString());
       if (query.trim()) params.set("q", query.trim());
       else params.delete("q");
-      router.replace(`${pathname}?${params.toString()}#individual-courses`, {
+      router.replace(`${pathname}?${params.toString()}#catalog`, {
         scroll: false,
       });
     }, 350);
@@ -64,7 +64,7 @@ export function CourseCatalogFilters({
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
-    router.replace(`${pathname}?${params.toString()}#individual-courses`, {
+    router.replace(`${pathname}?${params.toString()}#catalog`, {
       scroll: false,
     });
   }
@@ -74,6 +74,14 @@ export function CourseCatalogFilters({
       Boolean(searchParams.get("q") || searchParams.get("category") || searchParams.get("sort")),
     [searchParams],
   );
+
+  function clearFilters() {
+    const params = new URLSearchParams();
+    const view = searchParams.get("view");
+    if (view) params.set("view", view);
+    const qs = params.toString();
+    router.replace(`${pathname}${qs ? `?${qs}` : ""}#catalog`, { scroll: false });
+  }
 
   return (
     <div className="grid gap-4 rounded-[1.5rem] border border-border bg-background/70 p-4 sm:p-5 lg:grid-cols-[1.3fr_0.7fr_0.7fr_auto] lg:items-end">
@@ -118,7 +126,7 @@ export function CourseCatalogFilters({
       </label>
       <button
         type="button"
-        onClick={() => router.replace(`${pathname}#individual-courses`, { scroll: false })}
+        onClick={clearFilters}
         disabled={!hasFilters}
         className="btn-secondary justify-center px-4 py-3 disabled:cursor-not-allowed disabled:opacity-50"
       >
