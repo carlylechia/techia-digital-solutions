@@ -110,11 +110,12 @@ export function HeroSection({ locale = "en" }: { locale?: Locale }) {
                 src={slide.src}
                 alt=""
                 aria-hidden="true"
-                fill
+                width={1672}
+                height={941}
                 priority={index === 0}
                 sizes="100vw"
                 quality={slide.quality}
-                className={cn(slide.imageClassName, slide.imagePositionClassName)}
+                className={cn("absolute inset-0 h-full w-full", slide.imageClassName, slide.imagePositionClassName)}
               />
 
               {slide.scrimClassName ? (

@@ -9,6 +9,15 @@ type SeoInput = {
   noIndex?: boolean;
 };
 
+function fitDescription(description: string, max = 155) {
+  const clean = description.trim().replace(/\s+/g, " ");
+  if (clean.length <= max) return clean;
+  const slice = clean.slice(0, max + 1);
+  const lastSpace = slice.lastIndexOf(" ");
+  if (lastSpace > 60) return `${slice.slice(0, lastSpace).trim()}…`;
+  return `${clean.slice(0, max - 1).trim()}…`;
+}
+
 export function createMarketingMetadata({
   title,
   description,
@@ -18,15 +27,16 @@ export function createMarketingMetadata({
 }: SeoInput): Metadata {
   const cleanPath = path ? `/${path.replace(/^\//, "")}` : "";
   const canonical = `${siteConfig.url}${cleanPath}`;
+  const normalizedDescription = fitDescription(description);
 
   return {
     title,
-    description,
+    description: normalizedDescription,
     alternates: { canonical },
     robots: noIndex ? { index: false, follow: false } : undefined,
     openGraph: {
       title,
-      description,
+      description: normalizedDescription,
       url: canonical,
       siteName: siteConfig.name,
       type: "website",
@@ -35,7 +45,7 @@ export function createMarketingMetadata({
     twitter: {
       card: "summary_large_image",
       title,
-      description,
+      description: normalizedDescription,
       images: [image]
     }
   };

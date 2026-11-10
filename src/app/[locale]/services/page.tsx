@@ -18,15 +18,13 @@ import { FeatureCard } from "@/components/ui/feature-card";
 function getMergedServicesMeta(locale: Locale) {
   if (locale === "fr") {
     return {
-      title: "Services, solutions et secteurs — teChia Digital Solutions",
-      description:
+      title: "Services, solutions et secteurs — teChia",      description:
         "Un parcours structuré réunissant services de croissance, modules de solution et applications sectorielles pour aider les entreprises à choisir le bon système digital.",
     };
   }
 
   return {
-    title: "Services, Solutions, and Industries — teChia Digital Solutions",
-    description:
+    title: "Services, Solutions & Industries — teChia",    description:
       "A structured teChia page combining growth services, solution modules, and industry applications so businesses can choose the right digital system with clarity.",
   };
 }

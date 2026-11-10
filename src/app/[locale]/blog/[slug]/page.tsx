@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   if (legacy) {
     return createMetadata({
       locale,
-      title: `${legacy.title} — ${getDictionary(locale).nav.blog} | teChia`,
+      title: legacy.title,
       description: legacy.description,
       canonicalPath: getBlogPostPath(locale, slug),
     });

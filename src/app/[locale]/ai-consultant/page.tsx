@@ -17,8 +17,7 @@ import { AIConsultantActionGroup } from "./ai-consultant-action-group";
 function getPageCopy(locale: Locale) {
   if (locale === "fr") {
     return {
-      metaTitle: "Agent IA",
-      metaDescription:
+      metaTitle: "Conseil IA & automatisation pour entreprises | teChia",      metaDescription:
         "Discutez avec l’agent IA teChia pour clarifier le bon mix entre marketing, branding, web, automatisation, IA ou logiciel pour votre entreprise.",
       heroTitle:
         "Un consultant IA pour transformer un objectif business flou en prochaine étape claire.",
@@ -129,8 +128,7 @@ function getPageCopy(locale: Locale) {
   }
 
   return {
-    metaTitle: "AI Consultant",
-    metaDescription:
+    metaTitle: "AI Consulting & Business Automation | teChia",    metaDescription:
       "Talk to the teChia AI consultant to clarify the right mix of marketing, branding, web, automation, AI, or software for your business.",
     heroTitle:
       "An AI consultant that turns a vague business goal into a clear next move.",

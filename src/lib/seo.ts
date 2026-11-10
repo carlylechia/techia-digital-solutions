@@ -3,6 +3,15 @@ import { logoAssets } from "@/components/brand/logo-assets";
 import { type Locale, siteConfig } from "@/content/site";
 import { getPublicAppPath } from "@/lib/site-routes";
 
+function fitDescription(description: string, max = 155) {
+  const clean = description.trim().replace(/\s+/g, " ");
+  if (clean.length <= max) return clean;
+  const slice = clean.slice(0, max + 1);
+  const lastSpace = slice.lastIndexOf(" ");
+  if (lastSpace > 60) return `${slice.slice(0, lastSpace).trim()}…`;
+  return `${clean.slice(0, max - 1).trim()}…`;
+}
+
 export function createMetadata({
   locale,
   title,
@@ -24,17 +33,18 @@ export function createMetadata({
   const canonical = canonicalPath
     ? `${siteConfig.url}${canonicalPath}`
     : `${siteConfig.url}${getPublicAppPath(cleanPath)}`;
+  const normalizedDescription = fitDescription(description);
   return {
     metadataBase: new URL(siteConfig.url),
     title,
-    description,
+    description: normalizedDescription,
     robots,
     alternates: {
       canonical,
     },
     openGraph: {
       title,
-      description,
+      description: normalizedDescription,
       url: canonical,
       siteName: siteConfig.name,
       locale: locale === "fr" ? "fr_FR" : "en_US",
@@ -51,7 +61,7 @@ export function createMetadata({
     twitter: {
       card: "summary_large_image",
       title,
-      description,
+      description: normalizedDescription,
       images: [image],
     },
   };

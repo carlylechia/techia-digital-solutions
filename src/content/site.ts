@@ -606,15 +606,12 @@ const blogEn: CardItem[] = [
   },
   {
     slug: "custom-dashboard-transform-business-operations",
-    title: "How a Custom Dashboard Can Transform Business Operations",
-    description:
+    title: "Custom Dashboards for Business Operations",    description:
       "Dashboards are not decoration. They help managers see what is happening, act faster, and reduce confusion.",
   },
   {
     slug: "build-trust-with-international-clients",
-    title:
-      "Building Trust With International Clients Through Better Digital Presence",
-    description:
+    title: "Building Trust With International Clients",    description:
       "How African businesses can look credible to European and international clients before the first call.",
   },
 ];
@@ -622,14 +619,12 @@ const blogEn: CardItem[] = [
 const blogFr: CardItem[] = [
   {
     slug: "why-every-serious-business-needs-a-digital-home",
-    title: "Pourquoi toute entreprise sérieuse a besoin d’une maison digitale",
-    description:
+    title: "Pourquoi toute entreprise a besoin d’une maison digitale",    description:
       "Un site web est la porte d’entrée. Le vrai avantage vient d’un système connecté qui améliore l’opérationnel.",
   },
   {
     slug: "website-vs-business-management-system",
-    title: "Site web ou système de gestion : que faut-il à votre entreprise ?",
-    description:
+    title: "Site web ou système de gestion : que choisir ?",    description:
       "Comment choisir entre site vitrine, tableau de bord, portail client ou système complet.",
   },
   {
@@ -640,14 +635,12 @@ const blogFr: CardItem[] = [
   },
   {
     slug: "local-businesses-should-invest-in-seo",
-    title: "Pourquoi les entreprises locales doivent investir dans le SEO",
-    description:
+    title: "Pourquoi investir dans le SEO local",    description:
       "La visibilité Google renforce la confiance, diminue la dépendance aux recommandations et améliore les campagnes payantes.",
   },
   {
     slug: "custom-dashboard-transform-business-operations",
-    title: "Comment un tableau de bord sur mesure transforme les opérations",
-    description:
+    title: "Tableau de bord sur mesure pour vos opérations",    description:
       "Un tableau de bord aide les managers à voir, décider et agir plus vite.",
   },
   {
@@ -663,9 +656,9 @@ export const dictionaries = {
     localeName: "English",
     nav: routeLabels.en,
     meta: {
-      title: "teChia Digital Solutions — Digitalize. Simplify. Grow.",
+      title: "Digital Solutions for Growing Businesses | teChia",
       description:
-        "teChia Digital Solutions helps businesses grow through social media management, digital marketing, branding, websites, e-commerce, SEO, automation, AI solutions, custom software, and digital transformation consulting.",
+        "teChia helps SMEs grow with social media management, digital marketing, branding, websites, e-commerce, SEO, automation, AI, and custom software.",
     },
     common: {
       startProject: "Start a Project",
@@ -732,7 +725,7 @@ export const dictionaries = {
         finalCtaEyebrow: "Next move",
       },
       about: {
-        metaTitle: "About teChia Digital Solutions",
+        metaTitle: "About, Team & Portfolio — teChia",
         metaDescription:
           "Learn how teChia operates as a long-term growth partner across marketing, branding, web, automation, AI, and software.",
         eyebrow: "About",
@@ -749,9 +742,9 @@ export const dictionaries = {
         ],
       },
       services: {
-        metaTitle: "Services — teChia Digital Solutions",
+        metaTitle: "Services, Solutions & Industries — teChia",
         metaDescription:
-          "Social media management, digital marketing, branding, website design, e-commerce, SEO, automation, AI solutions, custom software, and digital transformation consulting.",
+          "Social media management, digital marketing, branding, website design, e-commerce, SEO, automation, AI, software, and digital transformation consulting.",
         title: "Growth services built around real business outcomes",
         description:
           "From social media and digital marketing to websites, automation, AI, and custom software, teChia helps businesses grow with the right digital mix.",
@@ -1231,6 +1224,12 @@ export const dictionaries = {
       cookies: "Cookie Policy",
       eyebrow: "Legal",
       metaDescription: "Legal information for teChia Digital Solutions.",
+      privacyMetaDescription:
+        "This page explains how teChia Digital Solutions handles personal information, privacy, and data requests.",
+      termsMetaDescription:
+        "This page contains the terms and conditions governing use of the teChia website and services.",
+      cookiesMetaDescription:
+        "This page explains how the teChia website uses cookies and related tracking technologies.",
       pages: {
         privacy: [
           "teChia Digital Solutions collects the information needed to respond to inquiries, understand project needs, send requested updates, and improve the website experience.",
@@ -1283,10 +1282,9 @@ export const dictionaries = {
     localeName: "Français",
     nav: routeLabels.fr,
     meta: {
-      title:
-        "teChia Digital Solutions — Digitaliser. Simplifier. Grandir.",
+      title: "Solutions digitales pour entreprises en croissance | teChia",
       description:
-        "teChia Digital Solutions aide les entreprises à grandir grâce à la gestion des réseaux sociaux, au marketing digital, au branding, au web, au e-commerce, au SEO, à l’automatisation, aux solutions IA, aux logiciels sur mesure et au conseil en transformation digitale.",
+        "teChia aide les PME à grandir avec gestion des réseaux sociaux, marketing digital, branding, web, e-commerce, SEO, automatisation, IA et logiciels sur mesure.",
     },
     common: {
       startProject: "Démarrer un projet",
@@ -1356,7 +1354,7 @@ export const dictionaries = {
         finalCtaEyebrow: "Prochaine action",
       },
       about: {
-        metaTitle: "À propos de teChia Digital Solutions",
+        metaTitle: "À propos, équipe et réalisations — teChia",
         metaDescription:
           "Découvrez comment teChia agit comme partenaire de croissance de long terme entre marketing, branding, web, automatisation, IA et logiciel.",
         eyebrow: "À propos",
@@ -1377,9 +1375,9 @@ export const dictionaries = {
         ],
       },
       services: {
-        metaTitle: "Services — teChia Digital Solutions",
+        metaTitle: "Services, solutions et secteurs — teChia",
         metaDescription:
-          "Gestion des réseaux sociaux, marketing digital, branding, création web, e-commerce, SEO, automatisation, solutions IA, logiciels sur mesure et conseil en transformation digitale.",
+          "Gestion des réseaux sociaux, marketing digital, branding, web, e-commerce, SEO, automatisation, IA, logiciels et transformation digitale.",
         title: "Des services de croissance construits autour de vrais résultats métier",
         description:
           "Des réseaux sociaux et du marketing digital jusqu’au web, à l’automatisation, à l’IA et au logiciel sur mesure, teChia aide les entreprises à grandir avec le bon mix digital.",
@@ -1870,6 +1868,12 @@ export const dictionaries = {
       cookies: "Politique relative aux cookies",
       eyebrow: "Mentions légales",
       metaDescription: "Informations légales de teChia Digital Solutions.",
+      privacyMetaDescription:
+        "Cette page explique comment teChia Digital Solutions traite les informations personnelles, la confidentialité et les demandes liées aux données.",
+      termsMetaDescription:
+        "Cette page contient les conditions régissant l’utilisation du site web et des services teChia.",
+      cookiesMetaDescription:
+        "Cette page explique comment le site teChia utilise les cookies et les technologies de suivi associées.",
       pages: {
         privacy: [
           "teChia Digital Solutions collecte les informations nécessaires pour répondre aux demandes, comprendre les besoins de projet, envoyer les mises à jour demandées et améliorer l’expérience du site.",

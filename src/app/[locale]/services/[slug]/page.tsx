@@ -32,7 +32,7 @@ export async function generateMetadata({
   const item = dict.services.find((service) => service.slug === slug);
   const title =
     slug === "seo"
-      ? "Expert SEO Services in Cameroon | teChia Digital Solutions"
+      ? "SEO Services in Cameroon | teChia"
       : item
         ? `${item.title} — teChia`
         : `${dict.nav.services} — teChia`;
