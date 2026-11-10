@@ -197,7 +197,10 @@ const permissionLabels: Record<AdminPermission, string> = {
   "blog.audit.view": "View blog audit history",
   "outreach.view": "View outreach engine",
   "outreach.manage": "Manage outreach campaigns",
-  "outreach.send": "Send outreach email"
+  "outreach.send": "Send outreach email",
+  "academy.catalog.manage": "Manage academy catalog",
+  "academy.orders.view": "View academy orders",
+  "academy.orders.manage": "Manage academy orders"
 };
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -976,27 +979,46 @@ function Overview({ data, can }: { data: AdminDashboardData; can: (permission: A
 
       {can("requests.manage") ? (
         <Panel title="Academy Operations" eyebrow="Courses">
-          <Link
-            href="/admin/bonus-claims"
-            className="group flex flex-col gap-3 rounded-lg border border-border bg-background p-4 transition hover:border-accent/40 hover:bg-surface"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="grid size-10 place-items-center rounded-lg bg-accent/10 text-accent">
-                <BookOpenText className="size-5" />
+          <div className="grid gap-3">
+            <Link
+              href="/admin/academy"
+              className="group flex flex-col gap-3 rounded-lg border border-border bg-background p-4 transition hover:border-accent/40 hover:bg-surface"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="grid size-10 place-items-center rounded-lg bg-accent/10 text-accent">
+                  <BookOpenText className="size-5" />
+                </div>
+                <ExternalLink className="mt-0.5 size-4 shrink-0 text-muted transition group-hover:text-accent" />
               </div>
-              <ExternalLink className="mt-0.5 size-4 shrink-0 text-muted transition group-hover:text-accent" />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold text-primary">Academy Bonus Claims</h3>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                Review buyer proof, verify official pack purchases, and deliver the requested bonus files from one admin queue.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Pill tone="default">{data.stats.pendingBonusClaims} open</Pill>
-              <Pill tone="quiet">{data.stats.bonusClaims} total</Pill>
-            </div>
-          </Link>
+              <div>
+                <h3 className="text-base font-semibold text-primary">Academy Catalog & Orders</h3>
+                <p className="mt-2 text-sm leading-6 text-muted">
+                  Manage courses and packs, update prices and Chariow mappings, publish catalog changes, and review academy orders.
+                </p>
+              </div>
+            </Link>
+            <Link
+              href="/admin/bonus-claims"
+              className="group flex flex-col gap-3 rounded-lg border border-border bg-background p-4 transition hover:border-accent/40 hover:bg-surface"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="grid size-10 place-items-center rounded-lg bg-accent/10 text-accent">
+                  <BookOpenText className="size-5" />
+                </div>
+                <ExternalLink className="mt-0.5 size-4 shrink-0 text-muted transition group-hover:text-accent" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-primary">Academy Bonus Claims</h3>
+                <p className="mt-2 text-sm leading-6 text-muted">
+                  Review buyer proof, verify official pack purchases, and deliver the requested bonus files from one admin queue.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Pill tone="default">{data.stats.pendingBonusClaims} open</Pill>
+                <Pill tone="quiet">{data.stats.bonusClaims} total</Pill>
+              </div>
+            </Link>
+          </div>
         </Panel>
       ) : null}
 

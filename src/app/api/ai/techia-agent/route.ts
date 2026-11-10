@@ -5,6 +5,7 @@ import { AI_CONFIG } from "@/lib/ai/config";
 import { hashIp } from "@/lib/ai/ip-hash";
 import { estimateTokens, estimateRequestTokens, estimateCost } from "@/lib/ai/token-estimation";
 import { TECHIA_SYSTEM_PROMPT } from "@/lib/ai/prompts";
+import { buildAcademyCatalogContext } from "@/lib/ai/academy-catalog-context";
 import { requestIp } from "@/lib/rate-limit";
 import { notifyAdminOfAILead, notifyAdminOfAIDemoRequest } from "@/lib/ai/notifications";
 import { getErrorMessage, isPrismaSchemaDriftError } from "@/lib/prisma-errors";
@@ -409,8 +410,12 @@ export async function POST(request: NextRequest) {
 
   // 7. Estimate tokens before calling OpenAI
   const contextMessages = buildContextMessages(history, null);
+  const academyCatalogContext = await buildAcademyCatalogContext("en").catch(
+    () => "Academy catalog is temporarily unavailable.",
+  );
+  const systemPrompt = `${TECHIA_SYSTEM_PROMPT}\n\n${academyCatalogContext}`;
   const allMessages = [
-    { role: "system", content: TECHIA_SYSTEM_PROMPT },
+    { role: "system", content: systemPrompt },
     ...contextMessages,
     { role: "user", content: userMessage },
   ];

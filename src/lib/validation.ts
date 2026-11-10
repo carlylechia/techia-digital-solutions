@@ -120,3 +120,18 @@ export const courseBonusClaimSchema = z
       });
     }
   });
+
+export const academyCheckoutSchema = z.object({
+  itemType: z.enum(["course", "pack"]),
+  itemSlug: z.string().trim().min(1).max(160),
+  provider: z.enum(["CHARIOW", "MONEROO"]),
+  firstName: z.string().trim().min(1).max(80),
+  lastName: z.string().trim().min(1).max(80),
+  email: z.string().trim().email().max(160),
+  phone: z.string().trim().min(7).max(40),
+  countryCode: z.string().trim().min(2).max(8),
+  locale: z.enum(["en", "fr"]),
+  idempotencyKey: z.string().trim().min(10).max(80),
+  customerIp: z.string().trim().optional(),
+  honeypot: z.string().trim().optional(),
+});
