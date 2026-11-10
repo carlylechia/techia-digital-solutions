@@ -3,6 +3,8 @@ import { Mail, MessageCircle } from "lucide-react";
 import { notFound } from "next/navigation";
 import { BonusClaimButton } from "@/components/courses/BonusClaimButton";
 import { BuyerBonusSection } from "@/components/courses/BuyerBonusSection";
+import { CourseCard } from "@/components/courses/CourseCard";
+import { CourseCatalogFilters } from "@/components/courses/CourseCatalogFilters";
 import { CourseFaq } from "@/components/courses/CourseFaq";
 import { CourseHero } from "@/components/courses/CourseHero";
 import { CoursePackCard } from "@/components/courses/CoursePackCard";
@@ -23,12 +25,17 @@ import {
   getCoursesWhatsappUrl,
 } from "@/lib/courses/chariowLinks";
 import {
+  filterCatalogCourses,
+  getStorefrontPacks,
+  listPublishedCategories,
+  listPublishedCourses,
+  type CatalogSort,
+} from "@/lib/courses/catalog-service";
+import {
   getCourseAcademyFaqs,
   getCourseAcademyPositioning,
   getCourseAcademySteps,
   getCoursePackLevelLabel,
-  getFullCoursePack,
-  getSubCoursePacks,
 } from "@/lib/courses/coursePacks";
 
 export async function generateMetadata({
@@ -41,26 +48,45 @@ export async function generateMetadata({
 
   return createMetadata({
     locale,
-    title: "teChia Digital Academy | Digital Skills Courses",
+    title:
+      locale === "fr"
+        ? "teChia Digital Academy | Cours et packs digitaux"
+        : "teChia Digital Academy | Digital Skills Courses & Packs",
     description:
-      "Explore practical digital skills courses by teChia Digital Academy across marketing, AI, tech, business, office, creative, finance, and online skills.",
+      locale === "fr"
+        ? "Explorez des cours individuels et des packs pratiques en marketing digital, IA, tech, business, bureautique, créativité, finance et compétences en ligne."
+        : "Explore practical individual courses and curated packs across digital marketing, AI, tech, business, office, creative, finance, and online skills.",
     path: "/courses",
   });
 }
 
 export default async function CoursesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ q?: string; category?: string; sort?: string }>;
 }) {
   const { locale: rawLocale } = await params;
   if (!isLocale(rawLocale)) notFound();
   const locale = rawLocale as Locale;
+  const { q, category, sort } = await searchParams;
 
-  const fullPack = getFullCoursePack(locale);
+  const [packs, courses, categories] = await Promise.all([
+    getStorefrontPacks(locale),
+    listPublishedCourses(locale),
+    listPublishedCategories(locale),
+  ]);
+  const fullPack = packs.find((pack) => pack.id === "complete-digital-skills-pack");
   if (!fullPack) notFound();
+  const subpacks = packs.filter((pack) => pack.id !== fullPack.id);
 
-  const subpacks = getSubCoursePacks(locale);
+  const filteredCourses = filterCatalogCourses(courses, {
+    query: q,
+    category,
+    sort: (sort as CatalogSort) || "recommended",
+  });
+
   const faqs = getCourseAcademyFaqs(locale);
   const steps = getCourseAcademySteps(locale);
   const positioning = getCourseAcademyPositioning(locale);
@@ -68,8 +94,8 @@ export default async function CoursesPage({
   const bonusClaimDestination = getCoursesBonusClaimDestination(locale);
   const whatsappUrl = getCoursesWhatsappUrl(
     locale === "fr"
-      ? "Bonjour teChia, je veux des conseils pour choisir un pack de cours."
-      : "Hello teChia, I want help choosing the right course pack.",
+      ? "Bonjour teChia, je veux des conseils pour choisir un cours ou un pack."
+      : "Hello teChia, I want help choosing the right course or pack.",
   );
 
   const copy =
@@ -78,14 +104,14 @@ export default async function CoursesPage({
           heroTitle:
             "Des compétences digitales pratiques pour le travail, le business, le freelancing et la croissance en ligne.",
           heroDescription:
-            "teChia Digital Academy vous donne accès à des packs de cours sélectionnés pour aider les étudiants, professionnels, freelances, créateurs et entrepreneurs à développer des compétences utiles pour l’économie digitale moderne.",
+            "teChia Digital Academy vous donne accès à des cours individuels et des packs sélectionnés en marketing digital, design, IA, technologie, business, bureautique, finance et plus encore.",
           heroPrimary: "Obtenir le pack complet 16 cours",
-          heroSecondary: "Explorer les sous-packs",
+          heroSecondary: "Explorer les cours",
           heroEyebrow: "teChia Digital Academy",
           heroBadges: [
+            "Cours individuels et packs",
+            "Paiement sécurisé",
             "Parcours pratiques",
-            "Paiement via Chariow",
-            "Pensé pour une vraie progression",
           ],
           heroAsideEyebrow: "Offre principale",
           heroAsideBody:
@@ -95,49 +121,56 @@ export default async function CoursesPage({
           supportWhatsapp: "Demander sur WhatsApp",
           supportEmail: "Contacter par email",
           positionTitle: "Pourquoi teChia Digital Academy existe",
-          subpacksEyebrow: "Sous-packs",
+          subpacksEyebrow: "Packs sélectionnés",
           subpacksTitle:
             "Choisissez un pack ciblé ou commencez par le parcours complet.",
           subpacksDescription:
-            "Chaque sous-pack est pensé pour un besoin concret. Le pack complet reste recommandé si vous voulez toute la bibliothèque.",
+            "Chaque pack est pensé pour un besoin concret. Le pack complet reste recommandé si vous voulez toute la bibliothèque.",
           audienceLabel: "Idéal pour",
           courseSingular: "cours",
           coursePlural: "cours",
           viewDetails: "Voir les détails",
           buyNow: "Acheter",
+          catalogEyebrow: "Catalogue des cours",
+          catalogTitle: "Explorez les cours individuels",
+          catalogDescription:
+            "Recherchez, filtrez et découvrez chaque cours disponible. Achetez un cours seul, ou choisissez un pack si vous voulez un parcours plus large.",
+          noResultsTitle: "Aucun cours trouvé",
+          noResultsBody:
+            "Essayez un autre mot-clé, changez de catégorie ou effacez les filtres pour voir tous les cours publiés.",
           howItWorksEyebrow: "Comment ça marche",
           howItWorksTitle: "Un parcours simple, propre et fiable.",
           howItWorksDescription:
-            "teChia utilise le site comme expérience de confiance, puis Chariow uniquement pour le paiement final.",
+            "teChia vous aide à choisir le bon cours ou pack, puis vous guide vers un paiement sécurisé et les prochaines étapes d’accès.",
           faqEyebrow: "Questions fréquentes",
           faqTitle: "Réponses claires avant l’achat.",
           faqDescription:
             "Les questions les plus fréquentes pour aider les acheteurs à choisir avec confiance.",
           finalEyebrow: "Prêt à commencer",
           finalTitle:
-            "Choisissez le pack complet ou trouvez le sous-pack qui correspond à votre objectif.",
+            "Choisissez un cours individuel, un pack ciblé ou la collection complète.",
           finalDescription:
-            "Le pack complet reste la meilleure option si vous voulez accéder aux 16 cours au même endroit. Sinon, commencez avec le sous-pack le plus proche de votre besoin actuel.",
-          browseSubpacks: "Parcourir les sous-packs",
+            "Le pack complet reste la meilleure option si vous voulez accéder aux 16 cours au même endroit. Sinon, commencez avec le cours ou le sous-pack le plus proche de votre besoin actuel.",
+          browseSubpacks: "Parcourir les packs",
           buyerBonusTitle: "Official teChia Buyer Bonus",
           buyerBonusDescription:
-            "Achetez via la page officielle teChia Digital Academy et debloquez des ressources bonus pratiques pour apprendre avec plus de direction et mieux appliquer vos competences.",
+            "Achetez via la page officielle teChia Digital Academy et débloquez des ressources bonus pratiques pour apprendre avec plus de direction et mieux appliquer vos compétences.",
           buyerBonusPrimary: "Obtenir le pack complet + bonus",
-          buyerBonusSecondary: "Voir tous les packs de cours",
-          buyerBonusClaim: "Reclamer le bonus acheteur",
+          buyerBonusSecondary: "Voir tous les packs",
+          buyerBonusClaim: "Réclamer le bonus acheteur",
         }
       : {
           heroTitle:
             "Practical digital skills for work, business, freelancing, and online growth.",
           heroDescription:
-            "teChia Digital Academy gives you access to curated course packs designed to help students, professionals, freelancers, creators, and business owners build useful skills for the modern digital economy.",
+            "teChia Digital Academy gives you access to individual courses and curated packs across digital marketing, design, AI, technology, business, office, finance, and more.",
           heroPrimary: "Get the Full 16-Course Pack",
-          heroSecondary: "Explore Subpacks",
+          heroSecondary: "Explore Courses",
           heroEyebrow: "teChia Digital Academy",
           heroBadges: [
+            "Individual courses and packs",
+            "Secure checkout",
             "Practical learning paths",
-            "Chariow checkout",
-            "Built for real-world growth",
           ],
           heroAsideEyebrow: "Primary offer",
           heroAsideBody:
@@ -147,35 +180,42 @@ export default async function CoursesPage({
           supportWhatsapp: "Ask on WhatsApp",
           supportEmail: "Contact by email",
           positionTitle: "Why teChia Digital Academy exists",
-          subpacksEyebrow: "Subpacks",
+          subpacksEyebrow: "Curated packs",
           subpacksTitle:
             "Choose a focused pack or start with the complete learning library.",
           subpacksDescription:
-            "Each subpack is built around a practical goal. The full pack remains the recommended option if you want the entire library.",
+            "Each pack is built around a practical goal. The full pack remains the recommended option if you want the entire library.",
           audienceLabel: "Best for",
           courseSingular: "course",
           coursePlural: "courses",
           viewDetails: "View Details",
           buyNow: "Buy Now",
+          catalogEyebrow: "Course catalog",
+          catalogTitle: "Explore individual courses",
+          catalogDescription:
+            "Search, filter, and discover every available course. Buy a single course on its own, or choose a pack when you want a broader learning path.",
+          noResultsTitle: "No courses found",
+          noResultsBody:
+            "Try a different keyword, change the category, or clear filters to see all published courses.",
           howItWorksEyebrow: "How it works",
           howItWorksTitle: "A clean and trustworthy buying path.",
           howItWorksDescription:
-            "teChia uses the website as the trusted experience, then sends buyers to Chariow only for final payment.",
+            "teChia helps you choose the right course or pack, then guides you to secure payment and the next access steps.",
           faqEyebrow: "FAQ",
           faqTitle: "Clear answers before you buy.",
           faqDescription:
             "Practical buyer questions answered in a straightforward way.",
           finalEyebrow: "Ready to begin",
           finalTitle:
-            "Choose the full pack or find the subpack that fits your goal.",
+            "Choose an individual course, a focused pack, or the complete collection.",
           finalDescription:
-            "The full pack remains the best option if you want access to all 16 courses in one place. If not, start with the subpack that best matches your current learning need.",
-          browseSubpacks: "Browse Subpacks",
+            "The full pack remains the best option if you want access to all 16 courses in one place. If not, start with the individual course or pack that best matches your current learning need.",
+          browseSubpacks: "Browse Packs",
           buyerBonusTitle: "Official teChia Buyer Bonus",
           buyerBonusDescription:
             "Buy through the official teChia Digital Academy page and unlock practical bonus resources to help you learn with direction and apply your skills better.",
           buyerBonusPrimary: "Get the Full Pack + Bonus",
-          buyerBonusSecondary: "View All Course Packs",
+          buyerBonusSecondary: "View All Packs",
           buyerBonusClaim: "Claim Buyer Bonus",
         };
 
@@ -193,10 +233,7 @@ export default async function CoursesPage({
       <JsonLd
         data={breadcrumbJsonLd(locale, [
           { name: locale === "fr" ? "Accueil" : "Home", path: "" },
-          {
-            name: locale === "fr" ? "Cours" : "Courses",
-            path: "/courses",
-          },
+          { name: locale === "fr" ? "Cours" : "Courses", path: "/courses" },
         ])}
       />
 
@@ -208,11 +245,7 @@ export default async function CoursesPage({
         badges={copy.heroBadges}
         actions={[
           { href: fullPack.path, label: copy.heroPrimary },
-          {
-            href: "#course-packs",
-            label: copy.heroSecondary,
-            variant: "secondary",
-          },
+          { href: "#individual-courses", label: copy.heroSecondary, variant: "secondary" },
         ]}
         aside={
           <div className="rounded-[1.55rem] bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(251,113,133,0.14),transparent_28%)] p-5 sm:p-6">
@@ -220,55 +253,31 @@ export default async function CoursesPage({
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
                 {copy.heroAsideEyebrow}
               </p>
-              {fullPack.badge ? (
-                <span className="trust-pill">{fullPack.badge}</span>
-              ) : null}
+              {fullPack.badge ? <span className="trust-pill">{fullPack.badge}</span> : null}
             </div>
-            <h2 className="mt-4 text-3xl font-semibold text-primary">
-              {fullPack.title}
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-muted dark:text-slate-300">
-              {copy.heroAsideBody}
-            </p>
+            <h2 className="mt-4 text-3xl font-semibold text-primary">{fullPack.title}</h2>
+            <p className="mt-3 text-sm leading-7 text-muted dark:text-slate-300">{copy.heroAsideBody}</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <span className="trust-pill">
-                {fullPack.courseCount} {copy.coursePlural}
-              </span>
-              <span className="trust-pill">
-                {getCoursePackLevelLabel(locale, fullPack.level)}
-              </span>
+              <span className="trust-pill">{fullPack.courseCount} {copy.coursePlural}</span>
+              <span className="trust-pill">{getCoursePackLevelLabel(locale, fullPack.level)}</span>
             </div>
             <div className="mt-6 grid gap-3">
               <CourseTrackedLink
                 href={fullPack.path}
                 eventName="course_pack_click"
-                eventParams={{
-                  pack_id: fullPack.id,
-                  pack_slug: fullPack.slug,
-                  pack_title: fullPack.title,
-                  source_page: "courses_hero",
-                }}
+                eventParams={{ pack_id: fullPack.id, pack_slug: fullPack.slug, pack_title: fullPack.title, source_page: "courses_hero" }}
                 className="btn-secondary justify-center px-5 py-3"
               >
                 {copy.viewFullPack}
               </CourseTrackedLink>
-              <CourseCheckoutButton
-                pack={fullPack}
-                label={copy.buyFullPack}
-                sourcePage="courses_hero"
-              />
+              <CourseCheckoutButton pack={fullPack} label={copy.buyFullPack} sourcePage="courses_hero" />
               {whatsappUrl ? (
                 <CourseTrackedAnchor
                   href={whatsappUrl}
                   target="_blank"
                   rel="noreferrer"
                   eventName="whatsapp_course_inquiry"
-                  eventParams={{
-                    pack_id: fullPack.id,
-                    pack_slug: fullPack.slug,
-                    pack_title: fullPack.title,
-                    source_page: "courses_hero",
-                  }}
+                  eventParams={{ pack_id: fullPack.id, pack_slug: fullPack.slug, pack_title: fullPack.title, source_page: "courses_hero" }}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/70 px-5 py-3 text-sm font-medium text-primary transition hover:bg-background dark:border-white/12 dark:bg-white/[0.05] dark:text-white dark:hover:bg-white/[0.08]"
                 >
                   <MessageCircle className="size-4 text-cyan-600 dark:text-cyan-300" />
@@ -283,36 +292,17 @@ export default async function CoursesPage({
       <section className="container py-4 sm:py-6">
         <div className="gradient-border rounded-[1.95rem]">
           <div className="elevated-panel p-6 sm:p-7 md:p-8">
-            <SectionHeading
-              eyebrow={positioning.eyebrow}
-              title={copy.positionTitle}
-              description={positioning.title}
-              align="left"
-              className="mb-0"
-            />
+            <SectionHeading eyebrow={positioning.eyebrow} title={copy.positionTitle} description={positioning.title} align="left" className="mb-0" />
             <div className="mt-6 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-[1.45rem] border border-border bg-background/75 p-5 text-base leading-8 text-muted">
-                {positioning.body}
-              </div>
+              <div className="rounded-[1.45rem] border border-border bg-background/75 p-5 text-base leading-8 text-muted">{positioning.body}</div>
               <div className="grid gap-4 sm:grid-cols-2">
                 {[
                   fullPack.tagline,
-                  locale === "fr"
-                    ? "Pensé pour étudiants, salariés, entrepreneurs, freelances et créateurs."
-                    : "Built for students, workers, entrepreneurs, freelancers, and creators.",
-                  locale === "fr"
-                    ? "Des packs sélectionnés par teChia pour des objectifs concrets."
-                    : "teChia-curated packs designed around practical goals.",
-                  locale === "fr"
-                    ? "Le site inspire confiance, Chariow gère le paiement final."
-                    : "The site builds trust, Chariow handles final checkout.",
+                  locale === "fr" ? "Cours individuels et packs pensés pour des objectifs concrets." : "Individual courses and packs designed around practical goals.",
+                  locale === "fr" ? "Des parcours sélectionnés par teChia pour une progression utile." : "teChia-curated learning paths for useful progress.",
+                  locale === "fr" ? "Paiement sécurisé et vérification côté serveur." : "Secure checkout with server-side payment verification.",
                 ].map((item) => (
-                  <div
-                    key={item}
-                    className="rounded-[1.35rem] border border-cyan-500/18 bg-cyan-500/[0.08] p-4 text-sm leading-7 text-primary"
-                  >
-                    {item}
-                  </div>
+                  <div key={item} className="rounded-[1.35rem] border border-cyan-500/18 bg-cyan-500/[0.08] p-4 text-sm leading-7 text-primary">{item}</div>
                 ))}
               </div>
             </div>
@@ -331,25 +321,9 @@ export default async function CoursesPage({
         claimChannel={bonusClaimDestination?.channel ?? null}
         actions={
           <>
-            <CourseCheckoutButton
-              pack={fullPack}
-              label={copy.buyerBonusPrimary}
-              sourcePage="courses_bonus_section"
-            />
-            <a
-              href="#course-packs"
-              className="btn-secondary justify-center px-5 py-3"
-            >
-              {copy.buyerBonusSecondary}
-            </a>
-            <BonusClaimButton
-              href={bonusClaimDestination?.href}
-              channel={bonusClaimDestination?.channel ?? null}
-              label={copy.buyerBonusClaim}
-              sourcePage="courses_bonus_section"
-              eligibility="all-buyers"
-              className="w-full sm:w-auto"
-            />
+            <CourseCheckoutButton pack={fullPack} label={copy.buyerBonusPrimary} sourcePage="courses_bonus_section" />
+            <a href="#course-packs" className="btn-secondary justify-center px-5 py-3">{copy.buyerBonusSecondary}</a>
+            <BonusClaimButton href={bonusClaimDestination?.href} channel={bonusClaimDestination?.channel ?? null} label={copy.buyerBonusClaim} sourcePage="courses_bonus_section" eligibility="all-buyers" className="w-full sm:w-auto" />
           </>
         }
       />
@@ -357,29 +331,35 @@ export default async function CoursesPage({
       <section id="course-packs" className="container py-4 sm:py-6">
         <div className="gradient-border rounded-[1.95rem]">
           <div className="elevated-panel p-6 sm:p-7 md:p-8">
-            <SectionHeading
-              eyebrow={copy.subpacksEyebrow}
-              title={copy.subpacksTitle}
-              description={copy.subpacksDescription}
-              align="left"
-              className="mb-0"
-            />
-
+            <SectionHeading eyebrow={copy.subpacksEyebrow} title={copy.subpacksTitle} description={copy.subpacksDescription} align="left" className="mb-0" />
             <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {subpacks.map((pack) => (
-                <CoursePackCard
-                  key={pack.id}
-                  pack={pack}
-                  sourcePage="courses_pack_grid"
-                  audienceLabel={copy.audienceLabel}
-                  levelLabel={getCoursePackLevelLabel(locale, pack.level)}
-                  courseLabelSingular={copy.courseSingular}
-                  courseLabelPlural={copy.coursePlural}
-                  detailLabel={copy.viewDetails}
-                  checkoutLabel={copy.buyNow}
-                />
+                <CoursePackCard key={pack.id} pack={pack} sourcePage="courses_pack_grid" audienceLabel={copy.audienceLabel} levelLabel={getCoursePackLevelLabel(locale, pack.level)} courseLabelSingular={copy.courseSingular} courseLabelPlural={copy.coursePlural} detailLabel={copy.viewDetails} checkoutLabel={copy.buyNow} />
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="individual-courses" className="container py-4 sm:py-6">
+        <div className="gradient-border rounded-[1.95rem]">
+          <div className="elevated-panel p-6 sm:p-7 md:p-8">
+            <SectionHeading eyebrow={copy.catalogEyebrow} title={copy.catalogTitle} description={copy.catalogDescription} align="left" className="mb-0" />
+            <div className="mt-8">
+              <CourseCatalogFilters locale={locale} categories={categories.map((c) => ({ slug: c.slug, name: c.name }))} />
+            </div>
+            {filteredCourses.length ? (
+              <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {filteredCourses.map((course) => (
+                  <CourseCard key={course.id} course={course} locale={locale} sourcePage="courses_catalog" />
+                ))}
+              </div>
+            ) : (
+              <div className="mt-8 rounded-[1.45rem] border border-border bg-surface p-6">
+                <h3 className="text-xl font-semibold text-primary">{copy.noResultsTitle}</h3>
+                <p className="mt-3 text-sm leading-7 text-muted">{copy.noResultsBody}</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -387,26 +367,12 @@ export default async function CoursesPage({
       <section className="container py-4 sm:py-6">
         <div className="gradient-border rounded-[1.95rem]">
           <div className="elevated-panel p-6 sm:p-7 md:p-8">
-            <SectionHeading
-              eyebrow={copy.howItWorksEyebrow}
-              title={copy.howItWorksTitle}
-              description={copy.howItWorksDescription}
-              align="left"
-              className="mb-0"
-            />
-
+            <SectionHeading eyebrow={copy.howItWorksEyebrow} title={copy.howItWorksTitle} description={copy.howItWorksDescription} align="left" className="mb-0" />
             <div className="mt-8 grid gap-4 lg:grid-cols-4">
               {steps.map((step, index) => (
-                <div
-                  key={step}
-                  className="rounded-[1.45rem] border border-border bg-surface p-5"
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-500/90">
-                    {locale === "fr" ? "Étape" : "Step"} {index + 1}
-                  </p>
-                  <p className="mt-3 text-sm font-medium leading-7 text-primary">
-                    {step}
-                  </p>
+                <div key={step} className="rounded-[1.45rem] border border-border bg-surface p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-500/90">{locale === "fr" ? "Étape" : "Step"} {index + 1}</p>
+                  <p className="mt-3 text-sm font-medium leading-7 text-primary">{step}</p>
                 </div>
               ))}
             </div>
@@ -417,20 +383,9 @@ export default async function CoursesPage({
       <section className="container py-4 sm:py-6">
         <div className="gradient-border rounded-[1.95rem]">
           <div className="elevated-panel p-6 sm:p-7 md:p-8">
-            <SectionHeading
-              eyebrow={copy.faqEyebrow}
-              title={copy.faqTitle}
-              description={copy.faqDescription}
-              align="left"
-              className="mb-0"
-            />
-
+            <SectionHeading eyebrow={copy.faqEyebrow} title={copy.faqTitle} description={copy.faqDescription} align="left" className="mb-0" />
             <div className="mt-8">
-              <CourseFaq
-                items={faqs}
-                sourcePage="courses_faq"
-                pack={fullPack}
-              />
+              <CourseFaq items={faqs} sourcePage="courses_faq" pack={fullPack} />
             </div>
           </div>
         </div>
@@ -440,67 +395,23 @@ export default async function CoursesPage({
         <div className="gradient-border rounded-[2.05rem]">
           <div className="elevated-panel px-6 py-8 sm:px-7 md:px-10 md:py-12">
             <p className="eyebrow">{copy.finalEyebrow}</p>
-            <h2 className="mt-4 max-w-4xl text-4xl font-semibold text-primary md:text-5xl">
-              {copy.finalTitle}
-            </h2>
-            <p className="mt-5 max-w-3xl text-base leading-8 text-muted">
-              {copy.finalDescription}
-            </p>
-
+            <h2 className="mt-4 max-w-4xl text-4xl font-semibold text-primary md:text-5xl">{copy.finalTitle}</h2>
+            <p className="mt-5 max-w-3xl text-base leading-8 text-muted">{copy.finalDescription}</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <CourseTrackedLink
-                href={fullPack.path}
-                eventName="course_pack_click"
-                eventParams={{
-                  pack_id: fullPack.id,
-                  pack_slug: fullPack.slug,
-                  pack_title: fullPack.title,
-                  source_page: "courses_final_cta",
-                }}
-                className="btn-secondary justify-center px-5 py-3"
-              >
-                {copy.viewFullPack}
-              </CourseTrackedLink>
-              <CourseCheckoutButton
-                pack={fullPack}
-                label={copy.buyFullPack}
-                sourcePage="courses_final_cta"
-              />
-              <a
-                href="#course-packs"
-                className="btn-primary justify-center px-5 py-3"
-              >
-                {copy.browseSubpacks}
-              </a>
+              <CourseTrackedLink href={fullPack.path} eventName="course_pack_click" eventParams={{ pack_id: fullPack.id, pack_slug: fullPack.slug, pack_title: fullPack.title, source_page: "courses_final_cta" }} className="btn-secondary justify-center px-5 py-3">{copy.viewFullPack}</CourseTrackedLink>
+              <CourseCheckoutButton pack={fullPack} label={copy.buyFullPack} sourcePage="courses_final_cta" />
+              <a href="#course-packs" className="btn-primary justify-center px-5 py-3">{copy.browseSubpacks}</a>
             </div>
-
             {whatsappUrl || supportEmail ? (
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 {whatsappUrl ? (
-                  <CourseTrackedAnchor
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    eventName="whatsapp_course_inquiry"
-                    eventParams={{
-                      pack_id: fullPack.id,
-                      pack_slug: fullPack.slug,
-                      pack_title: fullPack.title,
-                      source_page: "courses_final_cta",
-                    }}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/70 px-5 py-3 text-sm font-medium text-primary transition hover:bg-background"
-                  >
-                    <MessageCircle className="size-4 text-cyan-600 dark:text-cyan-500" />
-                    {copy.supportWhatsapp}
+                  <CourseTrackedAnchor href={whatsappUrl} target="_blank" rel="noreferrer" eventName="whatsapp_course_inquiry" eventParams={{ pack_id: fullPack.id, pack_slug: fullPack.slug, pack_title: fullPack.title, source_page: "courses_final_cta" }} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/70 px-5 py-3 text-sm font-medium text-primary transition hover:bg-background">
+                    <MessageCircle className="size-4 text-cyan-600 dark:text-cyan-500" />{copy.supportWhatsapp}
                   </CourseTrackedAnchor>
                 ) : null}
                 {supportEmail ? (
-                  <a
-                    href={`mailto:${supportEmail}`}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/70 px-5 py-3 text-sm font-medium text-primary transition hover:bg-background"
-                  >
-                    <Mail className="size-4 text-cyan-600 dark:text-cyan-500" />
-                    {copy.supportEmail}
+                  <a href={`mailto:${supportEmail}`} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/70 px-5 py-3 text-sm font-medium text-primary transition hover:bg-background">
+                    <Mail className="size-4 text-cyan-600 dark:text-cyan-500" />{copy.supportEmail}
                   </a>
                 ) : null}
               </div>

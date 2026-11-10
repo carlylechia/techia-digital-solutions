@@ -104,8 +104,8 @@ body {
 }
 
 main > section {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 700px;
+  /* Removed content-visibility:auto; it caused offscreen measurement and
+     rendering issues for interactive sections such as homepage testimonials. */
 }
 
 body {
