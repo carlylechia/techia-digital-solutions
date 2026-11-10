@@ -2039,24 +2039,46 @@ textarea {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.7rem;
-    border: 1px solid color-mix(in srgb, var(--accent-2) 12%, var(--border));
+    border: 1px solid color-mix(in srgb, var(--accent-2) 16%, color-mix(in srgb, white 18%, var(--border)));
     border-radius: 1.4rem;
     padding: 0.66rem 0.8rem;
     background:
       linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--surface-strong) 86%, transparent),
-        color-mix(in srgb, var(--surface) 82%, transparent)
+        135deg,
+        color-mix(in srgb, var(--surface-strong) 42%, transparent),
+        color-mix(in srgb, var(--surface) 28%, transparent)
       ),
       radial-gradient(
         circle at top left,
-        color-mix(in srgb, var(--accent-2) 9%, transparent),
-        transparent 30%
+        color-mix(in srgb, var(--accent-2) 10%, transparent),
+        transparent 32%
+      ),
+      radial-gradient(
+        circle at bottom right,
+        color-mix(in srgb, var(--accent-3) 6%, transparent),
+        transparent 28%
       );
     box-shadow:
-      0 18px 55px rgba(7, 17, 31, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(24px);
+      0 18px 55px rgba(7, 17, 31, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+  }
+
+  .header-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0.14),
+      transparent 35%,
+      transparent 70%,
+      rgba(34, 211, 238, 0.06)
+    );
+    pointer-events: none;
   }
 
   .header-shell > .logo-lockup,
