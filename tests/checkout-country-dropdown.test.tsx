@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import { CheckoutForm } from "@/components/courses/checkout/CheckoutForm";
 
 describe("checkout country dropdown", () => {
