@@ -22,6 +22,7 @@ import { createMetadata } from "@/lib/seo";
 import { loadAdminAcademyCatalog } from "@/lib/admin/academy";
 import { formatMoney } from "@/lib/payments/money";
 import { AcademyImageField } from "@/components/courses/AcademyImageField";
+import { AcademyActionForm, type AcademyActionState } from "@/components/courses/AcademyActionForm";
 
 export const dynamic = "force-dynamic";
 
@@ -98,127 +99,195 @@ function revalidateAcademy() {
   revalidatePath("/sitemap.xml", "page");
 }
 
-async function createCourse(formData: FormData) {
-  "use server";
-  await requireCatalogManager();
-  const { getPrisma } = await import("@/lib/prisma");
-  const prisma = getPrisma();
-  if (!prisma) throw new Error("Database unavailable");
-
-  const titleEn = String(formData.get("titleEn") || "").trim();
-  const shortDescriptionEn = String(formData.get("shortDescriptionEn") || "").trim();
-  const descriptionEn = String(formData.get("descriptionEn") || "").trim();
-  if (!titleEn || !shortDescriptionEn || !descriptionEn) {
-    throw new Error("Title, short description, and description are required.");
+/**
+ * Turn thrown errors into readable admin-facing feedback. Never leaks internals —
+ * duplicate slugs and permission issues get precise messages, everything else a
+ * calm retry prompt.
+ */
+function friendlyAcademyError(error: unknown, noun: "course" | "pack"): string {
+  const code = (error as { code?: string } | null)?.code;
+  if (code === "P2002") {
+    return `A ${noun} with this slug already exists. Choose a different slug.`;
   }
-
-  const slugInput = String(formData.get("slug") || "").trim();
-  const slug = slugify(slugInput || titleEn);
-  if (!slug) throw new Error("A valid slug is required.");
-
-  const status = String(formData.get("status") || "DRAFT");
-  const level = String(formData.get("level") || "BEGINNER_TO_INTERMEDIATE");
-  const categoryId = String(formData.get("categoryId") || "").trim() || null;
-  const skills = String(formData.get("skillsEn") || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  await prisma.academyCourse.create({
-    data: {
-      slug,
-      titleEn,
-      titleFr: String(formData.get("titleFr") || "").trim() || null,
-      shortDescriptionEn,
-      shortDescriptionFr: String(formData.get("shortDescriptionFr") || "").trim() || null,
-      descriptionEn,
-      descriptionFr: String(formData.get("descriptionFr") || "").trim() || null,
-      level:
-        level === "BEGINNER" || level === "INTERMEDIATE"
-          ? level
-          : "BEGINNER_TO_INTERMEDIATE",
-      status: status === "PUBLISHED" || status === "ARCHIVED" ? status : "DRAFT",
-      categoryId,
-      skillsEn: skills,
-      moduleCount: parseCountOrNull(formData.get("moduleCount")),
-      lessonCount: parseCountOrNull(formData.get("lessonCount")),
-      pathCount: parseCountOrNull(formData.get("pathCount")),
-      includedInFullPack: formData.get("includedInFullPack") !== "off",
-      financialDisclaimerRequired: formData.get("financialDisclaimerRequired") === "on",
-      priceMinor: parseIntOrNull(formData.get("priceMinor")),
-      compareAtPriceMinor: parseIntOrNull(formData.get("compareAtPriceMinor")),
-      currency: parseCurrency(formData.get("currency")),
-      chariowProductId: String(formData.get("chariowProductId") || "").trim() || null,
-      imageUrl: String(formData.get("imageUrl") || "").trim() || null,
-      position: parseIntOrNull(formData.get("position")) ?? 0,
-      seoTitleEn: String(formData.get("seoTitleEn") || "").trim() || null,
-      seoDescriptionEn: String(formData.get("seoDescriptionEn") || "").trim() || null,
-      publishedAt: status === "PUBLISHED" ? new Date() : null,
-    },
-  });
-
-  revalidateAcademy();
+  if (code === "P2025") {
+    return `This ${noun} was changed or removed elsewhere. Refresh the page and try again.`;
+  }
+  const message = error instanceof Error ? error.message : "";
+  if (message.startsWith("Title, short description") || message.startsWith("A valid slug")) {
+    return message;
+  }
+  if (message === "Unauthorized") {
+    return "You do not have permission to manage the academy catalog.";
+  }
+  if (message === "Missing id") {
+    return "This form is missing its record id. Refresh the page and try again.";
+  }
+  if (/Database unavailable/.test(message)) {
+    return "The database is unavailable right now. Try again shortly.";
+  }
+  return `Could not save the ${noun}. Review the form and try again.`;
 }
 
-async function updateCourse(formData: FormData) {
+async function createCourse(
+  _previousState: AcademyActionState,
+  formData: FormData,
+): Promise<AcademyActionState> {
   "use server";
-  await requireCatalogManager();
-  const { getPrisma } = await import("@/lib/prisma");
-  const prisma = getPrisma();
-  if (!prisma) throw new Error("Database unavailable");
-  const id = String(formData.get("id") || "");
-  if (!id) throw new Error("Missing id");
-  const status = String(formData.get("status") || "PUBLISHED");
-  await prisma.academyCourse.update({
-    where: { id },
-    data: {
-      titleEn: String(formData.get("titleEn") || "").trim() || undefined,
-      shortDescriptionEn: String(formData.get("shortDescriptionEn") || "").trim() || undefined,
-      descriptionEn: String(formData.get("descriptionEn") || "").trim() || undefined,
-      moduleCount: parseCountOrNull(formData.get("moduleCount")),
-      lessonCount: parseCountOrNull(formData.get("lessonCount")),
-      pathCount: parseCountOrNull(formData.get("pathCount")),
-      seoTitleEn: String(formData.get("seoTitleEn") || "").trim() || null,
-      seoDescriptionEn: String(formData.get("seoDescriptionEn") || "").trim() || null,
-      priceMinor: parseIntOrNull(formData.get("priceMinor")),
-      compareAtPriceMinor: parseIntOrNull(formData.get("compareAtPriceMinor")),
-      currency: parseCurrency(formData.get("currency")),
-      chariowProductId: String(formData.get("chariowProductId") || "").trim() || null,
-      imageUrl: String(formData.get("imageUrl") || "").trim() || null,
-      status: status === "DRAFT" || status === "ARCHIVED" ? status : "PUBLISHED",
-      publishedAt: status === "PUBLISHED" ? new Date() : null,
-    },
-  });
-  revalidateAcademy();
+  try {
+    await requireCatalogManager();
+    const { getPrisma } = await import("@/lib/prisma");
+    const prisma = getPrisma();
+    if (!prisma) throw new Error("Database unavailable");
+
+    const titleEn = String(formData.get("titleEn") || "").trim();
+    const shortDescriptionEn = String(formData.get("shortDescriptionEn") || "").trim();
+    const descriptionEn = String(formData.get("descriptionEn") || "").trim();
+    if (!titleEn || !shortDescriptionEn || !descriptionEn) {
+      throw new Error("Title, short description, and description are required.");
+    }
+
+    const slugInput = String(formData.get("slug") || "").trim();
+    const slug = slugify(slugInput || titleEn);
+    if (!slug) throw new Error("A valid slug is required.");
+
+    const status = String(formData.get("status") || "DRAFT");
+    const level = String(formData.get("level") || "BEGINNER_TO_INTERMEDIATE");
+    const categoryId = String(formData.get("categoryId") || "").trim() || null;
+    const skills = String(formData.get("skillsEn") || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const created = await prisma.academyCourse.create({
+      data: {
+        slug,
+        titleEn,
+        titleFr: String(formData.get("titleFr") || "").trim() || null,
+        shortDescriptionEn,
+        shortDescriptionFr: String(formData.get("shortDescriptionFr") || "").trim() || null,
+        descriptionEn,
+        descriptionFr: String(formData.get("descriptionFr") || "").trim() || null,
+        level:
+          level === "BEGINNER" || level === "INTERMEDIATE"
+            ? level
+            : "BEGINNER_TO_INTERMEDIATE",
+        status: status === "PUBLISHED" || status === "ARCHIVED" ? status : "DRAFT",
+        categoryId,
+        skillsEn: skills,
+        moduleCount: parseCountOrNull(formData.get("moduleCount")),
+        lessonCount: parseCountOrNull(formData.get("lessonCount")),
+        pathCount: parseCountOrNull(formData.get("pathCount")),
+        includedInFullPack: formData.get("includedInFullPack") !== "off",
+        financialDisclaimerRequired: formData.get("financialDisclaimerRequired") === "on",
+        priceMinor: parseIntOrNull(formData.get("priceMinor")),
+        compareAtPriceMinor: parseIntOrNull(formData.get("compareAtPriceMinor")),
+        currency: parseCurrency(formData.get("currency")),
+        chariowProductId: String(formData.get("chariowProductId") || "").trim() || null,
+        imageUrl: String(formData.get("imageUrl") || "").trim() || null,
+        position: parseIntOrNull(formData.get("position")) ?? 0,
+        seoTitleEn: String(formData.get("seoTitleEn") || "").trim() || null,
+        seoDescriptionEn: String(formData.get("seoDescriptionEn") || "").trim() || null,
+        publishedAt: status === "PUBLISHED" ? new Date() : null,
+      },
+    });
+
+    revalidateAcademy();
+    return {
+      ok: true,
+      message:
+        created.status === "PUBLISHED"
+          ? `Course created and published. “${created.titleEn}” now appears in the Courses list and on the storefront.`
+          : `Course created. “${created.titleEn}” is in the Courses list below — publish it to show it on the storefront.`,
+      ts: Date.now(),
+    };
+  } catch (error) {
+    return { ok: false, message: friendlyAcademyError(error, "course"), ts: Date.now() };
+  }
 }
 
-async function updatePack(formData: FormData) {
+async function updateCourse(
+  _previousState: AcademyActionState,
+  formData: FormData,
+): Promise<AcademyActionState> {
   "use server";
-  await requireCatalogManager();
-  const { getPrisma } = await import("@/lib/prisma");
-  const prisma = getPrisma();
-  if (!prisma) throw new Error("Database unavailable");
-  const id = String(formData.get("id") || "");
-  if (!id) throw new Error("Missing id");
-  const status = String(formData.get("status") || "PUBLISHED");
-  await prisma.academyCoursePack.update({
-    where: { id },
-    data: {
-      titleEn: String(formData.get("titleEn") || "").trim() || undefined,
-      summaryEn: String(formData.get("summaryEn") || "").trim() || undefined,
-      descriptionEn: String(formData.get("descriptionEn") || "").trim() || undefined,
-      seoTitleEn: String(formData.get("seoTitleEn") || "").trim() || null,
-      seoDescriptionEn: String(formData.get("seoDescriptionEn") || "").trim() || null,
-      priceMinor: parseIntOrNull(formData.get("priceMinor")),
-      compareAtPriceMinor: parseIntOrNull(formData.get("compareAtPriceMinor")),
-      currency: parseCurrency(formData.get("currency")),
-      chariowProductId: String(formData.get("chariowProductId") || "").trim() || null,
-      imageUrl: String(formData.get("imageUrl") || "").trim() || null,
-      status: status === "DRAFT" || status === "ARCHIVED" ? status : "PUBLISHED",
-      publishedAt: status === "PUBLISHED" ? new Date() : null,
-    },
-  });
-  revalidateAcademy();
+  try {
+    await requireCatalogManager();
+    const { getPrisma } = await import("@/lib/prisma");
+    const prisma = getPrisma();
+    if (!prisma) throw new Error("Database unavailable");
+    const id = String(formData.get("id") || "");
+    if (!id) throw new Error("Missing id");
+    const status = String(formData.get("status") || "PUBLISHED");
+    const updated = await prisma.academyCourse.update({
+      where: { id },
+      data: {
+        titleEn: String(formData.get("titleEn") || "").trim() || undefined,
+        shortDescriptionEn: String(formData.get("shortDescriptionEn") || "").trim() || undefined,
+        descriptionEn: String(formData.get("descriptionEn") || "").trim() || undefined,
+        moduleCount: parseCountOrNull(formData.get("moduleCount")),
+        lessonCount: parseCountOrNull(formData.get("lessonCount")),
+        pathCount: parseCountOrNull(formData.get("pathCount")),
+        seoTitleEn: String(formData.get("seoTitleEn") || "").trim() || null,
+        seoDescriptionEn: String(formData.get("seoDescriptionEn") || "").trim() || null,
+        priceMinor: parseIntOrNull(formData.get("priceMinor")),
+        compareAtPriceMinor: parseIntOrNull(formData.get("compareAtPriceMinor")),
+        currency: parseCurrency(formData.get("currency")),
+        chariowProductId: String(formData.get("chariowProductId") || "").trim() || null,
+        imageUrl: String(formData.get("imageUrl") || "").trim() || null,
+        status: status === "DRAFT" || status === "ARCHIVED" ? status : "PUBLISHED",
+        publishedAt: status === "PUBLISHED" ? new Date() : null,
+      },
+    });
+    revalidateAcademy();
+    return {
+      ok: true,
+      message: `Course saved. “${updated.titleEn}” is ${updated.status === "PUBLISHED" ? "live on the storefront" : "not visible to the public (" + updated.status.toLowerCase() + ")"}.`,
+      ts: Date.now(),
+    };
+  } catch (error) {
+    return { ok: false, message: friendlyAcademyError(error, "course"), ts: Date.now() };
+  }
+}
+
+async function updatePack(
+  _previousState: AcademyActionState,
+  formData: FormData,
+): Promise<AcademyActionState> {
+  "use server";
+  try {
+    await requireCatalogManager();
+    const { getPrisma } = await import("@/lib/prisma");
+    const prisma = getPrisma();
+    if (!prisma) throw new Error("Database unavailable");
+    const id = String(formData.get("id") || "");
+    if (!id) throw new Error("Missing id");
+    const status = String(formData.get("status") || "PUBLISHED");
+    const updated = await prisma.academyCoursePack.update({
+      where: { id },
+      data: {
+        titleEn: String(formData.get("titleEn") || "").trim() || undefined,
+        summaryEn: String(formData.get("summaryEn") || "").trim() || undefined,
+        descriptionEn: String(formData.get("descriptionEn") || "").trim() || undefined,
+        seoTitleEn: String(formData.get("seoTitleEn") || "").trim() || null,
+        seoDescriptionEn: String(formData.get("seoDescriptionEn") || "").trim() || null,
+        priceMinor: parseIntOrNull(formData.get("priceMinor")),
+        compareAtPriceMinor: parseIntOrNull(formData.get("compareAtPriceMinor")),
+        currency: parseCurrency(formData.get("currency")),
+        chariowProductId: String(formData.get("chariowProductId") || "").trim() || null,
+        imageUrl: String(formData.get("imageUrl") || "").trim() || null,
+        status: status === "DRAFT" || status === "ARCHIVED" ? status : "PUBLISHED",
+        publishedAt: status === "PUBLISHED" ? new Date() : null,
+      },
+    });
+    revalidateAcademy();
+    return {
+      ok: true,
+      message: `Pack saved. “${updated.titleEn}” is ${updated.status === "PUBLISHED" ? "live on the storefront" : "not visible to the public (" + updated.status.toLowerCase() + ")"}.`,
+      ts: Date.now(),
+    };
+  } catch (error) {
+    return { ok: false, message: friendlyAcademyError(error, "pack"), ts: Date.now() };
+  }
 }
 
 const STATUS_TONES: Record<string, string> = {
@@ -436,7 +505,12 @@ export default async function AdminAcademyPage({
                 </span>
                 <span className="text-xs text-muted">Required: title, short description, description</span>
               </summary>
-              <form action={createCourse} className="elevated-panel grid gap-5 border-t border-border p-5 sm:p-6">
+              <AcademyActionForm
+                action={createCourse}
+                submitLabel="Create course"
+                pendingLabel="Creating course…"
+                helper="Publishing sets the public timestamp and revalidates the courses page and sitemap."
+              >
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className={labelClass}>
                     Title (EN) *
@@ -578,12 +652,7 @@ export default async function AdminAcademyPage({
                     <input name="seoDescriptionEn" className={inputClass} />
                   </label>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <button type="submit" className="btn-primary rounded-xl px-5 py-2.5">Create course</button>
-                  <p className="text-xs text-muted">Publishing sets the public timestamp and revalidates the courses page and sitemap.</p>
-                </div>
-              </form>
+              </AcademyActionForm>
             </details>
           </section>
         ) : null}
@@ -615,7 +684,11 @@ export default async function AdminAcademyPage({
                   </div>
                 </summary>
                 {canManage ? (
-                  <form action={updateCourse} className="elevated-panel grid gap-5 border-t border-border p-5 sm:p-6">
+                  <AcademyActionForm
+                    action={updateCourse}
+                    submitLabel="Save course"
+                    helper="Saving revalidates the courses page, course detail pages, and the sitemap."
+                  >
                     <input type="hidden" name="id" value={course.id} />
                     <div className="grid gap-4 md:grid-cols-2">
                       <label className={labelClass}>
@@ -700,12 +773,7 @@ export default async function AdminAcademyPage({
                         <input name="seoDescriptionEn" defaultValue={course.seoDescriptionEn ?? ""} className={inputClass} />
                       </label>
                     </div>
-
-                    <div className="flex flex-wrap items-center gap-3">
-                      <button type="submit" className="btn-primary rounded-xl px-5 py-2.5">Save course</button>
-                      <p className="text-xs text-muted">Saving revalidates the courses page, course detail pages, and the sitemap.</p>
-                    </div>
-                  </form>
+                  </AcademyActionForm>
                 ) : (
                   <div className="elevated-panel border-t border-border p-5 text-sm text-muted">
                     Read-only view. Ask an administrator with catalog permissions to edit this course.
@@ -739,7 +807,11 @@ export default async function AdminAcademyPage({
                   </div>
                 </summary>
                 {canManage ? (
-                  <form action={updatePack} className="elevated-panel grid gap-5 border-t border-border p-5 sm:p-6">
+                  <AcademyActionForm
+                    action={updatePack}
+                    submitLabel="Save pack"
+                    helper={`Included courses: ${pack.items.map((item) => item.course.titleEn).join(", ") || "—"}`}
+                  >
                     <input type="hidden" name="id" value={pack.id} />
                     <div className="grid gap-4 md:grid-cols-2">
                       <label className={labelClass}>
@@ -801,11 +873,7 @@ export default async function AdminAcademyPage({
                         <input name="seoDescriptionEn" defaultValue={pack.seoDescriptionEn ?? ""} className={inputClass} />
                       </label>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <button type="submit" className="btn-primary rounded-xl px-5 py-2.5">Save pack</button>
-                      <p className="text-xs text-muted">{pack.items.length} courses included: {pack.items.map((item) => item.course.titleEn).join(", ") || "—"}</p>
-                    </div>
-                  </form>
+                  </AcademyActionForm>
                 ) : (
                   <div className="elevated-panel border-t border-border p-5 text-sm text-muted">
                     Read-only view. Ask an administrator with catalog permissions to edit this pack.
