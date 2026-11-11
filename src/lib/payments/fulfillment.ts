@@ -243,7 +243,12 @@ export async function processChariowWebhook(input: {
   rawBody: string;
   headers: WebhookHeaders;
 }): Promise<WebhookProcessResult> {
-  const signature = headerValue(input.headers, "x-pulse-signature");
+  // Chariow's current docs name the signature header `x-chariow-signature`.
+  // Earlier integrations used `X-Pulse-Signature` — accept both so existing
+  // dashboards keep working during the transition.
+  const signature =
+    headerValue(input.headers, "x-chariow-signature") ||
+    headerValue(input.headers, "x-pulse-signature");
   const deliveryId = headerValue(input.headers, "x-pulse-delivery-id") || null;
   const secret = process.env.CHARIOW_WEBHOOK_SECRET?.trim() || "";
   const signatureValid = Boolean(

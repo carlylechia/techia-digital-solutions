@@ -33,12 +33,18 @@ CLOUDINARY_UPLOAD_PRESET=
 # [FLIP LATER]
 ACADEMY_INTERNAL_CHECKOUT_ENABLED=false
 
-# Chariow — dashboard → Settings → API/Developers → copy the live API key
-# Authenticates POST https://api.chariow.com/v1/checkout and GET /v1/sales/{saleId}
+# Chariow — API key: dashboard → Settings → Developer → API Keys
+#   (authenticates POST /v1/checkout and GET /v1/sales/{saleId})
 # [FILL]
 CHARIOW_API_KEY=
-# Chariow — Settings → Webhooks → add https://<domain>/api/courses/webhooks/chariow
-# → copy the signing secret shown at creation time (X-Pulse-Signature: sha256=<hex>)
+# Chariow — webhooks are called "Pulses" (NOT under Settings!):
+#   Dashboard → Automation → Pulses → Add Pulse
+#   → URL: https://<domain>/api/courses/webhooks/chariow (HTTPS required)
+#   → events: "Successful Sale" (successful.sale) + "Failed Sale" (failed.sale)
+#   → save, then open the Pulse → Overview tab → Signing secret → Reveal/Copy
+#     (starts with whsec_ ; NOT your API key; use Rotate if ever leaked)
+#   → debugging: Pulse → Deliveries tab (status, payload, response, Replay)
+# Endpoint reads header x-chariow-signature (legacy x-pulse-signature accepted)
 # [FILL]
 CHARIOW_WEBHOOK_SECRET=
 
@@ -81,8 +87,8 @@ COURSE_BONUS_DELIVERY_SECRET=
 # [ ] 4. /admin/academy → set prices (integer minor units; XAF has 0 decimals),
 #        currency dropdown (XAF/USD/CAD/EUR), Chariow product IDs,
 #        modules/lessons/paths, cover images → Save (watch for green banner)
-# [ ] 5. Send a test webhook from each provider dashboard → check server logs
-#        (signature verification + dedupe must succeed before enabling)
+# [ ] 5. Send a test pulse (Chariow: Pulse → Send test pulse) / test webhook
+#        (Moneroo) → check server logs (signature + dedupe must succeed)
 # [ ] 6. Flip ACADEMY_INTERNAL_CHECKOUT_ENABLED=true → redeploy/restart
 # [ ] 7. Real small-amount test: Buy → provider hosted page → return page shows
 #        PAID only via server-side verification → check /admin/academy orders
