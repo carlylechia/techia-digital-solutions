@@ -1,0 +1,94 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# teChia Digital Academy — .env checklist (courses & payments)
+# Copy the lines you need into .env (local) and into Vercel env vars (production).
+# Legend:  [SET] = already in your .env, keep current
+#          [FILL] = get the value from the provider dashboard
+#          [FLIP LATER] = change only after testing
+# Rollout order: Base → Admin images → Provider secrets → Webhooks →
+#                Prices (in /admin/academy) → Test webhooks → Enable checkout.
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ── 1. Base (required) ──────────────────────────────────────────────────────
+# [SET] Postgres connection string (local dev DB or managed provider)
+DATABASE_URL=
+
+# [SET] Random 32+ char string — generate with: openssl rand -base64 32
+NEXTAUTH_SECRET=
+# [SET] http://localhost:3000 locally; https://<your-domain> in production
+NEXTAUTH_URL=
+# [SET] Public origin — used for canonical URLs, checkout redirect_url, sitemap
+NEXT_PUBLIC_SITE_URL=
+
+# ── 2. Admin image uploads (Cloudinary) ────────────────────────────────────
+# Get from: cloudinary.com dashboard → Settings → API Keys
+# [SET]
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+# Optional: unsigned preset name; signed uploads are used when omitted
+CLOUDINARY_UPLOAD_PRESET=
+
+# ── 3. Academy internal checkout & payments (SERVER-ONLY — never NEXT_PUBLIC_) ──
+# Master switch. Keep false until steps 1–5 of the rollout list are done.
+# [FLIP LATER]
+ACADEMY_INTERNAL_CHECKOUT_ENABLED=false
+
+# Chariow — dashboard → Settings → API/Developers → copy the live API key
+# Authenticates POST https://api.chariow.com/v1/checkout and GET /v1/sales/{saleId}
+# [FILL]
+CHARIOW_API_KEY=
+# Chariow — Settings → Webhooks → add https://<domain>/api/courses/webhooks/chariow
+# → copy the signing secret shown at creation time (X-Pulse-Signature: sha256=<hex>)
+# [FILL]
+CHARIOW_WEBHOOK_SECRET=
+
+# Moneroo — dashboard → Developers → API keys → copy the secret key
+# Authenticates POST /v1/payments/initialize and GET /v1/payments/{id}/verify
+# [FILL]
+MONEROO_SECRET_KEY=
+# Moneroo — Developers → Webhooks → add https://<domain>/api/courses/webhooks/moneroo
+# → copy the signing secret (X-Moneroo-Signature, bare hex)
+# → subscribe to payment.success, payment.failed, payment.cancelled
+# [FILL]
+MONEROO_WEBHOOK_SECRET=
+
+# ── 4. Legacy "open Chariow" pack links (external fallback checkout) ────────
+# Used only when an item has no positive price in the catalog.
+# [SET] — already configured; keep values current
+NEXT_PUBLIC_CHARIOW_FULL_PACK_URL=
+NEXT_PUBLIC_CHARIOW_DIGITAL_MARKETING_ONLINE_BUSINESS_URL=
+NEXT_PUBLIC_CHARIOW_CREATIVE_DESIGN_CONTENT_CREATION_URL=
+NEXT_PUBLIC_CHARIOW_AI_TECH_PROGRAMMING_URL=
+NEXT_PUBLIC_CHARIOW_OFFICE_BUSINESS_PROFESSIONAL_SKILLS_URL=
+NEXT_PUBLIC_CHARIOW_FINANCE_MARKET_EDUCATION_URL=
+
+# ── 5. Support & buyer bonus contact ────────────────────────────────────────
+# [SET] wa.me/<number> link; per-item messages are appended automatically
+NEXT_PUBLIC_COURSES_WHATSAPP_URL=
+# [SET] shown on course pages as "Contact by email"
+NEXT_PUBLIC_COURSES_SUPPORT_EMAIL=
+# [SET] optional external bonus-claim form URL; defaults to internal /courses/claim-bonus
+NEXT_PUBLIC_COURSES_BONUS_CLAIM_URL=
+# [SET] keep false unless public download links are intended
+NEXT_PUBLIC_ENABLE_PUBLIC_BONUS_DOWNLOADS=false
+# [SET] random secret for buyer bonus delivery links — openssl rand -base64 32
+COURSE_BONUS_DELIVERY_SECRET=
+
+# ── 6. Rollout checklist (do in this order) ─────────────────────────────────
+# [ ] 1. Base + Cloudinary set → restart dev server (pnpm dev)
+# [ ] 2. Add provider secrets (keys + webhook secrets), keep ENABLED=false
+# [ ] 3. Configure webhook URLs in Chariow & Moneroo dashboards (production domain)
+# [ ] 4. /admin/academy → set prices (integer minor units; XAF has 0 decimals),
+#        currency dropdown (XAF/USD/CAD/EUR), Chariow product IDs,
+#        modules/lessons/paths, cover images → Save (watch for green banner)
+# [ ] 5. Send a test webhook from each provider dashboard → check server logs
+#        (signature verification + dedupe must succeed before enabling)
+# [ ] 6. Flip ACADEMY_INTERNAL_CHECKOUT_ENABLED=true → redeploy/restart
+# [ ] 7. Real small-amount test: Buy → provider hosted page → return page shows
+#        PAID only via server-side verification → check /admin/academy orders
+# [ ] 8. Confirm the webhook also processed the same payment (dedupe = one update)
+#
+# Notes:
+# - Prices are catalog data, NOT env: set them in /admin/academy (DB).
+# - Amount/currency mismatches land in REQUIRES_REVIEW; nothing auto-fulfills.
+# - Production deploy runs `prisma migrate deploy` automatically (vercel-build).
