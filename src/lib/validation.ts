@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidCountryCode } from "@/lib/countries";
 
 const email = z.string().trim().toLowerCase().email().max(180);
 const shortText = z.string().trim().min(2).max(180);
@@ -129,7 +130,14 @@ export const academyCheckoutSchema = z.object({
   lastName: z.string().trim().min(1).max(80),
   email: z.string().trim().email().max(160),
   phone: z.string().trim().min(7).max(40),
-  countryCode: z.string().trim().min(2).max(8),
+  // Chariow requires a known ISO 3166-1 alpha-2 code for phone.country_code.
+  countryCode: z
+    .string()
+    .trim()
+    .refine((value) => /^[A-Za-z]{2}$/.test(value) && isValidCountryCode(value), {
+      message: "Unknown country code.",
+    })
+    .transform((value) => value.toUpperCase()),
   locale: z.enum(["en", "fr"]),
   idempotencyKey: z.string().trim().min(10).max(80),
   customerIp: z.string().trim().optional(),

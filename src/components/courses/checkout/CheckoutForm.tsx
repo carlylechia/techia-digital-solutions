@@ -1,8 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import type { Locale } from "@/content/site";
 import type { PaymentProviderId } from "@/lib/payments/providers";
+import {
+  COUNTRY_CODES,
+  flagEmojiForCountryCode,
+  PRIORITY_COUNTRY_CODES,
+} from "@/lib/countries";
 
 type ProviderOption = {
   id: PaymentProviderId;
@@ -15,6 +21,19 @@ function randomKey() {
     return crypto.randomUUID();
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Localized country label, falling back to the raw code. */
+function countryName(
+  code: string,
+  locale: Locale,
+  names: Intl.DisplayNames | null,
+) {
+  try {
+    return names?.of(code) || code;
+  } catch {
+    return code;
+  }
 }
 
 export function CheckoutForm({
@@ -43,27 +62,56 @@ export function CheckoutForm({
           lastName: "Nom",
           email: "Adresse e-mail",
           phone: "Téléphone",
-          countryCode: "Indicatif pays",
+          countryCode: "Pays du numéro de téléphone",
           provider: "Moyen de paiement",
           submit: "Continuer vers le paiement sécurisé",
           processing: "Préparation du paiement...",
           secure:
             "Le paiement final est traité de manière sécurisée par le prestataire sélectionné. teChia ne stocke pas vos informations de carte.",
-          countryHint: "Exemples : CM, CI, SN, FR",
+          popular: "Populaires",
+          allCountries: "Tous les pays",
         }
       : {
           firstName: "First name",
           lastName: "Last name",
           email: "Email address",
           phone: "Phone number",
-          countryCode: "Country code",
+          countryCode: "Phone country",
           provider: "Payment method",
           submit: "Continue to secure payment",
           processing: "Preparing secure checkout...",
           secure:
             "Final payment is processed securely by the selected provider. teChia does not store your card details.",
-          countryHint: "Examples: CM, CI, SN, FR",
+          popular: "Popular",
+          allCountries: "All countries",
         };
+
+  // Localized country names for the dropdown, sorted alphabetically per locale.
+  const countryGroups = useMemo(() => {
+    let names: Intl.DisplayNames | null = null;
+    try {
+      names = new Intl.DisplayNames([locale], { type: "region" });
+    } catch {
+      names = null;
+    }
+    const toOption = (code: string) => {
+      const name = countryName(code, locale, names);
+      return {
+        code,
+        name,
+        label: `${flagEmojiForCountryCode(code)} ${name}`,
+      };
+    };
+    const sortOptions = (options: ReturnType<typeof toOption>[]) =>
+      [...options].sort((a, b) => a.name.localeCompare(b.name, locale));
+    const prioritySet = new Set<string>(PRIORITY_COUNTRY_CODES);
+    return {
+      priority: sortOptions(PRIORITY_COUNTRY_CODES.map(toOption)),
+      all: sortOptions(
+        COUNTRY_CODES.filter((code) => !prioritySet.has(code)).map(toOption),
+      ),
+    };
+  }, [locale]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -162,7 +210,7 @@ export function CheckoutForm({
           className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-primary outline-none focus:border-cyan-500"
         />
       </label>
-      <div className="grid gap-4 sm:grid-cols-[1fr_0.7fr]">
+      <div className="grid gap-4 sm:grid-cols-2">
         <label className="grid gap-2 text-sm font-medium text-primary">
           {copy.phone}
           <input
@@ -174,12 +222,34 @@ export function CheckoutForm({
         </label>
         <label className="grid gap-2 text-sm font-medium text-primary">
           {copy.countryCode}
-          <input
-            name="countryCode"
-            required
-            placeholder={copy.countryHint}
-            className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-primary outline-none focus:border-cyan-500"
-          />
+          <span className="relative block">
+            <select
+              name="countryCode"
+              required
+              defaultValue="CM"
+              autoComplete="tel-country-code"
+              className="w-full appearance-none rounded-xl border border-border bg-background py-3 pl-4 pr-10 text-sm text-primary outline-none focus:border-cyan-500"
+            >
+              <optgroup label={copy.popular}>
+                {countryGroups.priority.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.label}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label={copy.allCountries}>
+                {countryGroups.all.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.label}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+            <ChevronDown
+              aria-hidden="true"
+              className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted"
+            />
+          </span>
         </label>
       </div>
 
