@@ -4,6 +4,10 @@ import type { Locale } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/payments/money";
 import { getPublicAppPath } from "@/lib/site-routes";
+import {
+  effectiveCoursePriceMinor,
+  effectivePackPriceMinor,
+} from "@/lib/courses/pricing";
 
 function fromLocale(locale: Locale, en: string, fr?: string | null) {
   if (locale === "fr") return fr?.trim() || en;
@@ -43,7 +47,7 @@ export async function buildAcademyCatalogContext(locale: Locale = "en") {
     lines.push("LIVE PUBLISHED ACADEMY CATALOG (use this as the source of truth):");
     lines.push("- Only recommend courses/packs listed below. Never recommend unpublished or archived items.");
     lines.push("- Never invent prices, discounts, availability, certifications, instructors, duration, or syllabus details not shown.");
-    lines.push("- If a price is not set, say the price/checkout is not configured yet and offer to help the user contact teChia or compare options.");
+    lines.push("- Prices listed below are the live catalog prices; never quote any other amount.");
     lines.push("- For trading and cryptocurrency topics, provide educational guidance only with clear disclaimers: no financial/investment advice and no guaranteed returns or income.");
     lines.push("- Recommend the option that best fits the user's goal, level, and budget; do not automatically recommend the most expensive product.");
     lines.push("");
@@ -51,10 +55,10 @@ export async function buildAcademyCatalogContext(locale: Locale = "en") {
     lines.push("INDIVIDUAL COURSES:");
     for (const course of courses) {
       const title = fromLocale(locale, course.titleEn, course.titleFr);
-      const price =
-        typeof course.priceMinor === "number"
-          ? formatMoney(course.priceMinor, course.currency, locale)
-          : "Price not configured";
+      const coursePriceMinor = effectiveCoursePriceMinor(course.priceMinor, course.currency);
+      const price = coursePriceMinor === null
+        ? "Price not configured"
+        : formatMoney(coursePriceMinor, course.currency, locale);
       const url = getPublicAppPath(`/courses/${course.slug}`);
       const category = course.category
         ? fromLocale(locale, course.category.nameEn, course.category.nameFr)
@@ -82,10 +86,10 @@ export async function buildAcademyCatalogContext(locale: Locale = "en") {
     lines.push("COURSE PACKS:");
     for (const pack of packs) {
       const title = fromLocale(locale, pack.titleEn, pack.titleFr);
-      const price =
-        typeof pack.priceMinor === "number"
-          ? formatMoney(pack.priceMinor, pack.currency, locale)
-          : "Price not configured";
+      const packPriceMinor = effectivePackPriceMinor(pack.priceMinor, pack.currency);
+      const price = packPriceMinor === null
+        ? "Price not configured"
+        : formatMoney(packPriceMinor, pack.currency, locale);
       const url = getPublicAppPath(`/courses/${pack.slug}`);
       const included = pack.items.map((item) =>
         fromLocale(locale, item.course.titleEn, item.course.titleFr),

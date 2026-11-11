@@ -7,7 +7,7 @@ This document describes the additive Academy catalog/checkout implementation shi
 Additive models/enums: `AcademyCategory`, `AcademyCourse`, `AcademyLesson`, `AcademyCoursePack`, `AcademyCoursePackItem`, `AcademyOrder`, `AcademyOrderItem`, `AcademyPayment`, `AcademyWebhookEvent`, `AcademyOrderBonusGrant` and related enums. Migration: `prisma/migrations/20261110120000_add_academy_catalog_and_payments/migration.sql`.
 
 - Courses and packs are DB-backed and published-only on the storefront when the DB is connected.
-- Prices are **admin-configurable** and stored as integer minor units (`priceMinor`, `currency`, default XAF). **No individual/pack prices were supplied**; seeded prices are `null`.
+- Prices are **admin-configurable** and stored as integer minor units (`priceMinor`, `currency`, default XAF). **Default pricing when an admin has not set a price** (`src/lib/courses/pricing.ts`): a single course sells at **2,000 FCFA** and a course pack at **5,000 FCFA** — applied only to XAF items; unpriced items in USD/CAD/EUR stay unpriced (no conversion is invented). The storefront, checkout resolution (`resolveCheckoutItem`), and the AI advisor all use the same effective price, and `/admin/academy` lists the effective price with a "· default" marker.
 - Seed: `prisma/seed.ts` is idempotent and creates 16 courses, 48 lessons, 6 packs, 32 pack items from supplied catalog definitions. Existing Chariow product IDs are parsed where already present.
 
 ## Storefront & admin

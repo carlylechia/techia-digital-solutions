@@ -4,6 +4,10 @@ import type { AcademyCourseLevel } from "@prisma/client";
 import type { Locale } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
 import { getPublicAppPath } from "@/lib/site-routes";
+import {
+  effectiveCoursePriceMinor,
+  effectivePackPriceMinor,
+} from "@/lib/courses/pricing";
 import { COURSE_CATALOG, type CourseCatalogEntry } from "./catalog";
 import {
   COURSE_PACK_DEFINITIONS,
@@ -246,7 +250,7 @@ function databaseCourseToStorefront(
       isPreview: lesson.isPreview,
       position: lesson.position,
     })),
-    priceMinor: course.priceMinor,
+    priceMinor: effectiveCoursePriceMinor(course.priceMinor, course.currency),
     compareAtPriceMinor: course.compareAtPriceMinor,
     currency: course.currency,
     imageUrl: course.imageUrl,
@@ -488,13 +492,10 @@ export async function getStorefrontPacks(
           databasePack.seoDescriptionFr,
         ),
         databaseId: databasePack.id,
-        priceMinor: databasePack.priceMinor,
+        priceMinor: effectivePackPriceMinor(databasePack.priceMinor, databasePack.currency),
         priceCurrency: databasePack.currency,
         chariowProductId: databasePack.chariowProductId,
-        checkoutUrl:
-          databasePack.chariowProductId && !databasePack.priceMinor
-            ? pack.checkoutUrl
-            : pack.checkoutUrl,
+        checkoutUrl: pack.checkoutUrl,
       };
     });
   } catch (error) {

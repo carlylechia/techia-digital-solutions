@@ -84,9 +84,11 @@ COURSE_BONUS_DELIVERY_SECRET=
 # [ ] 1. Base + Cloudinary set → restart dev server (pnpm dev)
 # [ ] 2. Add provider secrets (keys + webhook secrets), keep ENABLED=false
 # [ ] 3. Configure webhook URLs in Chariow & Moneroo dashboards (production domain)
-# [ ] 4. /admin/academy → set prices (integer minor units; XAF has 0 decimals),
-#        currency dropdown (XAF/USD/CAD/EUR), Chariow product IDs,
-#        modules/lessons/paths, cover images → Save (watch for green banner)
+# [ ] 4. /admin/academy → set prices (integer minor units; XAF has 0 decimals;
+#        BLANK = default 2,000 FCFA per course / 5,000 FCFA per pack, XAF items
+#        only; non-XAF items need an explicit price), currency dropdown
+#        (XAF/USD/CAD/EUR), Chariow product IDs, modules/lessons/paths,
+#        cover images → Save (watch for green banner)
 # [ ] 5. Send a test pulse (Chariow: Pulse → Send test pulse) / test webhook
 #        (Moneroo) → check server logs (signature + dedupe must succeed)
 # [ ] 6. Flip ACADEMY_INTERNAL_CHECKOUT_ENABLED=true → redeploy/restart

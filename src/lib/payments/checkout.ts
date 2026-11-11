@@ -5,6 +5,10 @@ import type { AcademyPaymentProvider } from "@prisma/client";
 import type { Locale } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
 import { getPublicAppPath } from "@/lib/site-routes";
+import {
+  effectiveCoursePriceMinor,
+  effectivePackPriceMinor,
+} from "@/lib/courses/pricing";
 import { createChariowCheckout } from "./chariow";
 import { createMonerooCheckout } from "./moneroo";
 import { formatMoney } from "./money";
@@ -102,7 +106,9 @@ export async function resolveCheckoutItem(
       include: { _count: { select: { lessons: true } } },
     });
     if (!course) return null;
-    const priceMinor = validPrice(course.priceMinor);
+    // Business default: a course without a manually set price sells at 2,000 FCFA
+    // (applies to XAF items; non-XAF currencies require an explicit price).
+    const priceMinor = effectiveCoursePriceMinor(course.priceMinor, course.currency);
     if (!priceMinor) return null;
     return {
       type: "course",
@@ -130,7 +136,9 @@ export async function resolveCheckoutItem(
     include: { _count: { select: { items: true } } },
   });
   if (!pack) return null;
-  const priceMinor = validPrice(pack.priceMinor);
+  // Business default: a pack without a manually set price sells at 5,000 FCFA
+  // (applies to XAF items; non-XAF currencies require an explicit price).
+  const priceMinor = effectivePackPriceMinor(pack.priceMinor, pack.currency);
   if (!priceMinor) return null;
   return {
     type: "pack",

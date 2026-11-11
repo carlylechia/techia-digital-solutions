@@ -23,6 +23,11 @@ import { loadAdminAcademyCatalog } from "@/lib/admin/academy";
 import { formatMoney } from "@/lib/payments/money";
 import { AcademyImageField } from "@/components/courses/AcademyImageField";
 import { AcademyActionForm, type AcademyActionState } from "@/components/courses/AcademyActionForm";
+import {
+  effectiveCoursePriceMinor,
+  effectivePackPriceMinor,
+  isPositivePrice,
+} from "@/lib/courses/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -322,6 +327,29 @@ function MetaPill({ children }: { children: ReactNode }) {
   );
 }
 
+/** Shows the effective price; flags the 2,000/5,000 FCFA fallback when admin left it blank. */
+function PricePill({
+  priceMinor,
+  currency,
+  kind,
+}: {
+  priceMinor: number | null;
+  currency: string;
+  kind: "course" | "pack";
+}) {
+  const effective =
+    kind === "course"
+      ? effectiveCoursePriceMinor(priceMinor, currency)
+      : effectivePackPriceMinor(priceMinor, currency);
+  const isDefault = effective !== null && !isPositivePrice(priceMinor);
+  return (
+    <MetaPill>
+      {currency} {effective ?? "—"}
+      {isDefault ? " · default" : ""}
+    </MetaPill>
+  );
+}
+
 function StatCard({
   icon: Icon,
   label,
@@ -595,7 +623,7 @@ export default async function AdminAcademyPage({
                     <label className={labelClass}>
                       Price (minor units)
                       <input name="priceMinor" type="number" min={0} className={inputClass} placeholder="e.g. 10000" />
-                      <span className={hintClass}>Leave blank until a price is decided</span>
+                      <span className={hintClass}>Blank = default 2,000 FCFA (XAF items only)</span>
                     </label>
                     <label className={labelClass}>
                       Compare-at (minor)
@@ -671,7 +699,7 @@ export default async function AdminAcademyPage({
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusPill value={course.status} />
-                      <MetaPill>{course.currency} {course.priceMinor ?? "—"}</MetaPill>
+                      <PricePill priceMinor={course.priceMinor} currency={course.currency} kind="course" />
                       {course.moduleCount !== null ? <MetaPill>{course.moduleCount} modules</MetaPill> : null}
                       {course.lessonCount !== null ? (
                         <MetaPill>{course.lessonCount} lessons</MetaPill>
@@ -748,6 +776,7 @@ export default async function AdminAcademyPage({
                         <label className={labelClass}>
                           Price (minor)
                           <input name="priceMinor" type="number" min={0} defaultValue={course.priceMinor ?? ""} className={inputClass} />
+                          <span className={hintClass}>Blank = default 2,000 FCFA (XAF items only)</span>
                         </label>
                         <label className={labelClass}>
                           Compare-at (minor)
@@ -801,7 +830,7 @@ export default async function AdminAcademyPage({
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusPill value={pack.status} />
-                      <MetaPill>{pack.currency} {pack.priceMinor ?? "—"}</MetaPill>
+                      <PricePill priceMinor={pack.priceMinor} currency={pack.currency} kind="pack" />
                       <MetaPill>{pack._count.items} courses</MetaPill>
                     </div>
                   </div>
@@ -849,6 +878,7 @@ export default async function AdminAcademyPage({
                         <label className={labelClass}>
                           Price (minor)
                           <input name="priceMinor" type="number" min={0} defaultValue={pack.priceMinor ?? ""} className={inputClass} />
+                          <span className={hintClass}>Blank = default 5,000 FCFA (XAF items only)</span>
                         </label>
                         <label className={labelClass}>
                           Compare-at (minor)
