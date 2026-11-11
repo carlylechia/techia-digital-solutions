@@ -33,11 +33,12 @@ export function RelatedCoursePacks({
             className="mb-0"
           />
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {packs.slice(0, 3).map((pack) => (
               <CoursePackCard
                 key={pack.id}
                 pack={pack}
+                locale={locale}
                 sourcePage="related_packs"
                 audienceLabel={locale === "fr" ? "Idéal pour" : "Best for"}
                 levelLabel={getCoursePackLevelLabel(locale, pack.level)}

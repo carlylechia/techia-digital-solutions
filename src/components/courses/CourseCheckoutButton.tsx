@@ -25,12 +25,15 @@ export function CourseCheckoutButton({
   sourcePage,
   className,
   itemType = "pack",
+  showPrice = true,
 }: {
   pack: CheckoutTarget;
   label: string;
   sourcePage: string;
   className?: string;
   itemType?: "pack" | "course";
+  /** Cards pass false and render the price themselves; the button stays short. */
+  showPrice?: boolean;
 }) {
   const priceMinor =
     typeof pack.priceMinor === "number" && pack.priceMinor > 0
@@ -46,11 +49,11 @@ export function CourseCheckoutButton({
       <span
         aria-disabled="true"
         className={cn(
-          "inline-flex w-full cursor-not-allowed items-center justify-center rounded-xl border border-border bg-surface px-5 py-3 text-center text-sm font-medium text-muted dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-400 sm:w-auto",
+          "inline-flex min-w-0 cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-border bg-surface px-5 py-3 text-center text-sm font-medium text-muted dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-400",
           className,
         )}
       >
-        Price and checkout coming soon
+        <span className="min-w-0 truncate">Price and checkout coming soon</span>
       </span>
     );
   }
@@ -71,13 +74,13 @@ export function CourseCheckoutButton({
         source_page: sourcePage,
       }}
       className={cn(
-        "btn-primary w-full justify-center px-5 py-3 sm:w-auto",
+        "btn-primary min-w-0 w-full justify-center px-5 py-3 sm:w-auto",
         className,
       )}
     >
-      {label}
-      {priceMinor ? (
-        <span className="ml-1 text-sm font-semibold opacity-90">
+      <span className="min-w-0 truncate">{label}</span>
+      {showPrice && priceMinor ? (
+        <span className="ml-1 shrink-0 text-sm font-semibold opacity-90">
           · {formatMoney(priceMinor, currency)}
         </span>
       ) : null}

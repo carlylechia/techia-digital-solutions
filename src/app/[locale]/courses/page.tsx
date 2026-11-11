@@ -251,16 +251,16 @@ export default async function CoursesPage({
       <section className="relative isolate overflow-hidden">
         <div className="relative min-h-[78svh] w-full sm:min-h-[84svh] lg:min-h-[90svh]">
           <Image
-            src="/images/courses/hero-learning-black.jpg"
+            src="/images/courses/hero-academy-tech.jpg"
             alt={
               locale === "fr"
-                ? "Apprenants noirs développant des compétences digitales"
-                : "Black learners building digital skills"
+                ? "Professionnelle noire travaillant sur tablette le long d'une baie de serveurs"
+                : "Black professional working on a tablet beside a data-center corridor"
             }
             fill
             priority
             sizes="100vw"
-            className="object-cover object-[65%_center] sm:object-center"
+            className="object-cover object-[68%_center] sm:object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/20" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
@@ -352,13 +352,14 @@ export default async function CoursesPage({
                         <FeaturedFullPack locale={locale} pack={fullPack} />
                       </div>
                     ) : null}
-                    <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                       {filteredPacks
                         .filter((p) => !p.recommended)
                         .map((pack) => (
                           <CoursePackCard
                             key={pack.id}
                             pack={pack}
+                            locale={locale}
                             sourcePage="courses_pack_grid"
                             audienceLabel={copy.audienceLabel}
                             levelLabel={getCoursePackLevelLabel(locale, pack.level)}
@@ -419,7 +420,7 @@ export default async function CoursesPage({
                   className="mb-0"
                 />
                 {filteredCourses.length ? (
-                  <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                     {filteredCourses.map((course) => (
                       <CourseCard
                         key={course.id}
