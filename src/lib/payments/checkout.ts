@@ -481,6 +481,14 @@ export async function startAcademyCheckout(
         : error instanceof CheckoutError
           ? error.message
           : "The payment provider could not start the checkout.";
+    // Runtime-log the real cause; the thrown/reported message stays generic
+    // for buyers while the details land in logs and the order's notes column.
+    console.error("[academy-checkout] start_failed", {
+      provider: input.provider,
+      itemType: input.itemType,
+      itemSlug: input.itemSlug,
+      reason: error instanceof Error ? error.message : String(error),
+    });
     await prisma.academyOrder
       .update({
         where: { reference },
