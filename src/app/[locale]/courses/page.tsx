@@ -1,35 +1,43 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
 import { Mail, MessageCircle } from "lucide-react";
 import { notFound } from "next/navigation";
 import { BonusClaimButton } from "@/components/courses/BonusClaimButton";
 import { BuyerBonusSection } from "@/components/courses/BuyerBonusSection";
+import { CourseCard } from "@/components/courses/CourseCard";
+import { CourseCatalogFilters } from "@/components/courses/CourseCatalogFilters";
 import { CourseFaq } from "@/components/courses/CourseFaq";
-import { CourseHero } from "@/components/courses/CourseHero";
 import { CoursePackCard } from "@/components/courses/CoursePackCard";
 import { CourseCheckoutButton } from "@/components/courses/CourseCheckoutButton";
 import { FeaturedFullPack } from "@/components/courses/FeaturedFullPack";
 import {
   CoursePageAnalytics,
   CourseTrackedAnchor,
-  CourseTrackedLink,
 } from "@/components/courses/course-analytics";
 import { JsonLd } from "@/components/ui/json-ld";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { isLocale, type Locale } from "@/content/site";
 import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
+import { getCheckoutHints } from "@/lib/payments/providers";
 import {
   getCoursesBonusClaimDestination,
   getCoursesSupportEmail,
   getCoursesWhatsappUrl,
 } from "@/lib/courses/chariowLinks";
 import {
+  filterCatalogCourses,
+  getStorefrontPacks,
+  listPublishedCategories,
+  listPublishedCourses,
+  type CatalogSort,
+} from "@/lib/courses/catalog-service";
+import {
   getCourseAcademyFaqs,
-  getCourseAcademyPositioning,
   getCourseAcademySteps,
   getCoursePackLevelLabel,
-  getFullCoursePack,
-  getSubCoursePacks,
 } from "@/lib/courses/coursePacks";
+import { getPublicAppPath } from "@/lib/site-routes";
 
 export async function generateMetadata({
   params,
@@ -41,142 +49,186 @@ export async function generateMetadata({
 
   return createMetadata({
     locale,
-    title: "teChia Digital Academy | Digital Skills Courses",
+    title:
+      locale === "fr"
+        ? "teChia Digital Academy | Cours et packs digitaux"
+        : "teChia Digital Academy | Digital Skills Courses & Packs",
     description:
-      "Explore practical digital skills courses by teChia Digital Academy across marketing, AI, tech, business, office, creative, finance, and online skills.",
+      locale === "fr"
+        ? "Trouvez le bon cours ou pack digital, apprenez des compétences pratiques et achetez en toute confiance sur teChia Digital Academy."
+        : "Find the right digital course or pack, learn practical skills, and buy with confidence on teChia Digital Academy.",
     path: "/courses",
   });
 }
 
+function buildViewHref(
+  view: "courses" | "packs",
+  searchParams: { q?: string; category?: string; sort?: string },
+) {
+  const params = new URLSearchParams();
+  params.set("view", view);
+  if (searchParams.q) params.set("q", searchParams.q);
+  if (searchParams.category) params.set("category", searchParams.category);
+  if (searchParams.sort) params.set("sort", searchParams.sort);
+  return `${getPublicAppPath("/courses")}?${params.toString()}#catalog`;
+}
+
 export default async function CoursesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ q?: string; category?: string; sort?: string; view?: string }>;
 }) {
   const { locale: rawLocale } = await params;
   if (!isLocale(rawLocale)) notFound();
   const locale = rawLocale as Locale;
+  const { q, category, sort, view } = await searchParams;
+  const activeView: "courses" | "packs" = view === "courses" ? "courses" : "packs";
 
-  const fullPack = getFullCoursePack(locale);
+  const [packs, courses, categories] = await Promise.all([
+    getStorefrontPacks(locale),
+    listPublishedCourses(locale),
+    listPublishedCategories(locale),
+  ]);
+  const fullPack = packs.find((pack) => pack.id === "complete-digital-skills-pack");
   if (!fullPack) notFound();
+  const subpacks = packs.filter((pack) => pack.id !== fullPack.id);
+  const allPacks = [fullPack, ...subpacks];
 
-  const subpacks = getSubCoursePacks(locale);
+  const filteredCourses = filterCatalogCourses(courses, {
+    query: q,
+    category,
+    sort: (sort as CatalogSort) || "recommended",
+  });
+
+  const query = (q || "").toLowerCase().trim();
+  const filteredPacks = query
+    ? allPacks.filter((pack) => {
+        const haystack = [
+          pack.title,
+          pack.summary,
+          pack.longDescription,
+          pack.tagline,
+          ...(pack.learningOutcomes || []),
+          ...(pack.bestFor || []),
+          ...(pack.includedCourses || []).flatMap((c) => [c.title, c.description || ""]),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(query);
+      })
+    : allPacks;
+
   const faqs = getCourseAcademyFaqs(locale);
   const steps = getCourseAcademySteps(locale);
-  const positioning = getCourseAcademyPositioning(locale);
   const supportEmail = getCoursesSupportEmail();
   const bonusClaimDestination = getCoursesBonusClaimDestination(locale);
   const whatsappUrl = getCoursesWhatsappUrl(
     locale === "fr"
-      ? "Bonjour teChia, je veux des conseils pour choisir un pack de cours."
-      : "Hello teChia, I want help choosing the right course pack.",
+      ? "Bonjour teChia, je veux de l'aide pour choisir le bon cours ou pack."
+      : "Hello teChia, I want help choosing the right course or pack.",
   );
 
   const copy =
     locale === "fr"
       ? {
-          heroTitle:
-            "Des compétences digitales pratiques pour le travail, le business, le freelancing et la croissance en ligne.",
-          heroDescription:
-            "teChia Digital Academy vous donne accès à des packs de cours sélectionnés pour aider les étudiants, professionnels, freelances, créateurs et entrepreneurs à développer des compétences utiles pour l’économie digitale moderne.",
-          heroPrimary: "Obtenir le pack complet 16 cours",
-          heroSecondary: "Explorer les sous-packs",
           heroEyebrow: "teChia Digital Academy",
-          heroBadges: [
-            "Parcours pratiques",
-            "Paiement via Chariow",
-            "Pensé pour une vraie progression",
-          ],
-          heroAsideEyebrow: "Offre principale",
-          heroAsideBody:
-            "Le pack complet est la recommandation principale si vous voulez la bibliothèque d’apprentissage la plus large et la meilleure valeur globale.",
-          viewFullPack: "Voir le pack complet",
-          buyFullPack: "Acheter le pack complet",
-          supportWhatsapp: "Demander sur WhatsApp",
-          supportEmail: "Contacter par email",
-          positionTitle: "Pourquoi teChia Digital Academy existe",
-          subpacksEyebrow: "Sous-packs",
-          subpacksTitle:
-            "Choisissez un pack ciblé ou commencez par le parcours complet.",
-          subpacksDescription:
-            "Chaque sous-pack est pensé pour un besoin concret. Le pack complet reste recommandé si vous voulez toute la bibliothèque.",
+          heroTitle: "Apprenez des compétences digitales utiles et passez à l’action.",
+          heroDescription:
+            "Choisissez un cours individuel pour un besoin précis, ou un pack pour progresser plus vite avec un parcours complet. Trouvez, comparez et achetez en quelques clics.",
+          heroPrimary: "Voir les packs",
+          heroSecondary: "Voir les cours individuels",
+          heroBadges: ["Cours pratiques", "Packs à forte valeur", "Paiement sécurisé"],
+          searchEyebrow: "Trouver rapidement",
+          searchTitle: "Recherchez le bon cours ou le bon pack",
+          searchDescription:
+            "Utilisez la recherche et les filtres pour trouver exactement ce qu’il vous faut, puis choisissez la formule qui correspond à votre objectif.",
+          toggleCourses: "Cours individuels",
+          togglePacks: "Packs de cours",
+          coursesTitle: "Cours individuels",
+          coursesDescription:
+            "Idéal si vous voulez maîtriser une compétence précise. Choisissez un cours, consultez le programme et achetez quand vous êtes prêt.",
+          packsTitle: "Packs de cours",
+          packsDescription:
+            "Idéal si vous voulez un parcours complet et plus de valeur. Achetez un pack pour apprendre plusieurs compétences complémentaires.",
+          featuredPackLabel: "Pack recommandé",
+          noCoursesTitle: "Aucun cours trouvé",
+          noCoursesBody: "Essayez un autre mot-clé, changez de catégorie ou effacez les filtres.",
+          noPacksTitle: "Aucun pack trouvé",
+          noPacksBody: "Essayez un autre mot-clé ou effacez les filtres pour voir tous les packs.",
+          viewDetails: "Voir les détails",
+          buyNow: "Acheter",
           audienceLabel: "Idéal pour",
           courseSingular: "cours",
           coursePlural: "cours",
-          viewDetails: "Voir les détails",
-          buyNow: "Acheter",
-          howItWorksEyebrow: "Comment ça marche",
-          howItWorksTitle: "Un parcours simple, propre et fiable.",
-          howItWorksDescription:
-            "teChia utilise le site comme expérience de confiance, puis Chariow uniquement pour le paiement final.",
-          faqEyebrow: "Questions fréquentes",
-          faqTitle: "Réponses claires avant l’achat.",
-          faqDescription:
-            "Les questions les plus fréquentes pour aider les acheteurs à choisir avec confiance.",
-          finalEyebrow: "Prêt à commencer",
-          finalTitle:
-            "Choisissez le pack complet ou trouvez le sous-pack qui correspond à votre objectif.",
-          finalDescription:
-            "Le pack complet reste la meilleure option si vous voulez accéder aux 16 cours au même endroit. Sinon, commencez avec le sous-pack le plus proche de votre besoin actuel.",
-          browseSubpacks: "Parcourir les sous-packs",
-          buyerBonusTitle: "Official teChia Buyer Bonus",
-          buyerBonusDescription:
-            "Achetez via la page officielle teChia Digital Academy et debloquez des ressources bonus pratiques pour apprendre avec plus de direction et mieux appliquer vos competences.",
-          buyerBonusPrimary: "Obtenir le pack complet + bonus",
-          buyerBonusSecondary: "Voir tous les packs de cours",
-          buyerBonusClaim: "Reclamer le bonus acheteur",
+          bonusTitle: "Bonus acheteur pour les packs",
+          bonusDescription:
+            "Les bonus teChia sont réservés aux clients qui achètent un pack. Achetez un pack officiel et réclamez vos ressources bonus après vérification de l’achat.",
+          bonusPrimary: "Acheter le pack complet",
+          bonusSecondary: "Comparer les packs",
+          bonusClaim: "Réclamer mon bonus (achat de pack)",
+          whyTitle: "Pourquoi choisir teChia Digital Academy",
+          whyBody:
+            "Des parcours clairs, des compétences pratiques et un achat simple pour vous aider à apprendre ce qui compte vraiment pour votre travail, votre business ou votre carrière.",
+          faqEyebrow: "FAQ",
+          faqTitle: "Questions fréquentes",
+          finalTitle: "Prêt à commencer aujourd’hui ?",
+          finalBody:
+            "Choisissez un cours individuel pour aller droit au but, ou optez pour un pack pour économiser et progresser plus vite.",
+          browseCourses: "Explorer les cours",
+          browsePacks: "Explorer les packs",
+          supportWhatsapp: "Demander conseil sur WhatsApp",
+          supportEmail: "Contacter par email",
         }
       : {
-          heroTitle:
-            "Practical digital skills for work, business, freelancing, and online growth.",
-          heroDescription:
-            "teChia Digital Academy gives you access to curated course packs designed to help students, professionals, freelancers, creators, and business owners build useful skills for the modern digital economy.",
-          heroPrimary: "Get the Full 16-Course Pack",
-          heroSecondary: "Explore Subpacks",
           heroEyebrow: "teChia Digital Academy",
-          heroBadges: [
-            "Practical learning paths",
-            "Chariow checkout",
-            "Built for real-world growth",
-          ],
-          heroAsideEyebrow: "Primary offer",
-          heroAsideBody:
-            "The full pack is the main recommendation if you want the broadest learning library and the strongest overall value.",
-          viewFullPack: "View Full Pack",
-          buyFullPack: "Buy Full Pack",
-          supportWhatsapp: "Ask on WhatsApp",
-          supportEmail: "Contact by email",
-          positionTitle: "Why teChia Digital Academy exists",
-          subpacksEyebrow: "Subpacks",
-          subpacksTitle:
-            "Choose a focused pack or start with the complete learning library.",
-          subpacksDescription:
-            "Each subpack is built around a practical goal. The full pack remains the recommended option if you want the entire library.",
+          heroTitle: "Learn practical digital skills and take action with confidence.",
+          heroDescription:
+            "Choose a single course for a specific goal, or pick a pack for a complete learning path and better value. Find, compare, and buy in just a few clicks.",
+          heroPrimary: "Browse Course Packs",
+          heroSecondary: "Browse Individual Courses",
+          heroBadges: ["Practical courses", "High-value packs", "Secure checkout"],
+          searchEyebrow: "Find it fast",
+          searchTitle: "Search for the right course or pack",
+          searchDescription:
+            "Use search and filters to find what you need, then choose the option that fits your goal and budget.",
+          toggleCourses: "Individual Courses",
+          togglePacks: "Course Packs",
+          coursesTitle: "Individual courses",
+          coursesDescription:
+            "Best if you want to master one specific skill. Pick a course, review the outline, and buy when you’re ready.",
+          packsTitle: "Course packs",
+          packsDescription:
+            "Best if you want a complete path and more value. Buy a pack to learn multiple related skills together.",
+          featuredPackLabel: "Recommended pack",
+          noCoursesTitle: "No courses found",
+          noCoursesBody: "Try a different keyword, change the category, or clear filters.",
+          noPacksTitle: "No packs found",
+          noPacksBody: "Try a different keyword or clear filters to see all packs.",
+          viewDetails: "View details",
+          buyNow: "Buy now",
           audienceLabel: "Best for",
           courseSingular: "course",
           coursePlural: "courses",
-          viewDetails: "View Details",
-          buyNow: "Buy Now",
-          howItWorksEyebrow: "How it works",
-          howItWorksTitle: "A clean and trustworthy buying path.",
-          howItWorksDescription:
-            "teChia uses the website as the trusted experience, then sends buyers to Chariow only for final payment.",
+          bonusTitle: "Buyer bonuses for pack purchases",
+          bonusDescription:
+            "teChia buyer bonuses are available to clients who purchase a course pack. Buy an official pack and claim your bonus resources after purchase verification.",
+          bonusPrimary: "Buy the Full Pack",
+          bonusSecondary: "Compare packs",
+          bonusClaim: "Claim pack bonus",
+          whyTitle: "Why choose teChia Digital Academy",
+          whyBody:
+            "Clear learning paths, practical skills, and a simple buying experience to help you learn what matters for work, business, or career growth.",
           faqEyebrow: "FAQ",
-          faqTitle: "Clear answers before you buy.",
-          faqDescription:
-            "Practical buyer questions answered in a straightforward way.",
-          finalEyebrow: "Ready to begin",
-          finalTitle:
-            "Choose the full pack or find the subpack that fits your goal.",
-          finalDescription:
-            "The full pack remains the best option if you want access to all 16 courses in one place. If not, start with the subpack that best matches your current learning need.",
-          browseSubpacks: "Browse Subpacks",
-          buyerBonusTitle: "Official teChia Buyer Bonus",
-          buyerBonusDescription:
-            "Buy through the official teChia Digital Academy page and unlock practical bonus resources to help you learn with direction and apply your skills better.",
-          buyerBonusPrimary: "Get the Full Pack + Bonus",
-          buyerBonusSecondary: "View All Course Packs",
-          buyerBonusClaim: "Claim Buyer Bonus",
+          faqTitle: "Frequently asked questions",
+          finalTitle: "Ready to start learning today?",
+          finalBody:
+            "Choose an individual course to focus on one skill, or pick a pack to save more and make faster progress.",
+          browseCourses: "Explore courses",
+          browsePacks: "Explore packs",
+          supportWhatsapp: "Ask on WhatsApp",
+          supportEmail: "Contact by email",
         };
 
   return (
@@ -193,193 +245,202 @@ export default async function CoursesPage({
       <JsonLd
         data={breadcrumbJsonLd(locale, [
           { name: locale === "fr" ? "Accueil" : "Home", path: "" },
-          {
-            name: locale === "fr" ? "Cours" : "Courses",
-            path: "/courses",
-          },
+          { name: locale === "fr" ? "Cours" : "Courses", path: "/courses" },
         ])}
       />
 
-      <CourseHero
-        locale={locale}
-        eyebrow={copy.heroEyebrow}
-        title={copy.heroTitle}
-        description={copy.heroDescription}
-        badges={copy.heroBadges}
-        actions={[
-          { href: fullPack.path, label: copy.heroPrimary },
-          {
-            href: "#course-packs",
-            label: copy.heroSecondary,
-            variant: "secondary",
-          },
-        ]}
-        aside={
-          <div className="rounded-[1.55rem] bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(251,113,133,0.14),transparent_28%)] p-5 sm:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
-                {copy.heroAsideEyebrow}
-              </p>
-              {fullPack.badge ? (
-                <span className="trust-pill">{fullPack.badge}</span>
-              ) : null}
-            </div>
-            <h2 className="mt-4 text-3xl font-semibold text-primary">
-              {fullPack.title}
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-muted dark:text-slate-300">
-              {copy.heroAsideBody}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className="trust-pill">
-                {fullPack.courseCount} {copy.coursePlural}
-              </span>
-              <span className="trust-pill">
-                {getCoursePackLevelLabel(locale, fullPack.level)}
-              </span>
-            </div>
-            <div className="mt-6 grid gap-3">
-              <CourseTrackedLink
-                href={fullPack.path}
-                eventName="course_pack_click"
-                eventParams={{
-                  pack_id: fullPack.id,
-                  pack_slug: fullPack.slug,
-                  pack_title: fullPack.title,
-                  source_page: "courses_hero",
-                }}
-                className="btn-secondary justify-center px-5 py-3"
-              >
-                {copy.viewFullPack}
-              </CourseTrackedLink>
-              <CourseCheckoutButton
-                pack={fullPack}
-                label={copy.buyFullPack}
-                sourcePage="courses_hero"
-              />
-              {whatsappUrl ? (
-                <CourseTrackedAnchor
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  eventName="whatsapp_course_inquiry"
-                  eventParams={{
-                    pack_id: fullPack.id,
-                    pack_slug: fullPack.slug,
-                    pack_title: fullPack.title,
-                    source_page: "courses_hero",
-                  }}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/70 px-5 py-3 text-sm font-medium text-primary transition hover:bg-background dark:border-white/12 dark:bg-white/[0.05] dark:text-white dark:hover:bg-white/[0.08]"
-                >
-                  <MessageCircle className="size-4 text-cyan-600 dark:text-cyan-300" />
-                  {copy.supportWhatsapp}
-                </CourseTrackedAnchor>
-              ) : null}
-            </div>
-          </div>
-        }
-      />
+      <section className="relative isolate overflow-hidden">
+        <div className="relative min-h-[78svh] w-full sm:min-h-[84svh] lg:min-h-[90svh]">
+          <Image
+            src="/images/courses/hero-academy-tech.jpg"
+            alt={
+              locale === "fr"
+                ? "Professionnelle noire travaillant sur tablette le long d'une baie de serveurs"
+                : "Black professional working on a tablet beside a data-center corridor"
+            }
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-[68%_center] sm:object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
 
-      <section className="container py-4 sm:py-6">
-        <div className="gradient-border rounded-[1.95rem]">
-          <div className="elevated-panel p-6 sm:p-7 md:p-8">
-            <SectionHeading
-              eyebrow={positioning.eyebrow}
-              title={copy.positionTitle}
-              description={positioning.title}
-              align="left"
-              className="mb-0"
-            />
-            <div className="mt-6 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-[1.45rem] border border-border bg-background/75 p-5 text-base leading-8 text-muted">
-                {positioning.body}
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {[
-                  fullPack.tagline,
-                  locale === "fr"
-                    ? "Pensé pour étudiants, salariés, entrepreneurs, freelances et créateurs."
-                    : "Built for students, workers, entrepreneurs, freelancers, and creators.",
-                  locale === "fr"
-                    ? "Des packs sélectionnés par teChia pour des objectifs concrets."
-                    : "teChia-curated packs designed around practical goals.",
-                  locale === "fr"
-                    ? "Le site inspire confiance, Chariow gère le paiement final."
-                    : "The site builds trust, Chariow handles final checkout.",
-                ].map((item) => (
-                  <div
-                    key={item}
-                    className="rounded-[1.35rem] border border-cyan-500/18 bg-cyan-500/[0.08] p-4 text-sm leading-7 text-primary"
+          <div className="relative z-10 flex h-full min-h-[78svh] items-end sm:min-h-[84svh] lg:min-h-[90svh]">
+            <div className="container pb-10 pt-28 sm:pb-14 sm:pt-32 lg:pb-16">
+              <div className="max-w-3xl">
+                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-cyan-200/90">
+                  {copy.heroEyebrow}
+                </p>
+                <h1 className="headline-gradient mt-4 text-balance text-[clamp(2.4rem,6vw,4.8rem)] font-semibold leading-[0.95]">
+                  {copy.heroTitle}
+                </h1>
+                <p className="mt-5 max-w-2xl text-pretty text-base leading-8 text-white/85 sm:text-lg">
+                  {copy.heroDescription}
+                </p>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                  <Link href={buildViewHref("packs", { q, category, sort })} className="btn-primary justify-center px-5 py-3">
+                    {copy.heroPrimary}
+                  </Link>
+                  <Link
+                    href={buildViewHref("courses", { q, category, sort })}
+                    className="btn-secondary justify-center border-white/30 bg-white/10 px-5 py-3 text-white backdrop-blur-sm hover:bg-white/20"
                   >
-                    {item}
-                  </div>
-                ))}
+                    {copy.heroSecondary}
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <FeaturedFullPack locale={locale} pack={fullPack} />
-
-      <BuyerBonusSection
-        locale={locale}
-        title={copy.buyerBonusTitle}
-        description={copy.buyerBonusDescription}
-        sourcePage="courses_bonus_section"
-        claimHref={bonusClaimDestination?.href}
-        claimChannel={bonusClaimDestination?.channel ?? null}
-        actions={
-          <>
-            <CourseCheckoutButton
-              pack={fullPack}
-              label={copy.buyerBonusPrimary}
-              sourcePage="courses_bonus_section"
-            />
-            <a
-              href="#course-packs"
-              className="btn-secondary justify-center px-5 py-3"
-            >
-              {copy.buyerBonusSecondary}
-            </a>
-            <BonusClaimButton
-              href={bonusClaimDestination?.href}
-              channel={bonusClaimDestination?.channel ?? null}
-              label={copy.buyerBonusClaim}
-              sourcePage="courses_bonus_section"
-              eligibility="all-buyers"
-              className="w-full sm:w-auto"
-            />
-          </>
-        }
-      />
-
-      <section id="course-packs" className="container py-4 sm:py-6">
+      <section id="catalog" className="container scroll-mt-24 py-4 sm:py-6">
         <div className="gradient-border rounded-[1.95rem]">
           <div className="elevated-panel p-6 sm:p-7 md:p-8">
             <SectionHeading
-              eyebrow={copy.subpacksEyebrow}
-              title={copy.subpacksTitle}
-              description={copy.subpacksDescription}
+              eyebrow={copy.searchEyebrow}
+              title={copy.searchTitle}
+              description={copy.searchDescription}
               align="left"
               className="mb-0"
             />
 
-            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {subpacks.map((pack) => (
-                <CoursePackCard
-                  key={pack.id}
-                  pack={pack}
-                  sourcePage="courses_pack_grid"
-                  audienceLabel={copy.audienceLabel}
-                  levelLabel={getCoursePackLevelLabel(locale, pack.level)}
-                  courseLabelSingular={copy.courseSingular}
-                  courseLabelPlural={copy.coursePlural}
-                  detailLabel={copy.viewDetails}
-                  checkoutLabel={copy.buyNow}
-                />
-              ))}
+            <div className="mt-6 inline-flex rounded-full border border-border bg-background/70 p-1">
+              <Link
+                href={buildViewHref("packs", { q, category, sort })}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                  activeView === "packs"
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-muted hover:text-primary"
+                }`}
+              >
+                {copy.togglePacks}
+              </Link>
+              <Link
+                href={buildViewHref("courses", { q, category, sort })}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                  activeView === "courses"
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-muted hover:text-primary"
+                }`}
+              >
+                {copy.toggleCourses}
+              </Link>
             </div>
+
+            <div className="mt-6">
+              <CourseCatalogFilters
+                locale={locale}
+                categories={categories.map((c) => ({ slug: c.slug, name: c.name }))}
+              />
+            </div>
+
+            {activeView === "packs" ? (
+              <div className="mt-8">
+                <SectionHeading
+                  eyebrow={copy.togglePacks}
+                  title={copy.packsTitle}
+                  description={copy.packsDescription}
+                  align="left"
+                  className="mb-0"
+                />
+
+                {filteredPacks.length ? (
+                  <>
+                    {filteredPacks.some((p) => p.recommended) ? (
+                      <div className="mt-8">
+                        <FeaturedFullPack locale={locale} pack={fullPack} />
+                      </div>
+                    ) : null}
+                    <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                      {filteredPacks
+                        .filter((p) => !p.recommended)
+                        .map((pack) => (
+                          <CoursePackCard
+                            key={pack.id}
+                            pack={pack}
+                            locale={locale}
+                            sourcePage="courses_pack_grid"
+                            audienceLabel={copy.audienceLabel}
+                            levelLabel={getCoursePackLevelLabel(locale, pack.level)}
+                            courseLabelSingular={copy.courseSingular}
+                            courseLabelPlural={copy.coursePlural}
+                            detailLabel={copy.viewDetails}
+                            checkoutLabel={copy.buyNow}
+                          />
+                        ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-8 rounded-[1.45rem] border border-border bg-surface p-6">
+                    <h3 className="text-xl font-semibold text-primary">{copy.noPacksTitle}</h3>
+                    <p className="mt-3 text-sm leading-7 text-muted">{copy.noPacksBody}</p>
+                  </div>
+                )}
+
+                <div className="mt-10">
+                  <BuyerBonusSection
+                    locale={locale}
+                    title={copy.bonusTitle}
+                    description={copy.bonusDescription}
+                    sourcePage="courses_bonus_section"
+                    pack={fullPack}
+                    claimHref={bonusClaimDestination?.href}
+                    claimChannel={bonusClaimDestination?.channel ?? null}
+                    actions={
+                      <>
+                        <CourseCheckoutButton
+                          pack={fullPack}
+                          label={copy.bonusPrimary}
+                          sourcePage="courses_bonus_section"
+                          hints={getCheckoutHints()}
+                          chariowProductId={fullPack.chariowProductId}
+                        />
+                        <a href="#catalog" className="btn-secondary justify-center px-5 py-3">
+                          {copy.bonusSecondary}
+                        </a>
+                        <BonusClaimButton
+                          href={bonusClaimDestination?.href}
+                          channel={bonusClaimDestination?.channel ?? null}
+                          label={copy.bonusClaim}
+                          sourcePage="courses_bonus_section"
+                          eligibility="all-buyers"
+                          className="w-full sm:w-auto"
+                        />
+                      </>
+                    }
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="mt-8">
+                <SectionHeading
+                  eyebrow={copy.toggleCourses}
+                  title={copy.coursesTitle}
+                  description={copy.coursesDescription}
+                  align="left"
+                  className="mb-0"
+                />
+                {filteredCourses.length ? (
+                  <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                    {filteredCourses.map((course) => (
+                      <CourseCard
+                        key={course.id}
+                        course={course}
+                        locale={locale}
+                        sourcePage="courses_catalog"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-8 rounded-[1.45rem] border border-border bg-surface p-6">
+                    <h3 className="text-xl font-semibold text-primary">{copy.noCoursesTitle}</h3>
+                    <p className="mt-3 text-sm leading-7 text-muted">{copy.noCoursesBody}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -388,25 +449,19 @@ export default async function CoursesPage({
         <div className="gradient-border rounded-[1.95rem]">
           <div className="elevated-panel p-6 sm:p-7 md:p-8">
             <SectionHeading
-              eyebrow={copy.howItWorksEyebrow}
-              title={copy.howItWorksTitle}
-              description={copy.howItWorksDescription}
+              eyebrow={copy.heroEyebrow}
+              title={copy.whyTitle}
+              description={copy.whyBody}
               align="left"
               className="mb-0"
             />
-
             <div className="mt-8 grid gap-4 lg:grid-cols-4">
               {steps.map((step, index) => (
-                <div
-                  key={step}
-                  className="rounded-[1.45rem] border border-border bg-surface p-5"
-                >
+                <div key={step} className="rounded-[1.45rem] border border-border bg-surface p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-500/90">
                     {locale === "fr" ? "Étape" : "Step"} {index + 1}
                   </p>
-                  <p className="mt-3 text-sm font-medium leading-7 text-primary">
-                    {step}
-                  </p>
+                  <p className="mt-3 text-sm font-medium leading-7 text-primary">{step}</p>
                 </div>
               ))}
             </div>
@@ -420,17 +475,12 @@ export default async function CoursesPage({
             <SectionHeading
               eyebrow={copy.faqEyebrow}
               title={copy.faqTitle}
-              description={copy.faqDescription}
+              description={locale === "fr" ? "Des réponses simples pour acheter en toute confiance." : "Simple answers to help you buy with confidence."}
               align="left"
               className="mb-0"
             />
-
             <div className="mt-8">
-              <CourseFaq
-                items={faqs}
-                sourcePage="courses_faq"
-                pack={fullPack}
-              />
+              <CourseFaq items={faqs} sourcePage="courses_faq" pack={fullPack} />
             </div>
           </div>
         </div>
@@ -439,41 +489,16 @@ export default async function CoursesPage({
       <section className="container pb-20">
         <div className="gradient-border rounded-[2.05rem]">
           <div className="elevated-panel px-6 py-8 sm:px-7 md:px-10 md:py-12">
-            <p className="eyebrow">{copy.finalEyebrow}</p>
-            <h2 className="mt-4 max-w-4xl text-4xl font-semibold text-primary md:text-5xl">
-              {copy.finalTitle}
-            </h2>
-            <p className="mt-5 max-w-3xl text-base leading-8 text-muted">
-              {copy.finalDescription}
-            </p>
-
+            <h2 className="max-w-4xl text-4xl font-semibold text-primary md:text-5xl">{copy.finalTitle}</h2>
+            <p className="mt-5 max-w-3xl text-base leading-8 text-muted">{copy.finalBody}</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <CourseTrackedLink
-                href={fullPack.path}
-                eventName="course_pack_click"
-                eventParams={{
-                  pack_id: fullPack.id,
-                  pack_slug: fullPack.slug,
-                  pack_title: fullPack.title,
-                  source_page: "courses_final_cta",
-                }}
-                className="btn-secondary justify-center px-5 py-3"
-              >
-                {copy.viewFullPack}
-              </CourseTrackedLink>
-              <CourseCheckoutButton
-                pack={fullPack}
-                label={copy.buyFullPack}
-                sourcePage="courses_final_cta"
-              />
-              <a
-                href="#course-packs"
-                className="btn-primary justify-center px-5 py-3"
-              >
-                {copy.browseSubpacks}
-              </a>
+              <Link href={buildViewHref("packs", { q, category, sort })} className="btn-primary justify-center px-5 py-3">
+                {copy.browsePacks}
+              </Link>
+              <Link href={buildViewHref("courses", { q, category, sort })} className="btn-secondary justify-center px-5 py-3">
+                {copy.browseCourses}
+              </Link>
             </div>
-
             {whatsappUrl || supportEmail ? (
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 {whatsappUrl ? (

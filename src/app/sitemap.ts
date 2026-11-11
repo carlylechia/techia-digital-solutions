@@ -4,6 +4,7 @@ import { getPublicAppPath } from "@/lib/site-routes";
 import { dictionaries, europeLandingPages, siteConfig } from "@/content/site";
 import { getSitemapPosts } from "@/lib/blog/queries";
 import { getBlogAuthorPath, getBlogCategoryPath, getBlogIndexPath, getBlogPostPath, type BlogLocale } from "@/lib/blog/slug";
+import { getPublishedCourseSlugs } from "@/lib/courses/catalog-service";
 
 export const revalidate = 300;
 
@@ -18,6 +19,19 @@ function isCmsReplacementSlug(staticSlug: string, locale: BlogLocale, post: { lo
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
+  const courseSlugs = await getPublishedCourseSlugs().catch(() => []);
+  const packSlugs = [
+    "complete-digital-skills-pack",
+    "digital-marketing-online-business",
+    "creative-design-content-creation",
+    "ai-tech-programming",
+    "office-business-professional-skills",
+    "finance-market-education",
+  ];
+  const coursePaths = Array.from(new Set([...packSlugs, ...courseSlugs])).map(
+    (slug) => `/courses/${slug}`,
+  );
+
   const base = [
     "/about",
     "/founder",
@@ -26,12 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/courses",
     "/courses/bonuses",
     "/courses/claim-bonus",
-    "/courses/complete-digital-skills-pack",
-    "/courses/digital-marketing-online-business",
-    "/courses/creative-design-content-creation",
-    "/courses/ai-tech-programming",
-    "/courses/office-business-professional-skills",
-    "/courses/finance-market-education",
+    ...coursePaths,
     "/pricing",
     "/contact",
     "/start-project",

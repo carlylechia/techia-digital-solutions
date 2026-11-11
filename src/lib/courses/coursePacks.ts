@@ -13,8 +13,10 @@ export type CoursePackLevel =
   | "Intermediate";
 
 export type CoursePackCourse = {
+  slug?: string;
   title: string;
   description?: string;
+  path?: string;
 };
 
 export type CourseFaqItem = {
@@ -40,6 +42,9 @@ export type CoursePack = {
   badge?: string;
   checkoutEnvKey: string;
   checkoutUrl: string;
+  priceMinor?: number | null;
+  priceCurrency?: string;
+  databaseId?: string | null;
   seoTitle: string;
   seoDescription: string;
   locale: Locale;
@@ -64,7 +69,7 @@ type CoursePackLocaleContent = Omit<
   whyChoose: string[];
 };
 
-type CoursePackDefinition = {
+export type CoursePackDefinition = {
   id: string;
   level: CoursePackLevel;
   recommended?: boolean;
@@ -74,7 +79,7 @@ type CoursePackDefinition = {
   copy: Record<Locale, CoursePackLocaleContent>;
 };
 
-const COURSE_PACK_DEFINITIONS: CoursePackDefinition[] = [
+export const COURSE_PACK_DEFINITIONS: CoursePackDefinition[] = [
   {
     id: "complete-digital-skills-pack",
     level: "Beginner to Intermediate",
@@ -564,8 +569,10 @@ export function getCoursePacks(locale: Locale): CoursePack[] {
         .map((slug) => COURSE_CATALOG_BY_SLUG[slug])
         .filter(Boolean)
         .map((course) => ({
+          slug: course.slug,
           title: course.title,
           description: course.shortDescription,
+          path: getPublicAppPath(`/courses/${course.slug}`),
         })),
       courseCount: definition.courseSlugs.length,
       level: definition.level,
