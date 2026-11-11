@@ -1,4 +1,3 @@
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -17,11 +16,7 @@ import {
 import { CustomFitWorkflowSection } from "@/components/sections/custom-fit-workflow-section";
 import { buttonVariants } from "@/components/site/button";
 import { SectionHeading } from "@/components/ui/section-heading";
-const SwipeDotsCarousel = dynamic(() =>
-  import("@/components/ui/swipe-dots-carousel").then(
-    (module) => module.SwipeDotsCarousel,
-  ),
-);
+import { SwipeDotsCarousel } from "@/components/ui/swipe-dots-carousel";
 import { getLocalizedHref, type CardItem, type Locale } from "@/content/site";
 import { getBlogIndexPath, getBlogPostPath } from "@/lib/blog/slug";
 import { cn } from "@/lib/utils";

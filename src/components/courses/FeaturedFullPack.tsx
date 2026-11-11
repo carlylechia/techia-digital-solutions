@@ -1,6 +1,7 @@
 import { CourseTrackedLink } from "@/components/courses/course-analytics";
 import { CourseCheckoutButton } from "@/components/courses/CourseCheckoutButton";
-import type { CoursePack } from "@/lib/courses/coursePacks";
+import type { StorefrontPack } from "@/lib/courses/catalog-service";
+import { getCheckoutHints } from "@/lib/payments/providers";
 import type { Locale } from "@/content/site";
 
 export function FeaturedFullPack({
@@ -8,7 +9,7 @@ export function FeaturedFullPack({
   pack,
 }: {
   locale: Locale;
-  pack: CoursePack;
+  pack: StorefrontPack;
 }) {
   const copy =
     locale === "fr"
@@ -70,6 +71,8 @@ export function FeaturedFullPack({
                   pack={pack}
                   label={copy.buyLabel}
                   sourcePage="featured_full_pack"
+                  hints={getCheckoutHints()}
+                  chariowProductId={pack.chariowProductId}
                 />
               </div>
             </div>

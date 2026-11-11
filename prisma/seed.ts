@@ -3,6 +3,8 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { dictionaries } from "../src/content/site";
 import { ensureDefaultAdminRoles } from "../src/lib/admin/bootstrap";
+import { COURSE_CATALOG } from "../src/lib/courses/catalog";
+import { COURSE_PACK_DEFINITIONS } from "../src/lib/courses/coursePacks";
 import { hashPassword } from "../src/lib/password";
 
 // ---------------------------------------------------------------------------
@@ -536,6 +538,199 @@ async function seedHomepageMetrics(prisma: PrismaClient) {
   console.log(`Seeded ${homepageMetrics.length} homepage metrics`);
 }
 
+// ---------------------------------------------------------------------------
+// Academy catalog
+// ---------------------------------------------------------------------------
+
+const ACADEMY_CATEGORIES = [
+  {
+    slug: "digital-marketing-online-business",
+    nameEn: "Digital Marketing & Online Business",
+    nameFr: "Marketing digital et business en ligne",
+    descriptionEn:
+      "Practical marketing, online selling, audience growth, and digital business skills.",
+    descriptionFr:
+      "Compétences pratiques en marketing, vente en ligne, croissance d’audience et business digital.",
+    position: 0,
+  },
+  {
+    slug: "creative-content-skills",
+    nameEn: "Creative & Content Skills",
+    nameFr: "Compétences créatives et création de contenu",
+    descriptionEn:
+      "Design, video, content production, and visual communication skills.",
+    descriptionFr:
+      "Design, vidéo, production de contenu et communication visuelle.",
+    position: 1,
+  },
+  {
+    slug: "tech-future-skills",
+    nameEn: "Tech & Future Skills",
+    nameFr: "Technologies et compétences d’avenir",
+    descriptionEn:
+      "AI, programming, and website-building foundations for the modern digital economy.",
+    descriptionFr:
+      "Bases de l’IA, de la programmation et de la création de sites pour l’économie digitale moderne.",
+    position: 2,
+  },
+  {
+    slug: "professional-office-business-skills",
+    nameEn: "Professional Office & Business Skills",
+    nameFr: "Bureautique professionnelle et compétences business",
+    descriptionEn:
+      "Office productivity, management, people, project, and professional development skills.",
+    descriptionFr:
+      "Productivité bureautique, management, ressources humaines, gestion de projet et développement professionnel.",
+    position: 3,
+  },
+  {
+    slug: "finance-market-education",
+    nameEn: "Finance & Market Education",
+    nameFr: "Finance et éducation de marché",
+    descriptionEn:
+      "Educational trading and cryptocurrency foundations with a strong risk-awareness focus.",
+    descriptionFr:
+      "Bases éducatives du trading et de la cryptomonnaie, avec un accent fort sur la conscience du risque.",
+    position: 4,
+  },
+] as const;
+
+const COURSE_CATEGORY_SLUGS: Record<string, string> = {
+  "Digital Marketing & Online Business": "digital-marketing-online-business",
+  "Creative & Content Skills": "creative-content-skills",
+  "Tech & Future Skills": "tech-future-skills",
+  "Professional Office & Business Skills":
+    "professional-office-business-skills",
+  "Finance & Market Education": "finance-market-education",
+};
+
+function academyLevel(value: string) {
+  if (value === "Beginner") return "BEGINNER" as const;
+  if (value === "Intermediate") return "INTERMEDIATE" as const;
+  return "BEGINNER_TO_INTERMEDIATE" as const;
+}
+
+function chariowProductIdFromEnv(envKey: string) {
+  const value = process.env[envKey]?.trim();
+  if (!value) return null;
+  try {
+    const segments = new URL(value).pathname.split("/").filter(Boolean);
+    const candidate = segments[segments.length - 1] || "";
+    return /^prd_[a-zA-Z0-9]+$/.test(candidate) ? candidate : null;
+  } catch {
+    return null;
+  }
+}
+
+async function seedAcademyCatalog(prisma: PrismaClient) {
+  for (const category of ACADEMY_CATEGORIES) {
+    await prisma.academyCourseCategory.upsert({
+      where: { slug: category.slug },
+      update: {},
+      create: category,
+    });
+  }
+
+  for (const [position, course] of COURSE_CATALOG.entries()) {
+    const categorySlug = COURSE_CATEGORY_SLUGS[course.category];
+    await prisma.academyCourse.upsert({
+      where: { slug: course.slug },
+      update: {},
+      create: {
+        slug: course.slug,
+        category: categorySlug
+          ? { connect: { slug: categorySlug } }
+          : undefined,
+        titleEn: course.title,
+        shortDescriptionEn: course.shortDescription,
+        descriptionEn: course.description,
+        level: academyLevel(course.level),
+        status: "PUBLISHED",
+        includedInFullPack: course.includedInFullPack,
+        financialDisclaimerRequired:
+          course.financialDisclaimerRequired ?? false,
+        skillsEn: course.skillsLearned,
+        position,
+        publishedAt: new Date(),
+        lessons: {
+          create: course.lessons.map((lesson, lessonPosition) => ({
+            slug: lesson.slug,
+            titleEn: lesson.title,
+            descriptionEn: lesson.description,
+            durationLabel: lesson.durationLabel,
+            isPreview: lesson.isPreview ?? false,
+            position: lessonPosition,
+          })),
+        },
+      },
+    });
+  }
+
+  for (const [position, definition] of COURSE_PACK_DEFINITIONS.entries()) {
+    const en = definition.copy.en;
+    const fr = definition.copy.fr;
+    const pack = await prisma.academyCoursePack.upsert({
+      where: { slug: definition.id },
+      update: {},
+      create: {
+        slug: definition.id,
+        titleEn: en.title,
+        titleFr: fr.title,
+        shortTitleEn: en.shortTitle,
+        shortTitleFr: fr.shortTitle,
+        categoryLabelEn: en.category,
+        categoryLabelFr: fr.category,
+        taglineEn: en.tagline,
+        taglineFr: fr.tagline,
+        summaryEn: en.summary,
+        summaryFr: fr.summary,
+        descriptionEn: en.longDescription,
+        descriptionFr: fr.longDescription,
+        bestForEn: en.bestFor,
+        bestForFr: fr.bestFor,
+        learningOutcomesEn: en.learningOutcomes,
+        learningOutcomesFr: fr.learningOutcomes,
+        whyChooseEn: en.whyChoose,
+        whyChooseFr: fr.whyChoose,
+        level: academyLevel(definition.level),
+        recommended: definition.recommended ?? false,
+        badgeEn: definition.badge,
+        badgeFr:
+          definition.id === "complete-digital-skills-pack"
+            ? "Meilleure valeur"
+            : definition.badge,
+        status: "PUBLISHED",
+        chariowProductId: chariowProductIdFromEnv(
+          definition.checkoutEnvKey,
+        ),
+        position,
+        publishedAt: new Date(),
+      },
+    });
+
+    const courseRows = await prisma.academyCourse.findMany({
+      where: { slug: { in: definition.courseSlugs } },
+      select: { id: true, slug: true },
+    });
+    const courseBySlug = new Map(
+      courseRows.map((course) => [course.slug, course.id]),
+    );
+    for (const [itemPosition, slug] of definition.courseSlugs.entries()) {
+      const courseId = courseBySlug.get(slug);
+      if (!courseId) continue;
+      await prisma.academyCoursePackItem.upsert({
+        where: { packId_courseId: { packId: pack.id, courseId } },
+        update: { position: itemPosition },
+        create: { packId: pack.id, courseId, position: itemPosition },
+      });
+    }
+  }
+
+  console.log(
+    `Seeded ${COURSE_CATALOG.length} academy courses and ${COURSE_PACK_DEFINITIONS.length} packs`,
+  );
+}
+
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
@@ -638,6 +833,7 @@ async function main() {
   await seedHomepageTestimonials(prisma);
   await seedHomepageFaqs(prisma);
   await seedHomepageMetrics(prisma);
+  await seedAcademyCatalog(prisma);
 
   console.log("Seed complete");
 }

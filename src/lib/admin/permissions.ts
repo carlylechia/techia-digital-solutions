@@ -23,7 +23,10 @@ export const ADMIN_PERMISSIONS = [
   "blog.audit.view",
   "outreach.view",
   "outreach.manage",
-  "outreach.send"
+  "outreach.send",
+  "academy.catalog.manage",
+  "academy.orders.view",
+  "academy.orders.manage"
 ] as const;
 
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];
@@ -94,7 +97,10 @@ export const DEFAULT_ADMIN_ROLES: AdminRoleSeed[] = [
       "blog.categories.manage",
       "blog.media.manage",
       "blog.audit.view",
-      ...OUTREACH_PERMISSIONS
+      ...OUTREACH_PERMISSIONS,
+      "academy.catalog.manage",
+      "academy.orders.view",
+      "academy.orders.manage"
     ]
   },
   {
@@ -117,7 +123,8 @@ export const DEFAULT_ADMIN_ROLES: AdminRoleSeed[] = [
       "blog.posts.publish",
       "blog.categories.manage",
       "blog.media.manage",
-      "blog.audit.view"
+      "blog.audit.view",
+      "academy.catalog.manage"
     ]
   },
   {
@@ -125,7 +132,7 @@ export const DEFAULT_ADMIN_ROLES: AdminRoleSeed[] = [
     label: "Sales Manager",
     description: "Manages leads, client records, and project opportunities.",
     level: 45,
-    permissions: ["dashboard.view", "clients.manage", "projects.manage", "requests.manage", "outreach.view", "outreach.manage"]
+    permissions: ["dashboard.view", "clients.manage", "projects.manage", "requests.manage", "outreach.view", "outreach.manage", "academy.orders.view"]
   },
   {
     name: "editor",
