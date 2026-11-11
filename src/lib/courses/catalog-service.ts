@@ -44,6 +44,11 @@ export type StorefrontCourse = {
   compareAtPriceMinor: number | null;
   currency: string;
   imageUrl: string | null;
+  // Admin-entered structure metadata; null means "not recorded" and is never
+  // displayed or invented.
+  moduleCount: number | null;
+  lessonCount: number | null;
+  pathCount: number | null;
   financialDisclaimerRequired: boolean;
   includedInFullPack: boolean;
   seoTitle: string;
@@ -155,6 +160,9 @@ function staticCourseToStorefront(
     compareAtPriceMinor: null,
     currency: "XAF",
     imageUrl: null,
+    moduleCount: null,
+    lessonCount: null,
+    pathCount: null,
     financialDisclaimerRequired:
       course.financialDisclaimerRequired ?? false,
     includedInFullPack: course.includedInFullPack,
@@ -242,6 +250,9 @@ function databaseCourseToStorefront(
     compareAtPriceMinor: course.compareAtPriceMinor,
     currency: course.currency,
     imageUrl: course.imageUrl,
+    moduleCount: course.moduleCount,
+    lessonCount: course.lessonCount,
+    pathCount: course.pathCount,
     financialDisclaimerRequired: course.financialDisclaimerRequired,
     includedInFullPack: course.includedInFullPack,
     seoTitle: fromLocale(

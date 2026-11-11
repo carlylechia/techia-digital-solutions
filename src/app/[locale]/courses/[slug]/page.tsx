@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Mail, MessageCircle } from "lucide-react";
+import { BookOpenText, Layers, Mail, MessageCircle, Route } from "lucide-react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { BonusClaimButton } from "@/components/courses/BonusClaimButton";
@@ -424,6 +424,31 @@ export default async function CoursePackDetailPage({
       : {}),
   };
 
+  // Structure chips only show values an administrator actually recorded in the
+  // admin console — nothing is ever invented or defaulted here.
+  const structureStats: { icon: typeof Layers; value: number; label: string }[] = [];
+  if (course.moduleCount !== null) {
+    structureStats.push({
+      icon: Layers,
+      value: course.moduleCount,
+      label: course.moduleCount === 1 ? (locale === "fr" ? "module" : "module") : locale === "fr" ? "modules" : "modules",
+    });
+  }
+  if (course.lessonCount !== null) {
+    structureStats.push({
+      icon: BookOpenText,
+      value: course.lessonCount,
+      label: course.lessonCount === 1 ? (locale === "fr" ? "leçon" : "lesson") : locale === "fr" ? "leçons" : "lessons",
+    });
+  }
+  if (course.pathCount !== null) {
+    structureStats.push({
+      icon: Route,
+      value: course.pathCount,
+      label: course.pathCount === 1 ? (locale === "fr" ? "parcours" : "path") : locale === "fr" ? "parcours" : "paths",
+    });
+  }
+
   return (
     <main>
       <JsonLd
@@ -485,6 +510,22 @@ export default async function CoursePackDetailPage({
       ) : null}
 
       <section className="container py-4 sm:py-6">
+        {structureStats.length ? (
+          <div className="mb-4 flex flex-wrap items-center gap-2.5">
+            {structureStats.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <span
+                  key={stat.label}
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted"
+                >
+                  <Icon className="size-3.5 text-accent" />
+                  <span className="text-primary">{stat.value}</span> {stat.label}
+                </span>
+              );
+            })}
+          </div>
+        ) : null}
         <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
           <div className="gradient-border rounded-[1.85rem]">
             <div className="elevated-panel h-full p-6 sm:p-7">
