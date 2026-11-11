@@ -47,6 +47,7 @@ export type StorefrontCourse = {
   priceMinor: number | null;
   compareAtPriceMinor: number | null;
   currency: string;
+  chariowProductId: string | null;
   imageUrl: string | null;
   // Admin-entered structure metadata; null means "not recorded" and is never
   // displayed or invented.
@@ -163,6 +164,7 @@ function staticCourseToStorefront(
     priceMinor: null,
     compareAtPriceMinor: null,
     currency: "XAF",
+    chariowProductId: null,
     imageUrl: null,
     moduleCount: null,
     lessonCount: null,
@@ -253,6 +255,7 @@ function databaseCourseToStorefront(
     priceMinor: effectiveCoursePriceMinor(course.priceMinor, course.currency),
     compareAtPriceMinor: course.compareAtPriceMinor,
     currency: course.currency,
+    chariowProductId: course.chariowProductId ?? null,
     imageUrl: course.imageUrl,
     moduleCount: course.moduleCount,
     lessonCount: course.lessonCount,

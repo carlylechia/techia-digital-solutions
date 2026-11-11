@@ -209,6 +209,11 @@ export async function startAcademyCheckout(
       404,
     );
   }
+  // Chariow can only charge an item linked to a Chariow product. Reject before
+  // creating any order row so a misconfigured item never leaves PENDING rows.
+  if (input.provider === "CHARIOW" && !item.chariowProductId) {
+    throw providerProductMissing();
+  }
 
   const prisma = getPrisma();
   if (!prisma) {

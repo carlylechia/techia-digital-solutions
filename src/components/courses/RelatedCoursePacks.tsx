@@ -1,7 +1,7 @@
 import { SectionHeading } from "@/components/ui/section-heading";
 import type { Locale } from "@/content/site";
 import { getCoursePackLevelLabel } from "@/lib/courses/coursePacks";
-import type { CoursePack } from "@/lib/courses/coursePacks";
+import type { StorefrontPack } from "@/lib/courses/catalog-service";
 import { CoursePackCard } from "./CoursePackCard";
 
 export function RelatedCoursePacks({
@@ -9,7 +9,7 @@ export function RelatedCoursePacks({
   packs,
 }: {
   locale: Locale;
-  packs: CoursePack[];
+  packs: StorefrontPack[];
 }) {
   if (!packs.length) return null;
 

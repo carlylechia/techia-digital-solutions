@@ -14,7 +14,7 @@ Additive models/enums: `AcademyCategory`, `AcademyCourse`, `AcademyLesson`, `Aca
 
 - `/courses`: searchable/filterable/sortable storefront (server-side query params `q`, `category`, `sort`) with individual courses and preserved pack/bonus/FAQ content.
 - `/courses/[slug]`: resolves existing pack slugs first (preserved URLs), then published individual course slugs.
-- `/courses/checkout?item=<type>:<slug>` and `/courses/checkout/return`: internal hosted checkout flow (server-side return verification; redirect query params are never treated as payment proof).
+- `/courses/checkout?item=<type>:<slug>` and `/courses/checkout/return`: internal hosted checkout flow (server-side return verification; redirect query params are never treated as payment proof). Buy buttons are provider-aware (`getCheckoutHints()`): an item goes to internal checkout only when internal checkout is enabled **and** a configured provider can serve it — Chariow requires the item's Chariow product ID in `/admin/academy`, Moneroo works for any priced item. Otherwise buttons fall back to the legacy hosted checkout link (external Chariow page), or show the disabled "Price and checkout coming soon" state. The checkout page itself only lists providers that can serve the item, and `startAcademyCheckout` rejects a Chariow request for an item without a product ID before creating an order.
 - `/admin/academy`: catalog/pricing/Chariow mapping management and recent orders view (requires `academy.catalog.manage` and/or `academy.orders.view`).
 
 ### Admin console (academy)

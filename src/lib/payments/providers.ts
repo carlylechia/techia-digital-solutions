@@ -68,6 +68,25 @@ export function isProviderConfigured(provider: PaymentProviderId) {
     : Boolean(getMonerooSecretKey());
 }
 
+export type CheckoutHints = {
+  internalEnabled: boolean;
+  chariowConfigured: boolean;
+  monerooConfigured: boolean;
+};
+
+/**
+ * Server-side facts a storefront card or CTA needs to decide between internal
+ * checkout, the legacy hosted checkout link, and "coming soon". Server
+ * components read this and pass it to the client checkout button.
+ */
+export function getCheckoutHints(): CheckoutHints {
+  return {
+    internalEnabled: internalCheckoutEnabled(),
+    chariowConfigured: Boolean(getChariowApiKey()),
+    monerooConfigured: Boolean(getMonerooSecretKey()),
+  };
+}
+
 export function isWebhookConfigured(provider: PaymentProviderId) {
   return provider === "CHARIOW"
     ? Boolean(getChariowWebhookSecret())

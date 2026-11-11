@@ -3,7 +3,8 @@ import { CourseTrackedLink } from "@/components/courses/course-analytics";
 import { CourseCheckoutButton } from "@/components/courses/CourseCheckoutButton";
 import { CourseMetaTile } from "@/components/courses/CourseMetaTile";
 import type { Locale } from "@/content/site";
-import type { CoursePack } from "@/lib/courses/coursePacks";
+import type { StorefrontPack } from "@/lib/courses/catalog-service";
+import { getCheckoutHints } from "@/lib/payments/providers";
 import { formatMoney } from "@/lib/payments/money";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +20,7 @@ export function CoursePackCard({
   detailLabel,
   checkoutLabel,
 }: {
-  pack: CoursePack;
+  pack: StorefrontPack;
   locale: Locale;
   sourcePage: string;
   emphasize?: boolean;
@@ -34,6 +35,7 @@ export function CoursePackCard({
     locale === "fr"
       ? { level: "Niveau", price: "Prix", priceSoon: "Prix à venir" }
       : { level: "Level", price: "Price", priceSoon: "Price coming soon" };
+  const hints = getCheckoutHints();
   const priceMinor =
     typeof pack.priceMinor === "number" && pack.priceMinor > 0
       ? pack.priceMinor
@@ -132,6 +134,8 @@ export function CoursePackCard({
               label={checkoutLabel}
               sourcePage={sourcePage}
               showPrice={false}
+              hints={hints}
+              chariowProductId={pack.chariowProductId}
               className="min-w-0 flex-1 px-4 py-2.5 text-sm"
             />
           </div>

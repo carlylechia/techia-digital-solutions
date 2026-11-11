@@ -3,6 +3,7 @@ import { CheckCircle2, PlaySquare, Signal } from "lucide-react";
 import { CourseCheckoutButton } from "@/components/courses/CourseCheckoutButton";
 import { CourseMetaTile } from "@/components/courses/CourseMetaTile";
 import type { StorefrontCourse } from "@/lib/courses/catalog-service";
+import { getCheckoutHints } from "@/lib/payments/providers";
 import { formatMoney } from "@/lib/payments/money";
 import type { Locale } from "@/content/site";
 
@@ -35,6 +36,7 @@ export function CourseCard({
           inFullPack: "In full pack",
           priceSoon: "Price coming soon",
         };
+  const hints = getCheckoutHints();
 
   return (
     <article className="group flex h-full flex-col rounded-[1.6rem] border border-border bg-surface p-5 transition duration-300 hover:-translate-y-1 hover:border-cyan-500/30 hover:shadow-[0_24px_50px_-28px_rgba(8,145,178,0.45)]">
@@ -107,6 +109,8 @@ export function CourseCard({
             label={copy.buy}
             sourcePage={sourcePage}
             showPrice={false}
+            hints={hints}
+            chariowProductId={course.chariowProductId}
             className="min-w-0 flex-1 px-4 py-2.5 text-sm"
           />
         </div>

@@ -1,15 +1,16 @@
 "use client";
 
 import { CourseTrackedAnchor } from "@/components/courses/course-analytics";
+import type { CheckoutHints } from "@/lib/payments/providers";
 import type { CoursePack } from "@/lib/courses/coursePacks";
 import { formatMoney } from "@/lib/payments/money";
 import { cn } from "@/lib/utils";
 
 type CheckoutTarget =
-  | Pick<
+  | (Pick<
       CoursePack,
       "id" | "slug" | "title" | "checkoutUrl" | "priceMinor" | "priceCurrency"
-    >
+    > & { chariowProductId?: string | null })
   | {
       id: string;
       slug: string;
@@ -17,7 +18,14 @@ type CheckoutTarget =
       checkoutUrl?: string | null;
       priceMinor?: number | null;
       priceCurrency?: string;
+      chariowProductId?: string | null;
     };
+
+const FALLBACK_HINTS: CheckoutHints = {
+  internalEnabled: true,
+  chariowConfigured: false,
+  monerooConfigured: false,
+};
 
 export function CourseCheckoutButton({
   pack,
@@ -26,6 +34,8 @@ export function CourseCheckoutButton({
   className,
   itemType = "pack",
   showPrice = true,
+  hints = FALLBACK_HINTS,
+  chariowProductId,
 }: {
   pack: CheckoutTarget;
   label: string;
@@ -34,15 +44,31 @@ export function CourseCheckoutButton({
   itemType?: "pack" | "course";
   /** Cards pass false and render the price themselves; the button stays short. */
   showPrice?: boolean;
+  /** Server-side provider facts; call sites get them from getCheckoutHints(). */
+  hints?: CheckoutHints;
+  /** Chariow product ID for this item (pack objects can also carry it). */
+  chariowProductId?: string | null;
 }) {
   const priceMinor =
     typeof pack.priceMinor === "number" && pack.priceMinor > 0
       ? pack.priceMinor
       : null;
   const currency = pack.priceCurrency || "XAF";
-  const checkoutHref = priceMinor
+
+  // Internal checkout needs a priced item plus at least one provider that can
+  // actually serve it: Chariow requires its product ID, Moneroo does not.
+  const chariowUsable =
+    hints.chariowConfigured && Boolean(chariowProductId ?? pack.chariowProductId);
+  const internalBuyable =
+    Boolean(priceMinor) &&
+    hints.internalEnabled &&
+    (chariowUsable || hints.monerooConfigured);
+
+  // Without internal checkout, fall back to the legacy hosted checkout link
+  // (external Chariow page) when one exists; otherwise the button is disabled.
+  const checkoutHref = internalBuyable
     ? `/courses/checkout?item=${itemType}:${encodeURIComponent(pack.slug)}`
-    : pack.checkoutUrl;
+    : pack.checkoutUrl || null;
 
   if (!checkoutHref) {
     return (
@@ -58,7 +84,7 @@ export function CourseCheckoutButton({
     );
   }
 
-  const isInternal = Boolean(priceMinor);
+  const isInternal = internalBuyable;
 
   return (
     <CourseTrackedAnchor

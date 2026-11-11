@@ -17,6 +17,7 @@ import {
 import { JsonLd } from "@/components/ui/json-ld";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { isLocale, type Locale } from "@/content/site";
+import { getCheckoutHints } from "@/lib/payments/providers";
 import {
   getCoursesBonusClaimDestination,
   getCoursesSupportEmail,
@@ -99,6 +100,7 @@ export default async function CoursePackDetailPage({
       .filter((item) => item.id !== pack.id)
       .filter((item) => (pack.recommended ? true : !item.recommended))
       .slice(0, 3);
+    const hints = getCheckoutHints();
 
     const copy =
       locale === "fr"
@@ -209,7 +211,7 @@ export default async function CoursePackDetailPage({
                 <span className="trust-pill">{getCoursePackLevelLabel(locale, pack.level)}</span>
               </div>
               <div className="mt-6 grid gap-3">
-                <CourseCheckoutButton pack={pack} label={copy.buyNow} sourcePage="course_pack_hero" />
+                <CourseCheckoutButton pack={pack} label={copy.buyNow} sourcePage="course_pack_hero" hints={hints} chariowProductId={pack.chariowProductId} />
                 {whatsappUrl ? (
                   <CourseTrackedAnchor href={whatsappUrl} target="_blank" rel="noreferrer" eventName="whatsapp_course_inquiry" eventParams={{ pack_id: pack.id, pack_slug: pack.slug, pack_title: pack.title, source_page: "course_pack_hero" }} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/70 px-5 py-3 text-sm font-medium text-primary transition hover:bg-background dark:border-white/12 dark:bg-white/[0.05] dark:text-white dark:hover:bg-white/[0.08]">
                     <MessageCircle className="size-4 text-cyan-600 dark:text-cyan-300" />{copy.askWhatsapp}
@@ -312,7 +314,7 @@ export default async function CoursePackDetailPage({
           actions={
             pack.recommended ? (
               <>
-                <CourseCheckoutButton pack={pack} label={copy.buyerBonusBuyFullPack} sourcePage="course_pack_bonus_section" />
+                <CourseCheckoutButton pack={pack} label={copy.buyerBonusBuyFullPack} sourcePage="course_pack_bonus_section" hints={hints} chariowProductId={pack.chariowProductId} />
                 <BonusClaimButton href={bonusClaimDestination?.href} channel={bonusClaimDestination?.channel ?? null} label={copy.buyerBonusClaim} sourcePage="course_pack_bonus_section" packId={pack.id} packSlug={pack.slug} packTitle={pack.title} eligibility="full-pack" className="w-full sm:w-auto" variant="secondary" />
               </>
             ) : (
@@ -345,7 +347,7 @@ export default async function CoursePackDetailPage({
               <h2 className="mt-4 max-w-4xl text-4xl font-semibold text-primary md:text-5xl">{copy.finalTitle}</h2>
               <p className="mt-5 max-w-3xl text-base leading-8 text-muted">{copy.finalBody}</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <CourseCheckoutButton pack={pack} label={copy.buyNow} sourcePage="course_pack_final_cta" />
+                <CourseCheckoutButton pack={pack} label={copy.buyNow} sourcePage="course_pack_final_cta" hints={hints} chariowProductId={pack.chariowProductId} />
                 <CourseTrackedLink href={getPublicAppPath("/courses")} eventName="course_pack_click" eventParams={{ pack_id: pack.id, pack_slug: pack.slug, pack_title: pack.title, source_page: "course_pack_final_cta" }} className="btn-secondary justify-center px-5 py-3">{copy.backToCourses}</CourseTrackedLink>
               </div>
             </div>
@@ -366,6 +368,7 @@ export default async function CoursePackDetailPage({
       ? `Bonjour teChia, je veux des informations sur le cours ${course.title}.`
       : `Hello teChia, I want more information about the ${course.title} course.`,
   );
+  const hints = getCheckoutHints();
   const copy =
     locale === "fr"
       ? {
@@ -476,10 +479,11 @@ export default async function CoursePackDetailPage({
             </div>
             <div className="mt-6 grid gap-3">
               <CourseCheckoutButton
-                pack={{ id: course.id, slug: course.slug, title: course.title, checkoutUrl: null, priceMinor: course.priceMinor, priceCurrency: course.currency }}
+                pack={{ id: course.id, slug: course.slug, title: course.title, checkoutUrl: null, priceMinor: course.priceMinor, priceCurrency: course.currency, chariowProductId: course.chariowProductId }}
                 itemType="course"
                 label={copy.buy}
                 sourcePage="course_detail_hero"
+                hints={hints}
               />
               {whatsappUrl ? (
                 <CourseTrackedAnchor href={whatsappUrl} target="_blank" rel="noreferrer" eventName="whatsapp_course_inquiry" eventParams={{ pack_id: course.id, pack_slug: course.slug, pack_title: course.title, source_page: "course_detail_hero" }} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/70 px-5 py-3 text-sm font-medium text-primary transition hover:bg-background dark:border-white/12 dark:bg-white/[0.05]">
@@ -574,10 +578,11 @@ export default async function CoursePackDetailPage({
           <div className="elevated-panel px-6 py-8 sm:px-7 md:px-10 md:py-12">
             <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <CourseCheckoutButton
-                pack={{ id: course.id, slug: course.slug, title: course.title, checkoutUrl: null, priceMinor: course.priceMinor, priceCurrency: course.currency }}
+                pack={{ id: course.id, slug: course.slug, title: course.title, checkoutUrl: null, priceMinor: course.priceMinor, priceCurrency: course.currency, chariowProductId: course.chariowProductId }}
                 itemType="course"
                 label={copy.buy}
                 sourcePage="course_detail_final_cta"
+                hints={hints}
               />
               <CourseTrackedLink href={getPublicAppPath("/courses")} eventName="course_pack_click" eventParams={{ pack_id: course.id, pack_slug: course.slug, pack_title: course.title, source_page: "course_detail_final_cta" }} className="btn-secondary justify-center px-5 py-3">{copy.back}</CourseTrackedLink>
             </div>

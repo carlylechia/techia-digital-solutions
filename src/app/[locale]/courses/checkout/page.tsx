@@ -54,6 +54,11 @@ export default async function CheckoutPage({
 
   const enabled = internalCheckoutEnabled();
   const providers = getAvailablePaymentProviders().filter((p) => p.configured);
+  // Chariow can only serve items linked to a Chariow product; Moneroo can
+  // serve any priced item. Hide providers that would fail at the last step.
+  const usableProviders = providers.filter(
+    (p) => p.id === "MONEROO" || Boolean(item.chariowProductId),
+  );
   const copy =
     locale === "fr"
       ? {
@@ -106,12 +111,12 @@ export default async function CheckoutPage({
 
           <section className="gradient-border rounded-[1.8rem]">
             <div className="elevated-panel p-6 sm:p-7">
-              {enabled && providers.length > 0 ? (
+              {enabled && usableProviders.length > 0 ? (
                 <CheckoutForm
                   locale={locale}
                   itemType={parsed.type}
                   itemSlug={item.slug}
-                  providers={providers.map((p) => ({
+                  providers={usableProviders.map((p) => ({
                     id: p.id,
                     label: p.label,
                     description: p.description,

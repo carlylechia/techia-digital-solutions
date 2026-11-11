@@ -19,6 +19,7 @@ import { JsonLd } from "@/components/ui/json-ld";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { isLocale, type Locale } from "@/content/site";
 import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
+import { getCheckoutHints } from "@/lib/payments/providers";
 import {
   getCoursesBonusClaimDestination,
   getCoursesSupportEmail,
@@ -393,6 +394,8 @@ export default async function CoursesPage({
                           pack={fullPack}
                           label={copy.bonusPrimary}
                           sourcePage="courses_bonus_section"
+                          hints={getCheckoutHints()}
+                          chariowProductId={fullPack.chariowProductId}
                         />
                         <a href="#catalog" className="btn-secondary justify-center px-5 py-3">
                           {copy.bonusSecondary}
