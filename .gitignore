@@ -10,3 +10,6 @@ coverage
 tsconfig.tsbuildinfo
 *.tsbuildinfo
 .vercel
+
+# Academy catalog seed snapshot (data export, regenerated on demand)
+scripts-dev/academy-catalog.export.json
