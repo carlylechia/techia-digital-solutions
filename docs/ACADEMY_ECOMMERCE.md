@@ -17,6 +17,14 @@ Additive models/enums: `AcademyCategory`, `AcademyCourse`, `AcademyLesson`, `Aca
 - `/courses/checkout?item=<type>:<slug>` and `/courses/checkout/return`: internal hosted checkout flow (server-side return verification; redirect query params are never treated as payment proof).
 - `/admin/academy`: catalog/pricing/Chariow mapping management and recent orders view (requires `academy.catalog.manage` and/or `academy.orders.view`).
 
+### Admin console (academy)
+
+- **Navigation**: the admin workspace sidebar has an **Academy** section with **Academy Catalog** (`/admin/academy`, gated by `academy.catalog.manage`/`academy.orders.view`) and **Bonus Claims** (`/admin/bonus-claims`, gated by `requests.manage`).
+- **Creating courses**: administrators with `academy.catalog.manage` can create courses directly from `/admin/academy` (status, category, FR copy, skills, level, position, SEO, pricing, Chariow mapping). Only `PUBLISHED` courses appear on the storefront; saving revalidates `/courses`, `/courses/[slug]`, and the sitemap.
+- **Currency**: a closed dropdown limited to `XAF`, `USD`, `CAD`, `EUR` (validated server-side in the admin actions).
+- **Cover images**: `AcademyImageField` accepts a device upload or a direct https URL. Uploads go through `POST /api/courses/admin-media` — same-origin, permission re-read from the database (`academy.catalog.manage`), rate limited (12/min/admin), magic-byte image sniffing (JPEG/PNG/WebP/AVIF, ≤10 MB), signed Cloudinary upload into the `techia/academy` folder. The stored value is always the final image URL.
+- **Course structure fields**: `AcademyCourse.moduleCount`, `lessonCount`, `pathCount` (additive, nullable — migration `20261111120000_add_academy_course_structure_counts`). Administrators enter modules, lessons (teaching units inside a course), and learning paths per course; unset values are never shown or invented. The admin row also shows the automatic lesson count from the database as a hint.
+
 ## Payment integrations (official docs)
 
 Provider abstraction: `src/lib/payments/providers.ts`, `checkout.ts`, `fulfillment.ts`, `chariow.ts`, `moneroo.ts`, `signatures.ts`.

@@ -1913,6 +1913,13 @@ model AcademyCourse {
   financialDisclaimerRequired Boolean                 @default(false)
   skillsEn                    String[]                @default([])
   skillsFr                    String[]                @default([])
+  // Admin-entered course structure metadata (nullable: a value is only shown
+  // when an administrator enters it — never invented). "Lessons" is the
+  // teaching-unit synonym inside a course; paths count learning paths that
+  // reference the course.
+  moduleCount                 Int?
+  lessonCount                 Int?
+  pathCount                   Int?
   // Nullable by design: no price was supplied for individual courses, so the
   // public UI must never invent one. Administrators set this explicitly.
   priceMinor                  Int?
