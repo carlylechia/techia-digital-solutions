@@ -5,7 +5,7 @@
   "description": "Premium bilingual digital transformation website and lead-generation platform for teChia Digital Solutions.",
   "packageManager": "pnpm@10.12.4",
   "scripts": {
-    "dev": "next dev",
+    "dev": "prisma generate && next dev",
     "build": "prisma generate && next build",
     "vercel-build": "prisma generate && if [ \"$VERCEL_ENV\" = \"production\" ]; then prisma migrate deploy; fi && next build",
     "start": "next start",
