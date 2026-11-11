@@ -2039,38 +2039,48 @@ textarea {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.7rem;
-    border: 1px solid color-mix(in srgb, var(--accent-2) 16%, color-mix(in srgb, white 18%, var(--border)));
+    isolation: isolate;
+    border: 1px solid color-mix(in srgb, var(--accent-2) 20%, color-mix(in srgb, white 26%, var(--border)));
     border-radius: 1.4rem;
     padding: 0.66rem 0.8rem;
     background:
       linear-gradient(
         135deg,
-        color-mix(in srgb, var(--surface-strong) 42%, transparent),
-        color-mix(in srgb, var(--surface) 28%, transparent)
+        color-mix(in srgb, var(--surface-strong) 88%, transparent),
+        color-mix(in srgb, var(--surface) 84%, transparent)
       ),
       radial-gradient(
         circle at top left,
-        color-mix(in srgb, var(--accent-2) 10%, transparent),
-        transparent 32%
+        color-mix(in srgb, var(--accent-2) 12%, transparent),
+        transparent 34%
       ),
       radial-gradient(
         circle at bottom right,
-        color-mix(in srgb, var(--accent-3) 6%, transparent),
-        transparent 28%
+        color-mix(in srgb, var(--accent-3) 8%, transparent),
+        transparent 30%
       );
     box-shadow:
-      0 18px 55px rgba(7, 17, 31, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.18),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
+      0 22px 60px rgba(7, 17, 31, 0.16),
+      0 4px 18px rgba(7, 17, 31, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+    /* Thick glass: heavy refraction so content scrolled beneath the bar
+       dissolves into an illegible blur instead of visibly overlapping. */
+    backdrop-filter: blur(30px) saturate(185%) brightness(1.04);
+    -webkit-backdrop-filter: blur(30px) saturate(185%) brightness(1.04);
   }
 
   .header-shell::before {
     content: "";
     position: absolute;
     inset: 0;
+    z-index: -1;
     border-radius: inherit;
+    /* Second refraction pass behind the tinted surface — this is what gives the
+       "very thick glass" depth: the page content is blurred twice before it can
+       reach the eye, making anything beneath the bar almost unreadable. */
+    backdrop-filter: blur(10px) saturate(130%);
+    -webkit-backdrop-filter: blur(10px) saturate(130%);
     background: linear-gradient(
       120deg,
       rgba(255, 255, 255, 0.14),
