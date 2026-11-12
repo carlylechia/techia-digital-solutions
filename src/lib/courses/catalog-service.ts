@@ -84,6 +84,7 @@ export type StorefrontPack = CoursePack & {
   priceMinor: number | null;
   priceCurrency: string;
   chariowProductId: string | null;
+  imageUrl: string | null;
 };
 
 export type CatalogSort =
@@ -444,6 +445,7 @@ export async function getStorefrontPacks(
       priceMinor: null,
       priceCurrency: "XAF",
       chariowProductId: null,
+      imageUrl: null,
     }));
   }
 
@@ -469,6 +471,7 @@ export async function getStorefrontPacks(
           priceMinor: null,
           priceCurrency: "XAF",
           chariowProductId: null,
+          imageUrl: null,
         };
       }
       return {
@@ -549,6 +552,7 @@ export async function getStorefrontPacks(
         priceMinor: effectivePackPriceMinor(databasePack.priceMinor, databasePack.currency),
         priceCurrency: databasePack.currency,
         chariowProductId: databasePack.chariowProductId,
+        imageUrl: databasePack.imageUrl,
         checkoutUrl: pack.checkoutUrl,
       };
     });
@@ -562,6 +566,7 @@ export async function getStorefrontPacks(
       priceMinor: null,
       priceCurrency: "XAF",
       chariowProductId: null,
+      imageUrl: null,
     }));
   }
 }

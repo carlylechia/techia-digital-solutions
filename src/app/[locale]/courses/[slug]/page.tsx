@@ -191,6 +191,8 @@ export default async function CoursePackDetailPage({
           eyebrow={pack.category}
           title={pack.title}
           description={copy.heroDescription}
+          imageUrl={pack.imageUrl}
+          headingSize="compact"
           badges={[
             pack.badge || copy.packLabel,
             `${pack.courseCount} ${pack.courseCount === 1 ? copy.courseSingular : copy.coursePlural}`,
@@ -483,6 +485,8 @@ export default async function CoursePackDetailPage({
         eyebrow={course.category?.name || "teChia Digital Academy"}
         title={course.title}
         description={course.description}
+        imageUrl={course.imageUrl}
+        headingSize="compact"
         badges={[course.levelLabel, `${course.lessons.length} ${copy.lesson.toLowerCase()}s`]}
         actions={[
           ...(course.previewVideo

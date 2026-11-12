@@ -10,6 +10,9 @@ export function CourseHero({
   badges = [],
   actions = [],
   aside,
+  imageUrl,
+  imageAlt,
+  headingSize,
 }: {
   locale: Locale;
   eyebrow?: string;
@@ -22,6 +25,9 @@ export function CourseHero({
     variant?: "primary" | "secondary";
   }[];
   aside?: ReactNode;
+  imageUrl?: string | null;
+  imageAlt?: string;
+  headingSize?: "default" | "compact";
 }) {
   return (
     <PremiumPageHero
@@ -32,6 +38,9 @@ export function CourseHero({
       badges={badges}
       actions={actions}
       aside={aside}
+      imageUrl={imageUrl}
+      imageAlt={imageAlt}
+      headingSize={headingSize}
     />
   );
 }
