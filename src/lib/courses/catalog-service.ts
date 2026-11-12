@@ -8,6 +8,14 @@ import {
   effectiveCoursePriceMinor,
   effectivePackPriceMinor,
 } from "@/lib/courses/pricing";
+import {
+  isValidYouTubeVideoId,
+  normalizePreviewVideoDurationLabel,
+  normalizePreviewVideoPoster,
+  normalizePreviewVideoTitle,
+  PREVIEW_VIDEO_PROVIDER,
+  type PreviewVideoProvider,
+} from "@/lib/courses/preview-video";
 import { COURSE_CATALOG, type CourseCatalogEntry } from "./catalog";
 import {
   COURSE_PACK_DEFINITIONS,
@@ -15,6 +23,14 @@ import {
   getCoursePackLevelLabel,
   type CoursePack,
 } from "./coursePacks";
+
+export type StorefrontPreviewVideo = {
+  provider: PreviewVideoProvider;
+  videoId: string;
+  title: string | null;
+  posterUrl: string | null;
+  durationLabel: string | null;
+};
 
 export type StorefrontLesson = {
   id: string;
@@ -56,6 +72,7 @@ export type StorefrontCourse = {
   pathCount: number | null;
   financialDisclaimerRequired: boolean;
   includedInFullPack: boolean;
+  previewVideo: StorefrontPreviewVideo | null;
   seoTitle: string;
   seoDescription: string;
   path: string;
@@ -172,6 +189,7 @@ function staticCourseToStorefront(
     financialDisclaimerRequired:
       course.financialDisclaimerRequired ?? false,
     includedInFullPack: course.includedInFullPack,
+    previewVideo: null,
     seoTitle: `${course.title} | teChia Digital Academy`,
     seoDescription: course.shortDescription,
     path: getPublicAppPath(`/courses/${course.slug}`),
@@ -195,6 +213,38 @@ async function queryPublishedCourses() {
       lessons: { orderBy: [{ position: "asc" }, { titleEn: "asc" }] },
     },
   });
+}
+
+/**
+ * Only expose a preview when it is explicitly enabled AND its stored ID is
+ * still valid. A malformed or unsupported record degrades to "no preview"
+ * instead of breaking the course page or constructing an untrusted embed URL.
+ */
+export function databasePreviewVideo(
+  course: DatabaseCourseRow,
+): StorefrontPreviewVideo | null {
+  if (!course.previewVideoEnabled) return null;
+  if (
+    course.previewVideoProvider &&
+    course.previewVideoProvider !== PREVIEW_VIDEO_PROVIDER
+  ) {
+    return null;
+  }
+  if (!isValidYouTubeVideoId(course.previewVideoId)) return null;
+
+  const title = normalizePreviewVideoTitle(course.previewVideoTitle);
+  const duration = normalizePreviewVideoDurationLabel(
+    course.previewVideoDurationLabel,
+  );
+  const poster = normalizePreviewVideoPoster(course.previewVideoPoster);
+
+  return {
+    provider: PREVIEW_VIDEO_PROVIDER,
+    videoId: course.previewVideoId,
+    title: title.ok ? title.value : null,
+    durationLabel: duration.ok ? duration.value : null,
+    posterUrl: poster.ok ? poster.value : null,
+  };
 }
 
 function databaseCourseToStorefront(
@@ -262,6 +312,7 @@ function databaseCourseToStorefront(
     pathCount: course.pathCount,
     financialDisclaimerRequired: course.financialDisclaimerRequired,
     includedInFullPack: course.includedInFullPack,
+    previewVideo: databasePreviewVideo(course),
     seoTitle: fromLocale(
       locale,
       course.seoTitleEn || `${course.titleEn} | teChia Digital Academy`,
