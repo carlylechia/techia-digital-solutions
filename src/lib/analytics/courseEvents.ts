@@ -15,6 +15,10 @@ export type CourseEventName =
   | "full_pack_bonus_upsell_click"
   | "bonus_download_click"
   | "whatsapp_bonus_claim_click"
+  | "preview_video_impression"
+  | "preview_video_play"
+  | "preview_video_error"
+  | "preview_video_external_open"
   | (string & {});
 
 export type CourseEventPayload = {
@@ -25,6 +29,11 @@ export type CourseEventPayload = {
   faq_question?: string;
   bonus_id?: string;
   eligibility?: string;
+  course_id?: string;
+  course_slug?: string;
+  video_id?: string;
+  provider?: string;
+  reason?: string;
 };
 
 type GenericEventPayload = Record<

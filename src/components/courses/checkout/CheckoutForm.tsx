@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, LockKeyhole, ShieldCheck } from "lucide-react";
 import type { Locale } from "@/content/site";
 import type { PaymentProviderId } from "@/lib/payments/providers";
 import {
@@ -53,7 +53,7 @@ export function CheckoutForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const idempotencyKey = useMemo(() => randomKey(), []);
+  const [idempotencyKey, setIdempotencyKey] = useState(() => randomKey());
 
   const copy =
     locale === "fr"
@@ -206,6 +206,7 @@ export function CheckoutForm({
           name="email"
           type="email"
           required
+          inputMode="email"
           autoComplete="email"
           className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-primary outline-none focus:border-cyan-500"
         />
@@ -216,6 +217,7 @@ export function CheckoutForm({
           <input
             name="phone"
             required
+            inputMode="tel"
             autoComplete="tel"
             className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-primary outline-none focus:border-cyan-500"
           />
@@ -270,7 +272,13 @@ export function CheckoutForm({
                 name="provider"
                 value={p.id}
                 checked={provider === p.id}
-                onChange={() => setProvider(p.id)}
+                onChange={() => {
+                  if (submitting) return;
+                  setProvider(p.id);
+                  setIdempotencyKey(randomKey());
+                  setError(null);
+                  setNotice(null);
+                }}
                 className="mt-1"
               />
               <div>
@@ -290,22 +298,33 @@ export function CheckoutForm({
       </div>
 
       {error ? (
-        <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-700 dark:text-rose-200">
+        <p
+          role="alert"
+          className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-700 dark:text-rose-200"
+        >
           {error}
         </p>
       ) : null}
       {notice ? (
-        <p className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3 text-sm text-cyan-800 dark:text-cyan-100">
+        <p
+          role="status"
+          className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3 text-sm text-cyan-800 dark:text-cyan-100"
+        >
           {notice}
         </p>
       ) : null}
 
-      <p className="text-xs leading-6 text-muted">{copy.secure}</p>
+      <p className="flex items-start gap-2 text-xs leading-6 text-muted">
+        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-500" aria-hidden="true" />
+        {copy.secure}
+      </p>
       <button
         type="submit"
         disabled={submitting}
+        aria-busy={submitting}
         className="btn-primary w-full justify-center px-5 py-3 disabled:cursor-not-allowed disabled:opacity-70"
       >
+        <LockKeyhole className="size-4" aria-hidden="true" />
         {submitting ? copy.processing : copy.submit}
       </button>
     </form>

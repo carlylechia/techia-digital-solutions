@@ -16,6 +16,7 @@ import {
   CourseTrackedAnchor,
 } from "@/components/courses/course-analytics";
 import { JsonLd } from "@/components/ui/json-ld";
+import { PageBreadcrumbs } from "@/components/ui/page-breadcrumbs";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { isLocale, type Locale } from "@/content/site";
 import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
@@ -181,6 +182,7 @@ export default async function CoursesPage({
           browsePacks: "Explorer les packs",
           supportWhatsapp: "Demander conseil sur WhatsApp",
           supportEmail: "Contacter par email",
+          clearFilters: "Effacer les filtres",
         }
       : {
           heroEyebrow: "teChia Digital Academy",
@@ -230,6 +232,7 @@ export default async function CoursesPage({
           browsePacks: "Explore packs",
           supportWhatsapp: "Ask on WhatsApp",
           supportEmail: "Contact by email",
+          clearFilters: "Clear filters",
         };
 
   return (
@@ -249,6 +252,18 @@ export default async function CoursesPage({
           { name: locale === "fr" ? "Cours" : "Courses", path: "/courses" },
         ])}
       />
+
+      <div className="container pt-4 sm:pt-6">
+        <PageBreadcrumbs
+          items={[
+            {
+              label: locale === "fr" ? "Accueil" : "Home",
+              href: getPublicAppPath("/"),
+            },
+            { label: locale === "fr" ? "Cours" : "Courses" },
+          ]}
+        />
+      </div>
 
       <section className="relative isolate overflow-hidden">
         <div className="relative min-h-[78svh] w-full sm:min-h-[84svh] lg:min-h-[90svh]">
@@ -307,9 +322,14 @@ export default async function CoursesPage({
               className="mb-0"
             />
 
-            <div className="mt-6 inline-flex rounded-full border border-border bg-background/70 p-1">
+            <div
+              className="mt-6 inline-flex rounded-full border border-border bg-background/70 p-1"
+              role="group"
+              aria-label={locale === "fr" ? "Choisir l’affichage" : "Choose view"}
+            >
               <Link
                 href={buildViewHref("packs", { q, category, sort })}
+                aria-current={activeView === "packs" ? "page" : undefined}
                 className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                   activeView === "packs"
                     ? "bg-primary text-white shadow-sm"
@@ -320,6 +340,7 @@ export default async function CoursesPage({
               </Link>
               <Link
                 href={buildViewHref("courses", { q, category, sort })}
+                aria-current={activeView === "courses" ? "page" : undefined}
                 className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                   activeView === "courses"
                     ? "bg-primary text-white shadow-sm"
@@ -334,8 +355,19 @@ export default async function CoursesPage({
               <CourseCatalogFilters
                 locale={locale}
                 categories={categories.map((c) => ({ slug: c.slug, name: c.name }))}
+                mode={activeView}
               />
             </div>
+
+            <p className="mt-4 text-sm text-muted" aria-live="polite">
+              {activeView === "packs"
+                ? `${filteredPacks.length} ${
+                    locale === "fr" ? "packs" : "packs"
+                  }`
+                : `${filteredCourses.length} ${
+                    locale === "fr" ? "cours" : "courses"
+                  }`}
+            </p>
 
             {activeView === "packs" ? (
               <div className="mt-8">
@@ -377,6 +409,12 @@ export default async function CoursesPage({
                   <div className="mt-8 rounded-[1.45rem] border border-border bg-surface p-6">
                     <h3 className="text-xl font-semibold text-primary">{copy.noPacksTitle}</h3>
                     <p className="mt-3 text-sm leading-7 text-muted">{copy.noPacksBody}</p>
+                    <Link
+                      href={`${getPublicAppPath("/courses")}?view=packs#catalog`}
+                      className="btn-secondary mt-5 justify-center px-5 py-3"
+                    >
+                      {copy.clearFilters}
+                    </Link>
                   </div>
                 )}
 
@@ -438,6 +476,12 @@ export default async function CoursesPage({
                   <div className="mt-8 rounded-[1.45rem] border border-border bg-surface p-6">
                     <h3 className="text-xl font-semibold text-primary">{copy.noCoursesTitle}</h3>
                     <p className="mt-3 text-sm leading-7 text-muted">{copy.noCoursesBody}</p>
+                    <Link
+                      href={`${getPublicAppPath("/courses")}?view=courses#catalog`}
+                      className="btn-secondary mt-5 justify-center px-5 py-3"
+                    >
+                      {copy.clearFilters}
+                    </Link>
                   </div>
                 )}
               </div>

@@ -24,6 +24,9 @@ export function PremiumPageHero({
   badges = [],
   actions = [],
   aside,
+  imageUrl,
+  imageAlt,
+  headingSize = "default",
   className,
 }: {
   locale: Locale;
@@ -33,6 +36,9 @@ export function PremiumPageHero({
   badges?: string[];
   actions?: PremiumPageAction[];
   aside?: ReactNode;
+  imageUrl?: string | null;
+  imageAlt?: string;
+  headingSize?: "default" | "compact";
   className?: string;
 }) {
   const accentScript =
@@ -49,7 +55,9 @@ export function PremiumPageHero({
           <div
             className={cn(
               "relative z-10 grid gap-8",
-              aside ? "lg:grid-cols-[1.08fr_0.92fr] lg:items-start" : "",
+              aside || imageUrl
+                ? "lg:grid-cols-[1.08fr_0.92fr] lg:items-start"
+                : "",
             )}
           >
             <div>
@@ -57,7 +65,14 @@ export function PremiumPageHero({
                 {accentScript}
               </span>
               {eyebrow ? <p className="eyebrow mb-4 mt-3">{eyebrow}</p> : null}
-              <h1 className="max-w-4xl text-balance text-[clamp(2.9rem,10vw,5.4rem)] font-semibold leading-[0.94] text-foreground">
+              <h1
+                className={cn(
+                  "max-w-4xl text-balance font-semibold text-foreground",
+                  headingSize === "compact"
+                    ? "text-[clamp(2.2rem,5.6vw,3.65rem)] leading-[1.02]"
+                    : "text-[clamp(2.9rem,10vw,5.4rem)] leading-[0.94]",
+                )}
+              >
                 <span className="headline-gradient">{title}</span>
               </h1>
               <div className="headline-underline mt-6" aria-hidden="true" />
@@ -104,9 +119,29 @@ export function PremiumPageHero({
               ) : null}
             </div>
 
-            {aside ? (
+            {aside || imageUrl ? (
               <div className="relative z-10 rounded-[1.7rem] border border-border bg-white/[0.08] p-1.5 backdrop-blur-xl dark:bg-white/[0.04] sm:rounded-[1.85rem]">
-                {aside}
+                {imageUrl ? (
+                  <div className="relative aspect-[16/10] overflow-hidden rounded-[1.35rem] bg-slate-950">
+                    {/* Plain img: admins may provide any trusted https image URL,
+                        including hosts outside the Next Image allowlist. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imageUrl}
+                      alt={imageAlt || `${title} cover image`}
+                      width={960}
+                      height={600}
+                      loading="eager"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent"
+                    />
+                  </div>
+                ) : null}
+                {aside ? <div className={imageUrl ? "mt-1.5" : ""}>{aside}</div> : null}
               </div>
             ) : null}
           </div>

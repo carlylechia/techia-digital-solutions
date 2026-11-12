@@ -10,6 +10,7 @@ import {
   Layers,
   Package,
   Receipt,
+  Video,
   Wallet,
 } from "lucide-react";
 import { getServerSession } from "next-auth";
@@ -24,6 +25,9 @@ import { loadAdminAcademyCatalog } from "@/lib/admin/academy";
 import { formatMoney } from "@/lib/payments/money";
 import { AcademyImageField } from "@/components/courses/AcademyImageField";
 import { AcademyActionForm, type AcademyActionState } from "@/components/courses/AcademyActionForm";
+import { AcademyPreviewVideoFields } from "@/components/courses/AcademyPreviewVideoFields";
+import { AcademyRemovePreviewForm } from "@/components/courses/AcademyRemovePreviewForm";
+import { getYouTubeWatchUrl } from "@/lib/courses/preview-video";
 import {
   effectiveCoursePriceMinor,
   effectivePackPriceMinor,
@@ -255,6 +259,40 @@ async function updateCourse(
   }
 }
 
+async function updateCoursePreview(
+  _previousState: AcademyActionState,
+  formData: FormData,
+): Promise<AcademyActionState> {
+  "use server";
+  const { saveAcademyCoursePreview } = await import("@/lib/admin/academy-preview");
+  return saveAcademyCoursePreview({
+    courseId: String(formData.get("id") || ""),
+    url: String(formData.get("previewVideoUrl") || ""),
+    title: String(formData.get("previewVideoTitle") || ""),
+    durationLabel: String(formData.get("previewVideoDurationLabel") || ""),
+    posterUrl: String(formData.get("previewVideoPoster") || ""),
+    enabled: formData.get("previewVideoEnabled") === "on",
+    remove: formData.get("intent") === "remove",
+  });
+}
+
+async function removeCoursePreview(
+  _previousState: AcademyActionState,
+  formData: FormData,
+): Promise<AcademyActionState> {
+  "use server";
+  const { saveAcademyCoursePreview } = await import("@/lib/admin/academy-preview");
+  return saveAcademyCoursePreview({
+    courseId: String(formData.get("id") || ""),
+    url: "",
+    title: "",
+    durationLabel: "",
+    posterUrl: "",
+    enabled: false,
+    remove: true,
+  });
+}
+
 async function updatePack(
   _previousState: AcademyActionState,
   formData: FormData,
@@ -366,6 +404,34 @@ function MetaPill({ children }: { children: ReactNode }) {
   return (
     <span className="inline-flex items-center rounded-full border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-muted">
       {children}
+    </span>
+  );
+}
+
+/** At-a-glance state so admins can find the 16 courses still missing a video. */
+function PreviewStatusPill({
+  configured,
+  enabled,
+}: {
+  configured: boolean;
+  enabled: boolean;
+}) {
+  if (!configured) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-muted">
+        <Video className="size-3" /> No preview
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+        enabled
+          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+          : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+      }`}
+    >
+      <Video className="size-3" /> {enabled ? "Preview live" : "Preview off"}
     </span>
   );
 }
@@ -497,6 +563,9 @@ export default async function AdminAcademyPage({
     // Settings table not migrated yet — default to both providers enabled.
   }
   const publishedCount = courses.filter((course) => course.status === "PUBLISHED").length;
+  const previewCount = courses.filter(
+    (course) => course.previewVideoEnabled && Boolean(course.previewVideoId),
+  ).length;
   const packCourseCount = new Set(packs.flatMap((pack) => pack.items.map((item) => item.courseId))).size;
 
   return (
@@ -547,9 +616,10 @@ export default async function AdminAcademyPage({
               </div>
             </div>
 
-            <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <StatCard icon={BookOpen} label="Courses" value={courses.length} detail={`${publishedCount} published`} />
               <StatCard icon={Package} label="Packs" value={packs.length} detail={`${packCourseCount} courses bundled`} />
+              <StatCard icon={Video} label="Previews live" value={previewCount} detail={`${courses.length - previewCount} courses without a live preview`} />
               <StatCard icon={Receipt} label="Recent orders" value={orders.length} detail="Latest 50 orders" />
               <StatCard
                 icon={BadgeCheck}
@@ -814,6 +884,10 @@ export default async function AdminAcademyPage({
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusPill value={course.status} />
+                      <PreviewStatusPill
+                        configured={Boolean(course.previewVideoId)}
+                        enabled={course.previewVideoEnabled}
+                      />
                       <PricePill priceMinor={course.priceMinor} currency={course.currency} kind="course" />
                       {course.moduleCount !== null ? <MetaPill>{course.moduleCount} modules</MetaPill> : null}
                       {course.lessonCount !== null ? (
@@ -923,6 +997,46 @@ export default async function AdminAcademyPage({
                     Read-only view. Ask an administrator with catalog permissions to edit this course.
                   </div>
                 )}
+
+                {canManage ? (
+                  <div className="border-t border-border bg-surface-strong/20 p-4 sm:p-5">
+                    <div className="mb-4">
+                      <p className="text-sm font-semibold text-primary">Free introductory video</p>
+                      <p className="mt-1 max-w-3xl text-xs leading-6 text-muted">
+                        Host the 4–5 minute introduction on the official teChia YouTube channel as an
+                        Unlisted video, then paste a normal watch link here. Customers only see a
+                        lightweight poster until they click Play. For a custom poster, use a
+                        1280×720 WebP or JPEG under about 200 KB.
+                      </p>
+                    </div>
+                    <AcademyActionForm
+                      action={updateCoursePreview}
+                      submitLabel="Save preview"
+                      pendingLabel="Saving preview…"
+                      helper="Saving a preview immediately revalidates the public course page. The rest of the course data is untouched."
+                    >
+                      <input type="hidden" name="id" value={course.id} />
+                      <AcademyPreviewVideoFields
+                        defaultUrl={getYouTubeWatchUrl(course.previewVideoId ?? "") ?? ""}
+                        defaultTitle={course.previewVideoTitle ?? ""}
+                        defaultDurationLabel={course.previewVideoDurationLabel ?? ""}
+                        defaultEnabled={course.previewVideoEnabled}
+                        hasExistingPreview={Boolean(course.previewVideoId)}
+                      />
+                      <AcademyImageField
+                        name="previewVideoPoster"
+                        defaultValue={course.previewVideoPoster ?? ""}
+                        label="Preview poster (optional)"
+                      />
+                    </AcademyActionForm>
+                    {course.previewVideoId ? (
+                      <AcademyRemovePreviewForm
+                        action={removeCoursePreview}
+                        courseId={course.id}
+                      />
+                    ) : null}
+                  </div>
+                ) : null}
               </details>
             ))}
             {!courses.length ? (

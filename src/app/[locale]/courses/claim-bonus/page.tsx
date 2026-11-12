@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { CourseBonusClaimForm } from "@/components/courses/CourseBonusClaimForm";
 import { CourseHero } from "@/components/courses/CourseHero";
 import { JsonLd } from "@/components/ui/json-ld";
+import { PageBreadcrumbs } from "@/components/ui/page-breadcrumbs";
 import { isLocale, type Locale } from "@/content/site";
 import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
 import { getBuyerBonusItems } from "@/lib/courses/bonusPacks";
 import { getEligibleDeliverableBonusIds } from "@/lib/courses/bonusClaims";
 import { getCoursePacks } from "@/lib/courses/coursePacks";
+import { getPublicAppPath } from "@/lib/site-routes";
 
 export async function generateMetadata({
   params,
@@ -96,6 +98,22 @@ export default async function CourseBonusClaimPage({
           },
         ])}
       />
+      <div className="container pt-4 sm:pt-6">
+        <PageBreadcrumbs
+          items={[
+            {
+              label: locale === "fr" ? "Accueil" : "Home",
+              href: getPublicAppPath("/"),
+            },
+            {
+              label: locale === "fr" ? "Cours" : "Courses",
+              href: getPublicAppPath("/courses"),
+            },
+            { label: copy.title },
+          ]}
+        />
+      </div>
+
       <CourseHero
         locale={locale}
         eyebrow={copy.eyebrow}
