@@ -10,6 +10,7 @@ import {
   CourseTrackedLink,
 } from "@/components/courses/course-analytics";
 import { JsonLd } from "@/components/ui/json-ld";
+import { PageBreadcrumbs } from "@/components/ui/page-breadcrumbs";
 import { isLocale, type Locale } from "@/content/site";
 import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
 import {
@@ -146,6 +147,22 @@ export default async function CourseBonusesPage({
           },
         ])}
       />
+
+      <div className="container pt-4 sm:pt-6">
+        <PageBreadcrumbs
+          items={[
+            {
+              label: locale === "fr" ? "Accueil" : "Home",
+              href: getPublicAppPath("/"),
+            },
+            {
+              label: locale === "fr" ? "Cours" : "Courses",
+              href: getPublicAppPath("/courses"),
+            },
+            { label: copy.heroTitle },
+          ]}
+        />
+      </div>
 
       <CourseHero
         locale={locale}

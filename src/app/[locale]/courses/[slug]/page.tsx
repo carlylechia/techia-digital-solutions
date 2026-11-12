@@ -16,6 +16,7 @@ import {
   CourseTrackedLink,
 } from "@/components/courses/course-analytics";
 import { JsonLd } from "@/components/ui/json-ld";
+import { PageBreadcrumbs } from "@/components/ui/page-breadcrumbs";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { isLocale, type Locale } from "@/content/site";
 import { getCheckoutHints } from "@/lib/payments/providers";
@@ -185,6 +186,22 @@ export default async function CoursePackDetailPage({
             { name: pack.title, path: `/courses/${slug}` },
           ])}
         />
+
+        <div className="container pt-4 sm:pt-6">
+          <PageBreadcrumbs
+            items={[
+              {
+                label: locale === "fr" ? "Accueil" : "Home",
+                href: getPublicAppPath("/"),
+              },
+              {
+                label: locale === "fr" ? "Cours" : "Courses",
+                href: getPublicAppPath("/courses"),
+              },
+              { label: pack.title },
+            ]}
+          />
+        </div>
 
         <CourseHero
           locale={locale}
@@ -395,6 +412,9 @@ export default async function CoursePackDetailPage({
             "Profitez d’une introduction gratuite à ce cours et découvrez l’expérience d’apprentissage teChia Digital Academy.",
           previewFree: "Aperçu gratuit. Aucun paiement ni inscription requis.",
           exploreCollection: "Découvrir la collection complète",
+          finalTitle: "Prêt à commencer ?",
+          finalBody:
+            "Achetez ce cours pour accéder à un parcours pratique, à des exemples concrets et à un accompagnement clair après votre achat.",
         }
       : {
           viewAll: "View all courses",
@@ -417,6 +437,9 @@ export default async function CoursePackDetailPage({
             "Get a free introduction to this course and see what learning with teChia Digital Academy looks like.",
           previewFree: "Free preview. No payment or signup required.",
           exploreCollection: "Explore the Complete Collection",
+          finalTitle: "Ready to start?",
+          finalBody:
+            "Buy this course to get a practical learning path, real examples, and clear next steps after checkout.",
         };
 
   const courseJsonLd = {
@@ -479,6 +502,22 @@ export default async function CoursePackDetailPage({
         ])}
       />
       <JsonLd data={courseJsonLd} />
+
+      <div className="container pt-4 sm:pt-6">
+        <PageBreadcrumbs
+          items={[
+            {
+              label: locale === "fr" ? "Accueil" : "Home",
+              href: getPublicAppPath("/"),
+            },
+            {
+              label: locale === "fr" ? "Cours" : "Courses",
+              href: getPublicAppPath("/courses"),
+            },
+            { label: course.title },
+          ]}
+        />
+      </div>
 
       <CourseHero
         locale={locale}
@@ -662,7 +701,14 @@ export default async function CoursePackDetailPage({
       <section className="container pb-20">
         <div className="gradient-border rounded-[2rem]">
           <div className="elevated-panel px-6 py-8 sm:px-7 md:px-10 md:py-12">
-            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <p className="eyebrow">{copy.overview}</p>
+            <h2 className="mt-4 max-w-3xl text-3xl font-semibold text-primary sm:text-4xl">
+              {copy.finalTitle}
+            </h2>
+            <p className="mt-4 max-w-3xl text-base leading-8 text-muted">
+              {copy.finalBody}
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <CourseCheckoutButton
                 pack={{ id: course.id, slug: course.slug, title: course.title, checkoutUrl: null, priceMinor: course.priceMinor, priceCurrency: course.currency, chariowProductId: course.chariowProductId }}
                 itemType="course"

@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
 import { isLocale, type Locale } from "@/content/site";
-import { createMetadata } from "@/lib/seo";
+import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
 import { resolveCheckoutItem } from "@/lib/payments/checkout";
 import { getAvailablePaymentProviders, internalCheckoutEnabled } from "@/lib/payments/providers";
 import { formatMoney } from "@/lib/payments/money";
 import { CheckoutForm } from "@/components/courses/checkout/CheckoutForm";
+import { JsonLd } from "@/components/ui/json-ld";
+import { PageBreadcrumbs } from "@/components/ui/page-breadcrumbs";
+import {
+  getCoursesSupportEmail,
+  getCoursesWhatsappUrl,
+} from "@/lib/courses/chariowLinks";
+import { getPublicAppPath } from "@/lib/site-routes";
 
 function parseItem(value: string | undefined) {
   if (!value) return null;
@@ -68,6 +77,11 @@ export default async function CheckoutPage({
           summary: "Résumé de commande",
           total: "Total",
           typeLabel: parsed.type === "pack" ? "Pack" : "Cours",
+          back: parsed.type === "pack" ? "Retour au pack" : "Retour au cours",
+          secureNote:
+            "Paiement chiffré traité par le prestataire sélectionné. teChia ne stocke pas vos informations de carte.",
+          support: "Contacter le support",
+          whatsapp: "WhatsApp",
         }
       : {
           title: "Secure checkout",
@@ -76,12 +90,53 @@ export default async function CheckoutPage({
           summary: "Order summary",
           total: "Total",
           typeLabel: parsed.type === "pack" ? "Pack" : "Course",
+          back: parsed.type === "pack" ? "Back to pack" : "Back to course",
+          secureNote:
+            "Encrypted payment processed by the selected provider. teChia does not store your card details.",
+          support: "Contact support",
+          whatsapp: "WhatsApp",
         };
 
+  const supportEmail = getCoursesSupportEmail();
+  const whatsappUrl = getCoursesWhatsappUrl(
+    locale === "fr"
+      ? "Bonjour teChia, j'ai besoin d'aide pour finaliser mon paiement teChia Digital Academy."
+      : "Hello teChia, I need help completing my teChia Digital Academy payment.",
+  );
+
   return (
-    <main className="container py-10 sm:py-14">
+    <main className="container py-6 sm:py-10">
+      <JsonLd
+        data={breadcrumbJsonLd(locale, [
+          { name: locale === "fr" ? "Accueil" : "Home", path: "" },
+          { name: locale === "fr" ? "Cours" : "Courses", path: "/courses" },
+          { name: copy.title, path: "/courses/checkout" },
+        ])}
+      />
+      <PageBreadcrumbs
+        className="mb-6"
+        items={[
+          {
+            label: locale === "fr" ? "Accueil" : "Home",
+            href: getPublicAppPath("/"),
+          },
+          {
+            label: locale === "fr" ? "Cours" : "Courses",
+            href: getPublicAppPath("/courses"),
+          },
+          { label: copy.title },
+        ]}
+      />
+
       <div className="mx-auto max-w-5xl">
-        <p className="eyebrow">{copy.title}</p>
+        <Link
+          href={item.path}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-accent transition hover:underline"
+        >
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          {copy.back}
+        </Link>
+        <p className="eyebrow mt-6">{copy.title}</p>
         <h1 className="mt-4 text-3xl font-semibold text-primary sm:text-4xl">
           {item.title}
         </h1>
@@ -106,6 +161,35 @@ export default async function CheckoutPage({
                   {formatMoney(item.priceMinor, item.currency, locale)}
                 </span>
               </div>
+              <div className="mt-5 flex items-start gap-3 rounded-xl border border-border bg-background/70 p-4">
+                <ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-500" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold text-primary">{copy.title}</p>
+                  <p className="mt-1 text-xs leading-6 text-muted">{copy.secureNote}</p>
+                </div>
+              </div>
+              {supportEmail || whatsappUrl ? (
+                <div className="mt-4 flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap">
+                  {supportEmail ? (
+                    <a
+                      href={`mailto:${supportEmail}`}
+                      className="inline-flex items-center gap-2 font-semibold text-accent hover:underline"
+                    >
+                      {copy.support}
+                    </a>
+                  ) : null}
+                  {whatsappUrl ? (
+                    <a
+                      href={whatsappUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 font-semibold text-accent hover:underline"
+                    >
+                      {copy.whatsapp}
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </section>
 

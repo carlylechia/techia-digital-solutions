@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { isLocale, type Locale } from "@/content/site";
-import { createMetadata } from "@/lib/seo";
+import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
 import { getPublicAppPath } from "@/lib/site-routes";
 import { isProviderId } from "@/lib/payments/providers";
 import { verifyOrderReturn } from "@/lib/payments/fulfillment";
 import { formatMoney } from "@/lib/payments/money";
+import { JsonLd } from "@/components/ui/json-ld";
+import { PageBreadcrumbs } from "@/components/ui/page-breadcrumbs";
+import {
+  getCoursesSupportEmail,
+  getCoursesWhatsappUrl,
+} from "@/lib/courses/chariowLinks";
 
 export async function generateMetadata({
   params,
@@ -68,6 +74,8 @@ export default async function CheckoutReturnPage({
       claim: "Claim buyer bonus",
       browse: "Back to courses",
       refresh: "Refresh status",
+      support: "Contact support",
+      whatsapp: "WhatsApp",
     },
     fr: {
       title: "Statut du paiement",
@@ -94,8 +102,17 @@ export default async function CheckoutReturnPage({
       claim: "Réclamer le bonus acheteur",
       browse: "Retour aux cours",
       refresh: "Actualiser le statut",
+      support: "Contacter le support",
+      whatsapp: "WhatsApp",
     },
   }[locale];
+
+  const supportEmail = getCoursesSupportEmail();
+  const whatsappUrl = getCoursesWhatsappUrl(
+    locale === "fr"
+      ? "Bonjour teChia, j'ai besoin d'aide au sujet de ma commande teChia Digital Academy."
+      : "Hello teChia, I need help with my teChia Digital Academy order.",
+  );
 
   const tone =
     result.status === "paid"
@@ -133,7 +150,34 @@ export default async function CheckoutReturnPage({
               : copy.notFoundBody;
 
   return (
-    <main className="container py-12 sm:py-16">
+    <main className="container py-6 sm:py-10">
+      <JsonLd
+        data={breadcrumbJsonLd(locale, [
+          { name: locale === "fr" ? "Accueil" : "Home", path: "" },
+          { name: locale === "fr" ? "Cours" : "Courses", path: "/courses" },
+          { name: locale === "fr" ? "Paiement" : "Checkout", path: "/courses/checkout" },
+          { name: copy.title, path: "/courses/checkout/return" },
+        ])}
+      />
+      <PageBreadcrumbs
+        className="mb-6"
+        items={[
+          {
+            label: locale === "fr" ? "Accueil" : "Home",
+            href: getPublicAppPath("/"),
+          },
+          {
+            label: locale === "fr" ? "Cours" : "Courses",
+            href: getPublicAppPath("/courses"),
+          },
+          {
+            label: locale === "fr" ? "Paiement" : "Checkout",
+            href: getPublicAppPath("/courses/checkout"),
+          },
+          { label: copy.title },
+        ]}
+      />
+
       <div className="mx-auto max-w-3xl">
         <p className="eyebrow">{copy.title}</p>
         <div className={`mt-6 rounded-[1.8rem] border p-6 sm:p-8 ${tone}`}>
@@ -175,6 +219,28 @@ export default async function CheckoutReturnPage({
               {copy.browse}
             </Link>
           </div>
+          {supportEmail || whatsappUrl ? (
+            <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 text-sm sm:flex-row sm:flex-wrap">
+              {supportEmail ? (
+                <a
+                  href={`mailto:${supportEmail}`}
+                  className="inline-flex items-center gap-2 font-semibold text-accent hover:underline"
+                >
+                  {copy.support}
+                </a>
+              ) : null}
+              {whatsappUrl ? (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 font-semibold text-accent hover:underline"
+                >
+                  {copy.whatsapp}
+                </a>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
     </main>
