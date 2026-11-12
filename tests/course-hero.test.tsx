@@ -2,8 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { CourseHero } from "@/components/courses/CourseHero";
 
-const COVER_URL =
-  "https://res.cloudinary.com/djibtueaq/image/upload/v1794415355/techia/academy/kr3rufysiztdbfldhtrh.jpg";
+const COVER_URL = "https://example.com/course-cover.jpg";
 
 function renderHero(props: { imageUrl?: string | null } = {}) {
   return render(
