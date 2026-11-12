@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isLocale } from "@/content/site";
+import { AdminMobileToolbar } from "@/components/admin/AdminMobileToolbar";
 import { AdminPwaRegistration } from "@/components/admin/admin-pwa-registration";
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export default async function AdminLayout({
     <div className="admin-portal">
       <AdminPwaRegistration />
       {children}
+      <AdminMobileToolbar locale={locale} />
     </div>
   );
 }

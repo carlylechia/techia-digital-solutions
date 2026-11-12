@@ -1,20 +1,38 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+
+interface RecommendedItem {
+  type: "course" | "pack";
+  slug: string;
+  title: string;
+}
 
 interface Props {
   conversationId: string | null;
-  onSuccess: () => void;
+  onSuccess: (item?: RecommendedItem | null) => void;
+  recommendedItem?: RecommendedItem | null;
+  checkoutUrl?: string;
+  checkoutLabel?: string;
 }
 
-export function LeadCaptureCard({ conversationId, onSuccess }: Props) {
+export function LeadCaptureCard({
+  conversationId,
+  onSuccess,
+  recommendedItem,
+  checkoutUrl,
+  checkoutLabel,
+}: Props) {
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
     companyName: "",
-    serviceInterest: "",
+    serviceInterest: recommendedItem
+      ? `Course purchase: ${recommendedItem.title}`
+      : "",
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,10 +63,16 @@ export function LeadCaptureCard({ conversationId, onSuccess }: Props) {
             email: form.email,
             phone: form.phone || undefined,
             companyName: form.companyName || undefined,
-            serviceInterest: form.serviceInterest || "Digital Services",
+            serviceInterest:
+              form.serviceInterest.trim() ||
+              (recommendedItem
+                ? `Course purchase: ${recommendedItem.title}`
+                : "Digital Services"),
             projectSummary:
               form.message ||
-              `Lead from AI Growth Agent. Name: ${form.name}, Service interest: ${form.serviceInterest || "General"}`,
+              (recommendedItem
+                ? `AI Growth Agent lead for course purchase: ${recommendedItem.title} (${recommendedItem.slug}). Name: ${form.name}.`
+                : `Lead from AI Growth Agent. Name: ${form.name}, Service interest: ${form.serviceInterest || "General"}`),
             leadScore: "WARM",
           },
         }),
@@ -58,7 +82,7 @@ export function LeadCaptureCard({ conversationId, onSuccess }: Props) {
         setError(data.error);
       } else {
         setSubmitted(true);
-        onSuccess();
+        onSuccess(recommendedItem);
       }
     } catch {
       setError("Failed to submit. Please try again.");
@@ -77,6 +101,15 @@ export function LeadCaptureCard({ conversationId, onSuccess }: Props) {
         <p className="mt-1 text-[12px] text-muted">
           The teChia team can now review your project details and follow up with you.
         </p>
+        {checkoutUrl ? (
+          <Link
+            href={checkoutUrl}
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-white transition-all hover:bg-accent/90"
+          >
+            {checkoutLabel || "Continue to checkout"}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        ) : null}
       </div>
     );
   }

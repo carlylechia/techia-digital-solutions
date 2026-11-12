@@ -319,6 +319,8 @@ export async function POST(request: NextRequest) {
   const sessionId = typeof body.sessionId === "string" ? body.sessionId.slice(0, 64) : "";
   const conversationId =
     typeof body.conversationId === "string" ? body.conversationId.slice(0, 64) : null;
+  const pagePath = typeof body.pagePath === "string" ? body.pagePath.slice(0, 256) : "";
+  const requestLocale = body.locale === "fr" ? "fr" : "en";
   const history: ChatMessage[] = Array.isArray(body.history)
     ? (body.history as unknown[])
         .filter(
@@ -410,10 +412,13 @@ export async function POST(request: NextRequest) {
 
   // 7. Estimate tokens before calling OpenAI
   const contextMessages = buildContextMessages(history, null);
-  const academyCatalogContext = await buildAcademyCatalogContext("en").catch(
+  const academyCatalogContext = await buildAcademyCatalogContext(requestLocale).catch(
     () => "Academy catalog is temporarily unavailable.",
   );
-  const systemPrompt = `${TECHIA_SYSTEM_PROMPT}\n\n${academyCatalogContext}`;
+  const pageContext = pagePath.includes("/courses")
+    ? "The visitor is currently on the courses/catalog page. Prioritize course and pack recommendations, include direct course/pack URLs, and guide them toward checkout when they are ready."
+    : "";
+  const systemPrompt = `${TECHIA_SYSTEM_PROMPT}\n\n${pageContext}\n\n${academyCatalogContext}`;
   const allMessages = [
     { role: "system", content: systemPrompt },
     ...contextMessages,

@@ -1,12 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Send, Sparkles, X } from "lucide-react";
 import { AIMessageBubble } from "./AIMessageBubble";
 import { AIQuickActions } from "./AIQuickActions";
 import { LeadCaptureCard } from "./LeadCaptureCard";
 import { TypingIndicator } from "./TypingIndicator";
-import { INTRO_MESSAGE, QUICK_ACTIONS } from "@/lib/ai/prompts";
+import {
+  COURSE_QUICK_ACTIONS,
+  INTRO_MESSAGE,
+  QUICK_ACTIONS,
+} from "@/lib/ai/prompts";
 
 export interface Message {
   id: string;
@@ -40,6 +45,9 @@ interface AgentResponse {
 }
 
 export function AIChatPanel({ onClose }: AIChatPanelProps) {
+  const pathname = usePathname();
+  const requestLocale = pathname?.split("/")[1] === "fr" ? "fr" : "en";
+  const isCoursesPage = Boolean(pathname?.includes("/courses"));
   const [messages, setMessages] = useState<Message[]>([
     { id: "intro", role: "assistant", content: INTRO_MESSAGE },
   ]);
@@ -48,6 +56,11 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   const [showLeadCapture, setShowLeadCapture] = useState(false);
   const [leadCaptured, setLeadCaptured] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [recommendedCheckout, setRecommendedCheckout] = useState<{
+    type: "course" | "pack";
+    slug: string;
+    title: string;
+  } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionId = useRef(getOrCreateSessionId());
 
@@ -78,6 +91,8 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
             sessionId: sessionId.current,
             conversationId,
             history,
+            pagePath: pathname,
+            locale: requestLocale,
           }),
         });
 
@@ -97,9 +112,25 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
             setConversationId(data.conversationId);
           }
 
-          // Show lead capture after 4+ exchanges if not captured yet
+          const courseLinks = Array.from(
+            data.message.matchAll(/\[([^\]]+)\]\(\/courses\/([^)\s]+)\)/g),
+          );
+          const lastCourseLink = courseLinks.at(-1);
+          if (lastCourseLink) {
+            const title = lastCourseLink[1].trim();
+            const slug = lastCourseLink[2].trim().replace(/\/$/, "");
+            if (slug) {
+              setRecommendedCheckout({
+                type: /pack/i.test(slug) ? "pack" : "course",
+                slug,
+                title,
+              });
+            }
+          }
+
+          // Show lead capture after a few exchanges if not captured yet.
           const totalMsgs = messages.length + 2;
-          if (totalMsgs >= 8 && !leadCaptured && !showLeadCapture) {
+          if (totalMsgs >= 6 && !leadCaptured && !showLeadCapture) {
             const lowerContent = data.message.toLowerCase();
             const contactTriggers = [
               "contact",
@@ -111,8 +142,18 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
               "follow up",
               "demo",
               "proposal",
+              "details",
+              "checkout",
+              "enroll",
+              "purchase",
             ];
-            if (contactTriggers.some((t) => lowerContent.includes(t))) {
+            const userAgreed = /\b(yes|yeah|sure|buy|purchase|enroll|sounds good|let's do it|get it)\b/i.test(
+              trimmed,
+            );
+            if (
+              contactTriggers.some((trigger) => lowerContent.includes(trigger)) ||
+              (userAgreed && recommendedCheckout)
+            ) {
               setShowLeadCapture(true);
             }
           }
@@ -128,7 +169,16 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
         setIsLoading(false);
       }
     },
-    [messages, isLoading, conversationId, leadCaptured, showLeadCapture]
+    [
+      messages,
+      isLoading,
+      conversationId,
+      leadCaptured,
+      showLeadCapture,
+      recommendedCheckout,
+      pathname,
+      requestLocale,
+    ]
   );
 
   const handleSubmit = useCallback(
@@ -150,6 +200,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   );
 
   const showQuickActions = messages.length <= 1;
+  const quickActions = isCoursesPage ? COURSE_QUICK_ACTIONS : QUICK_ACTIONS;
 
   return (
     <div className="flex h-[600px] sm:h-[580px] max-h-[90dvh] flex-col overflow-hidden rounded-t-2xl sm:rounded-2xl border border-border bg-surface shadow-xl">
@@ -182,9 +233,23 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
         {showLeadCapture && !leadCaptured && (
           <LeadCaptureCard
             conversationId={conversationId}
-            onSuccess={() => {
+            recommendedItem={recommendedCheckout}
+            checkoutUrl={
+              recommendedCheckout
+                ? `/courses/checkout?item=${recommendedCheckout.type}:${encodeURIComponent(
+                    recommendedCheckout.slug,
+                  )}`
+                : undefined
+            }
+            checkoutLabel={
+              recommendedCheckout
+                ? `Continue to checkout for ${recommendedCheckout.title}`
+                : undefined
+            }
+            onSuccess={(item) => {
               setLeadCaptured(true);
               setShowLeadCapture(false);
+              if (item) setRecommendedCheckout(item);
             }}
           />
         )}
@@ -194,7 +259,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       {/* Quick Actions */}
       {showQuickActions && (
         <AIQuickActions
-          actions={QUICK_ACTIONS as unknown as string[]}
+          actions={quickActions as unknown as string[]}
           onSelect={(action) => void sendMessage(action)}
           disabled={isLoading}
         />

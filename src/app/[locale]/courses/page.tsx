@@ -10,6 +10,7 @@ import { CourseCatalogFilters } from "@/components/courses/CourseCatalogFilters"
 import { CourseFaq } from "@/components/courses/CourseFaq";
 import { CoursePackCard } from "@/components/courses/CoursePackCard";
 import { CourseCheckoutButton } from "@/components/courses/CourseCheckoutButton";
+import { OpenAIChatButton } from "@/components/ai/OpenAIChatButton";
 import { FeaturedFullPack } from "@/components/courses/FeaturedFullPack";
 import {
   CoursePageAnalytics,
@@ -183,6 +184,11 @@ export default async function CoursesPage({
           supportWhatsapp: "Demander conseil sur WhatsApp",
           supportEmail: "Contacter par email",
           clearFilters: "Effacer les filtres",
+          aiCtaEyebrow: "Besoin d'aide pour choisir ?",
+          aiCtaTitle: "Parlez à l’agent IA teChia",
+          aiCtaBody:
+            "Si vous hésitez entre un cours et un pack, l’agent IA peut vous recommander la meilleure option selon votre objectif, votre niveau et votre budget.",
+          aiCtaButton: "Demander conseil à l’IA",
         }
       : {
           heroEyebrow: "teChia Digital Academy",
@@ -233,6 +239,11 @@ export default async function CoursesPage({
           supportWhatsapp: "Ask on WhatsApp",
           supportEmail: "Contact by email",
           clearFilters: "Clear filters",
+          aiCtaEyebrow: "Need help choosing?",
+          aiCtaTitle: "Talk to the teChia AI agent",
+          aiCtaBody:
+            "If you are unsure whether to buy a single course or a pack, the AI agent can recommend the best option for your goal, level, and budget.",
+          aiCtaButton: "Ask the AI agent",
         };
 
   return (
@@ -527,6 +538,24 @@ export default async function CoursesPage({
             <div className="mt-8">
               <CourseFaq items={faqs} sourcePage="courses_faq" pack={fullPack} />
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="container py-4 sm:py-6">
+        <div className="gradient-border rounded-[1.95rem]">
+          <div className="elevated-panel flex flex-col gap-4 p-6 sm:p-7 md:flex-row md:items-center md:justify-between md:p-8">
+            <div className="max-w-3xl">
+              <p className="eyebrow">{copy.aiCtaEyebrow}</p>
+              <h2 className="mt-3 text-2xl font-semibold text-primary sm:text-3xl">
+                {copy.aiCtaTitle}
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-muted">{copy.aiCtaBody}</p>
+            </div>
+            <OpenAIChatButton
+              label={copy.aiCtaButton}
+              className="btn-secondary justify-center px-5 py-3"
+            />
           </div>
         </div>
       </section>
