@@ -1927,6 +1927,17 @@ model AcademyCourse {
   currency                    String                  @default("XAF")
   chariowProductId            String?
   imageUrl                    String?
+  // Free introductory preview hosted on YouTube (Unlisted). The video ID is
+  // stored separately from the URL so the public player can always rebuild a
+  // trusted embed URL from a validated ID. Disabled by default and fully
+  // optional — existing courses remain valid without a preview.
+  previewVideoProvider        String?
+  previewVideoId              String?
+  previewVideoEnabled         Boolean                 @default(false)
+  previewVideoTitle           String?
+  previewVideoPoster          String?
+  previewVideoDurationLabel   String?
+  previewVideoUpdatedAt       DateTime?
   seoTitleEn                  String?
   seoTitleFr                  String?
   seoDescriptionEn            String?                 @db.Text
