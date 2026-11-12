@@ -7,6 +7,7 @@ import { BuyerBonusSection } from "@/components/courses/BuyerBonusSection";
 import { CourseFaq } from "@/components/courses/CourseFaq";
 import { CourseHero } from "@/components/courses/CourseHero";
 import { CourseCheckoutButton } from "@/components/courses/CourseCheckoutButton";
+import { CoursePreviewPlayer } from "@/components/courses/CoursePreviewPlayer";
 import { FullPackBonusUpsell } from "@/components/courses/FullPackBonusUpsell";
 import { RelatedCoursePacks } from "@/components/courses/RelatedCoursePacks";
 import {
@@ -385,6 +386,13 @@ export default async function CoursePackDetailPage({
           priceSoon: "Prix et paiement bientôt disponibles",
           lesson: "Leçon",
           preview: "Aperçu",
+          previewEyebrow: "Aperçu gratuit du cours",
+          previewHeading: "Regardez avant d’acheter.",
+          watchPreview: "Voir l’aperçu gratuit",
+          previewBody:
+            "Profitez d’une introduction gratuite à ce cours et découvrez l’expérience d’apprentissage teChia Digital Academy.",
+          previewFree: "Aperçu gratuit. Aucun paiement ni inscription requis.",
+          exploreCollection: "Découvrir la collection complète",
         }
       : {
           viewAll: "View all courses",
@@ -400,6 +408,13 @@ export default async function CoursePackDetailPage({
           priceSoon: "Price and checkout coming soon",
           lesson: "Lesson",
           preview: "Preview",
+          previewEyebrow: "Free course preview",
+          previewHeading: "Watch before you buy.",
+          watchPreview: "Watch free preview",
+          previewBody:
+            "Get a free introduction to this course and see what learning with teChia Digital Academy looks like.",
+          previewFree: "Free preview. No payment or signup required.",
+          exploreCollection: "Explore the Complete Collection",
         };
 
   const courseJsonLd = {
@@ -469,7 +484,18 @@ export default async function CoursePackDetailPage({
         title={course.title}
         description={course.description}
         badges={[course.levelLabel, `${course.lessons.length} ${copy.lesson.toLowerCase()}s`]}
-        actions={[{ href: "/courses", label: copy.viewAll, variant: "secondary" }]}
+        actions={[
+          ...(course.previewVideo
+            ? [
+                {
+                  href: "#course-preview",
+                  label: copy.watchPreview,
+                  variant: "primary" as const,
+                },
+              ]
+            : []),
+          { href: "/courses", label: copy.viewAll, variant: "secondary" as const },
+        ]}
         aside={
           <div className="rounded-[1.55rem] bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(251,113,133,0.14),transparent_28%)] p-5 sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">{copy.overview}</p>
@@ -499,6 +525,62 @@ export default async function CoursePackDetailPage({
           </div>
         }
       />
+
+      {course.previewVideo ? (
+        <section id="course-preview" className="container scroll-mt-24 pb-4 pt-2 sm:pb-6">
+          <div className="gradient-border rounded-[1.95rem]">
+            <div className="elevated-panel p-4 sm:p-6 md:p-8">
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(17rem,0.6fr)] lg:items-center">
+                <CoursePreviewPlayer
+                  videoId={course.previewVideo.videoId}
+                  courseId={course.id}
+                  courseSlug={course.slug}
+                  courseTitle={course.title}
+                  title={course.previewVideo.title}
+                  durationLabel={course.previewVideo.durationLabel}
+                  posterUrl={course.previewVideo.posterUrl}
+                  locale={locale}
+                  sourcePage="course_detail_preview"
+                />
+                <div className="lg:pl-2">
+                  <p className="eyebrow">{copy.previewEyebrow}</p>
+                  <h2 className="mt-3 text-balance text-3xl font-semibold leading-tight text-primary sm:text-4xl">
+                    {copy.previewHeading}
+                  </h2>
+                  <p className="mt-3 text-sm leading-7 text-muted sm:text-base">
+                    {course.previewVideo.title || copy.previewBody}
+                  </p>
+                  <div className="mt-5 grid gap-3">
+                    <CourseCheckoutButton
+                      pack={{ id: course.id, slug: course.slug, title: course.title, checkoutUrl: null, priceMinor: course.priceMinor, priceCurrency: course.currency, chariowProductId: course.chariowProductId }}
+                      itemType="course"
+                      label={copy.buy}
+                      sourcePage="course_detail_preview"
+                      hints={hints}
+                    />
+                    {course.includedInFullPack ? (
+                      <CourseTrackedLink
+                        href={getPublicAppPath("/courses/complete-digital-skills-pack")}
+                        eventName="course_pack_click"
+                        eventParams={{
+                          pack_id: course.id,
+                          pack_slug: course.slug,
+                          pack_title: course.title,
+                          source_page: "course_detail_preview_collection",
+                        }}
+                        className="btn-secondary justify-center px-5 py-3"
+                      >
+                        {copy.exploreCollection}
+                      </CourseTrackedLink>
+                    ) : null}
+                  </div>
+                  <p className="mt-3 text-xs leading-6 text-muted">{copy.previewFree}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {course.financialDisclaimerRequired ? (
         <section className="container py-4">

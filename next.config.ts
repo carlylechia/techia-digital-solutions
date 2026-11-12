@@ -36,6 +36,9 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
               "connect-src 'self' https://www.google-analytics.com https://analytics.google.com",
+              // Course previews load only after an explicit click. The iframe
+              // is restricted to the privacy-enhanced YouTube embed domain.
+              "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'"
