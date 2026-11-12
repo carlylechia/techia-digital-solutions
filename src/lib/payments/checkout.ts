@@ -189,7 +189,7 @@ export async function startAcademyCheckout(
       503,
     );
   }
-  if (!isProviderConfigured(input.provider)) {
+  if (!(await isProviderConfigured(input.provider))) {
     throw new CheckoutError(
       "provider_unavailable",
       "The selected payment provider is not available.",

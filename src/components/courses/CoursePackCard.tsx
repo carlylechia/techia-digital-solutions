@@ -8,7 +8,7 @@ import { getCheckoutHints } from "@/lib/payments/providers";
 import { formatMoney } from "@/lib/payments/money";
 import { cn } from "@/lib/utils";
 
-export function CoursePackCard({
+export async function CoursePackCard({
   pack,
   locale,
   sourcePage,
@@ -35,7 +35,7 @@ export function CoursePackCard({
     locale === "fr"
       ? { level: "Niveau", price: "Prix", priceSoon: "Prix à venir" }
       : { level: "Level", price: "Price", priceSoon: "Price coming soon" };
-  const hints = getCheckoutHints();
+  const hints = await getCheckoutHints();
   const priceMinor =
     typeof pack.priceMinor === "number" && pack.priceMinor > 0
       ? pack.priceMinor

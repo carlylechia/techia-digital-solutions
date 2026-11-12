@@ -10,6 +10,7 @@ import {
   Layers,
   Package,
   Receipt,
+  Wallet,
 } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
@@ -319,6 +320,48 @@ function StatusPill({ value }: { value: string }) {
   );
 }
 
+/**
+ * Admin toggle for which payment providers appear at checkout. API keys live in
+ * environment variables; this only flips visibility in the storefront/checkout
+ * (see getPaymentProviderEnablement in lib/payments/providers).
+ */
+async function updatePaymentProviders(
+  _previousState: AcademyActionState,
+  formData: FormData,
+): Promise<AcademyActionState> {
+  "use server";
+  try {
+    await requireCatalogManager();
+    const { getPrisma } = await import("@/lib/prisma");
+    const prisma = getPrisma();
+    if (!prisma) throw new Error("Database unavailable");
+
+    const chariowEnabled = formData.get("chariowEnabled") === "on";
+    const monerooEnabled = formData.get("monerooEnabled") === "on";
+    await prisma.academyPaymentSettings.upsert({
+      where: { id: "singleton" },
+      update: { chariowEnabled, monerooEnabled },
+      create: { id: "singleton", chariowEnabled, monerooEnabled },
+    });
+
+    revalidateAcademy();
+    return {
+      ok: true,
+      message: `Payment methods saved. Chariow: ${chariowEnabled ? "shown at checkout" : "hidden"}, Moneroo: ${monerooEnabled ? "shown at checkout" : "hidden"}.`,
+      ts: Date.now(),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    return {
+      ok: false,
+      message: /Database unavailable/.test(message)
+        ? "The database is unavailable right now. Try again shortly."
+        : "Could not save the payment methods. Refresh the page and try again.",
+      ts: Date.now(),
+    };
+  }
+}
+
 function MetaPill({ children }: { children: ReactNode }) {
   return (
     <span className="inline-flex items-center rounded-full border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-muted">
@@ -439,6 +482,20 @@ export default async function AdminAcademyPage({
 
   const { courses, packs, categories, orders } = await loadAdminAcademyCatalog(prisma);
   const canManage = hasPermission(session.user.permissions, "academy.catalog.manage");
+  let paymentSettings = { chariowEnabled: true, monerooEnabled: true };
+  try {
+    const row = await prisma.academyPaymentSettings.findUnique({
+      where: { id: "singleton" },
+    });
+    if (row) {
+      paymentSettings = {
+        chariowEnabled: row.chariowEnabled,
+        monerooEnabled: row.monerooEnabled,
+      };
+    }
+  } catch {
+    // Settings table not migrated yet — default to both providers enabled.
+  }
   const publishedCount = courses.filter((course) => course.status === "PUBLISHED").length;
   const packCourseCount = new Set(packs.flatMap((pack) => pack.items.map((item) => item.courseId))).size;
 
@@ -508,6 +565,9 @@ export default async function AdminAcademyPage({
                   + Add course
                 </a>
               ) : null}
+              {canManage ? (
+                <a href="#payments" className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/40 hover:text-accent">Payment methods</a>
+              ) : null}
               <a href="#courses" className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/40 hover:text-accent">Courses</a>
               <a href="#packs" className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/40 hover:text-accent">Packs</a>
               <a href="#orders" className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/40 hover:text-accent">Orders</a>
@@ -520,6 +580,61 @@ export default async function AdminAcademyPage({
             You have read-only access to academy orders. Catalog editing requires the
             academy catalog manage permission.
           </div>
+        ) : null}
+
+        {/* Payment methods */}
+        {canManage ? (
+          <section className="grid gap-4">
+            <SectionHeader
+              id="payments"
+              icon={Wallet}
+              title="Payment methods"
+              hint="Choose which providers buyers can pay with. API keys stay in environment variables — these switches only control what is shown at checkout."
+            />
+            <div className="gradient-border rounded-[1.5rem]">
+              <div className="elevated-panel p-5 sm:p-6">
+                <AcademyActionForm
+                  action={updatePaymentProviders}
+                  submitLabel="Save payment methods"
+                  pendingLabel="Saving…"
+                  helper="Hidden providers disappear from the storefront buttons and the checkout page immediately after saving."
+                >
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="flex items-start gap-3 rounded-2xl border border-border bg-surface p-4">
+                      <input
+                        type="checkbox"
+                        name="chariowEnabled"
+                        defaultChecked={paymentSettings.chariowEnabled}
+                        className="mt-0.5 size-4 accent-cyan-400"
+                      />
+                      <span>
+                        <span className="block text-sm font-semibold text-primary">Chariow</span>
+                        <span className="mt-1 block text-xs text-muted">
+                          Hosted checkout for cards and mobile money. Also delivers course files
+                          and buyer bonuses after payment — keep it enabled for orders to complete.
+                        </span>
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-3 rounded-2xl border border-border bg-surface p-4">
+                      <input
+                        type="checkbox"
+                        name="monerooEnabled"
+                        defaultChecked={paymentSettings.monerooEnabled}
+                        className="mt-0.5 size-4 accent-cyan-400"
+                      />
+                      <span>
+                        <span className="block text-sm font-semibold text-primary">Moneroo</span>
+                        <span className="mt-1 block text-xs text-muted">
+                          Mobile money and card checkout for FCFA buyers. Hide it while payment
+                          methods are still being configured in the Moneroo dashboard.
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+                </AcademyActionForm>
+              </div>
+            </div>
+          </section>
         ) : null}
 
         {/* Create course */}

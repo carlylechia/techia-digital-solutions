@@ -100,7 +100,7 @@ export default async function CoursePackDetailPage({
       .filter((item) => item.id !== pack.id)
       .filter((item) => (pack.recommended ? true : !item.recommended))
       .slice(0, 3);
-    const hints = getCheckoutHints();
+    const hints = await getCheckoutHints();
 
     const copy =
       locale === "fr"
@@ -368,7 +368,7 @@ export default async function CoursePackDetailPage({
       ? `Bonjour teChia, je veux des informations sur le cours ${course.title}.`
       : `Hello teChia, I want more information about the ${course.title} course.`,
   );
-  const hints = getCheckoutHints();
+  const hints = await getCheckoutHints();
   const copy =
     locale === "fr"
       ? {

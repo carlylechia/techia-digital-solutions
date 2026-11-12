@@ -91,6 +91,7 @@ export default async function CoursesPage({
     listPublishedCourses(locale),
     listPublishedCategories(locale),
   ]);
+  const checkoutHints = await getCheckoutHints();
   const fullPack = packs.find((pack) => pack.id === "complete-digital-skills-pack");
   if (!fullPack) notFound();
   const subpacks = packs.filter((pack) => pack.id !== fullPack.id);
@@ -394,7 +395,7 @@ export default async function CoursesPage({
                           pack={fullPack}
                           label={copy.bonusPrimary}
                           sourcePage="courses_bonus_section"
-                          hints={getCheckoutHints()}
+                          hints={checkoutHints}
                           chariowProductId={fullPack.chariowProductId}
                         />
                         <a href="#catalog" className="btn-secondary justify-center px-5 py-3">

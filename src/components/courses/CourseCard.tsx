@@ -7,7 +7,7 @@ import { getCheckoutHints } from "@/lib/payments/providers";
 import { formatMoney } from "@/lib/payments/money";
 import type { Locale } from "@/content/site";
 
-export function CourseCard({
+export async function CourseCard({
   course,
   locale,
   sourcePage,
@@ -36,7 +36,7 @@ export function CourseCard({
           inFullPack: "In full pack",
           priceSoon: "Price coming soon",
         };
-  const hints = getCheckoutHints();
+  const hints = await getCheckoutHints();
 
   return (
     <article className="group flex h-full flex-col rounded-[1.6rem] border border-border bg-surface p-5 transition duration-300 hover:-translate-y-1 hover:border-cyan-500/30 hover:shadow-[0_24px_50px_-28px_rgba(8,145,178,0.45)]">

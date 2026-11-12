@@ -4,13 +4,14 @@ import type { StorefrontPack } from "@/lib/courses/catalog-service";
 import { getCheckoutHints } from "@/lib/payments/providers";
 import type { Locale } from "@/content/site";
 
-export function FeaturedFullPack({
+export async function FeaturedFullPack({
   locale,
   pack,
 }: {
   locale: Locale;
   pack: StorefrontPack;
 }) {
+  const hints = await getCheckoutHints();
   const copy =
     locale === "fr"
       ? {
@@ -71,7 +72,7 @@ export function FeaturedFullPack({
                   pack={pack}
                   label={copy.buyLabel}
                   sourcePage="featured_full_pack"
-                  hints={getCheckoutHints()}
+                  hints={hints}
                   chariowProductId={pack.chariowProductId}
                 />
               </div>

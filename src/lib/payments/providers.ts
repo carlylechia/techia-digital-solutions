@@ -1,5 +1,8 @@
 import "server-only";
 
+import { cache } from "react";
+import { getPrisma } from "@/lib/prisma";
+
 export type PaymentProviderId = "CHARIOW" | "MONEROO";
 
 export type PaymentProviderAvailability = {
@@ -61,11 +64,61 @@ export function getMonerooWebhookSecret() {
   return clean(process.env.MONEROO_WEBHOOK_SECRET);
 }
 
-export function isProviderConfigured(provider: PaymentProviderId) {
+export type PaymentProviderEnablement = {
+  chariowEnabled: boolean;
+  monerooEnabled: boolean;
+};
+
+const ENABLEMENT_DEFAULTS: PaymentProviderEnablement = {
+  chariowEnabled: true,
+  monerooEnabled: true,
+};
+
+/**
+ * Admin-controlled visibility switches (/admin/academy → Payment methods).
+ * Environment variables remain the source of truth for API keys; this only
+ * decides whether a configured provider is offered on the storefront. Defaults
+ * to "enabled" whenever the row or the database is unavailable (fail-open to
+ * the env-only behavior). Memoized per request with React cache().
+ */
+export const getPaymentProviderEnablement = cache(
+  async (): Promise<PaymentProviderEnablement> => {
+    const prisma = getPrisma();
+    if (!prisma) return ENABLEMENT_DEFAULTS;
+    try {
+      const row = await prisma.academyPaymentSettings.findUnique({
+        where: { id: "singleton" },
+      });
+      if (!row) return ENABLEMENT_DEFAULTS;
+      return {
+        chariowEnabled: row.chariowEnabled,
+        monerooEnabled: row.monerooEnabled,
+      };
+    } catch (error) {
+      console.warn(
+        "[payments] provider_enablement_read_failed",
+        error instanceof Error ? error.message : error,
+      );
+      return ENABLEMENT_DEFAULTS;
+    }
+  },
+);
+
+/** A provider is offered only when its env key exists AND the admin enabled it. */
+export function applyProviderEnablement(configured: boolean, enabled: boolean) {
+  return configured && enabled;
+}
+
+export async function isProviderConfigured(provider: PaymentProviderId) {
   if (!internalCheckoutEnabled()) return false;
-  return provider === "CHARIOW"
-    ? Boolean(getChariowApiKey())
-    : Boolean(getMonerooSecretKey());
+  const envConfigured =
+    provider === "CHARIOW" ? Boolean(getChariowApiKey()) : Boolean(getMonerooSecretKey());
+  if (!envConfigured) return false;
+  const enablement = await getPaymentProviderEnablement();
+  return applyProviderEnablement(
+    true,
+    provider === "CHARIOW" ? enablement.chariowEnabled : enablement.monerooEnabled,
+  );
 }
 
 export type CheckoutHints = {
@@ -77,13 +130,22 @@ export type CheckoutHints = {
 /**
  * Server-side facts a storefront card or CTA needs to decide between internal
  * checkout, the legacy hosted checkout link, and "coming soon". Server
- * components read this and pass it to the client checkout button.
+ * components read this and pass it to the client checkout button. "Configured"
+ * here means usable: the env key exists AND the provider is enabled in
+ * /admin/academy.
  */
-export function getCheckoutHints(): CheckoutHints {
+export async function getCheckoutHints(): Promise<CheckoutHints> {
+  const enablement = await getPaymentProviderEnablement();
   return {
     internalEnabled: internalCheckoutEnabled(),
-    chariowConfigured: Boolean(getChariowApiKey()),
-    monerooConfigured: Boolean(getMonerooSecretKey()),
+    chariowConfigured: applyProviderEnablement(
+      Boolean(getChariowApiKey()),
+      enablement.chariowEnabled,
+    ),
+    monerooConfigured: applyProviderEnablement(
+      Boolean(getMonerooSecretKey()),
+      enablement.monerooEnabled,
+    ),
   };
 }
 
@@ -93,14 +155,18 @@ export function isWebhookConfigured(provider: PaymentProviderId) {
     : Boolean(getMonerooWebhookSecret());
 }
 
-export function getAvailablePaymentProviders(): PaymentProviderAvailability[] {
+export async function getAvailablePaymentProviders(): Promise<PaymentProviderAvailability[]> {
+  const [chariowConfigured, monerooConfigured] = await Promise.all([
+    isProviderConfigured("CHARIOW"),
+    isProviderConfigured("MONEROO"),
+  ]);
   return [
     {
       id: "CHARIOW",
       label: "Chariow",
       description:
         "Secure hosted Chariow checkout for cards and mobile money where available.",
-      configured: isProviderConfigured("CHARIOW"),
+      configured: chariowConfigured,
       webhookConfigured: isWebhookConfigured("CHARIOW"),
     },
     {
@@ -108,7 +174,7 @@ export function getAvailablePaymentProviders(): PaymentProviderAvailability[] {
       label: "Moneroo",
       description:
         "Secure hosted Moneroo checkout for mobile money and card payments.",
-      configured: isProviderConfigured("MONEROO"),
+      configured: monerooConfigured,
       webhookConfigured: isWebhookConfigured("MONEROO"),
     },
   ];

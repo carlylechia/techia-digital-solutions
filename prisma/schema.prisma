@@ -2135,3 +2135,15 @@ model AcademyWebhookEvent {
   @@index([provider, createdAt(sort: Desc)])
   @@index([status, createdAt(sort: Desc)])
 }
+
+// Singleton row ("id" = "singleton") with admin-controlled visibility switches
+// for the payment providers. The API keys stay in environment variables; these
+// toggles let /admin/academy hide a provider from the storefront and checkout
+// (e.g. while its dashboard is being configured) without touching env vars.
+model AcademyPaymentSettings {
+  id             String   @id @default("singleton")
+  chariowEnabled Boolean  @default(true)
+  monerooEnabled Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

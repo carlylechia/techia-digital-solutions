@@ -53,7 +53,7 @@ export default async function CheckoutPage({
   if (!item) notFound();
 
   const enabled = internalCheckoutEnabled();
-  const providers = getAvailablePaymentProviders().filter((p) => p.configured);
+  const providers = (await getAvailablePaymentProviders()).filter((p) => p.configured);
   // Chariow can only serve items linked to a Chariow product; Moneroo can
   // serve any priced item. Hide providers that would fail at the last step.
   const usableProviders = providers.filter(

@@ -32,6 +32,11 @@ CLOUDINARY_UPLOAD_PRESET=
 # Master switch. Keep false until steps 1–5 of the rollout list are done.
 # [FLIP LATER]
 ACADEMY_INTERNAL_CHECKOUT_ENABLED=false
+# NOTE — capability vs visibility: these env vars give a provider its API keys
+# (capability). Which providers BUYERS SEE at checkout is also controlled in
+# /admin/academy → "Payment methods" (DB toggles, no redeploy needed). Hide a
+# provider there (e.g. Moneroo while its dashboard is still being configured)
+# instead of deleting its env vars.
 
 # Chariow — API key: dashboard → Settings → Developer → API Keys
 #   (authenticates POST /v1/checkout and GET /v1/sales/{saleId})
@@ -100,6 +105,9 @@ COURSE_BONUS_DELIVERY_SECRET=
 # [ ] 5. Send a test pulse (Chariow: Pulse → Send test pulse) / test webhook
 #        (Moneroo) → check server logs (signature + dedupe must succeed)
 # [ ] 6. Flip ACADEMY_INTERNAL_CHECKOUT_ENABLED=true → redeploy/restart
+# [ ] 6b. /admin/academy → Payment methods: hide any provider whose dashboard is
+#        not fully configured yet (e.g. Moneroo until XAF methods are enabled in
+#        its gateway) — env vars stay untouched, effect is immediate
 # [ ] 7. Real small-amount test: Buy → provider hosted page → return page shows
 #        PAID only via server-side verification → check /admin/academy orders
 # [ ] 8. Confirm the webhook also processed the same payment (dedupe = one update)
