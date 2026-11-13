@@ -3,6 +3,7 @@ import { CheckCircle2, PlaySquare, Signal } from "lucide-react";
 import { CourseCheckoutButton } from "@/components/courses/CourseCheckoutButton";
 import { CourseMetaTile } from "@/components/courses/CourseMetaTile";
 import type { StorefrontCourse } from "@/lib/courses/catalog-service";
+import { displayedLessonCount } from "@/lib/courses/lesson-count";
 import { getCheckoutHints } from "@/lib/payments/providers";
 import { formatMoney } from "@/lib/payments/money";
 import type { Locale } from "@/content/site";
@@ -21,7 +22,6 @@ export async function CourseCard({
       ? {
           view: "Voir le cours",
           buy: "Acheter",
-          lessons: "leçons",
           level: "Niveau",
           price: "Prix",
           inFullPack: "Dans le pack complet",
@@ -31,7 +31,6 @@ export async function CourseCard({
       : {
           view: "View course",
           buy: "Buy now",
-          lessons: "lessons",
           level: "Level",
           price: "Price",
           inFullPack: "In full pack",
@@ -51,6 +50,18 @@ export async function CourseCard({
           ((compareAtPriceMinor - course.priceMinor) / compareAtPriceMinor) * 100,
         )
       : null;
+
+  // Administrators can override the displayed lesson count; when they leave it
+  // blank, fall back to the number of lesson rows currently in the database.
+  const lessonCount = displayedLessonCount(course);
+  const lessonLabel =
+    locale === "fr"
+      ? lessonCount === 1
+        ? "leçon"
+        : "leçons"
+      : lessonCount === 1
+        ? "lesson"
+        : "lessons";
 
   return (
     <article className="group flex h-full min-w-0 max-w-full flex-col rounded-[1.6rem] border border-border bg-surface p-5 transition duration-300 hover:-translate-y-1 hover:border-cyan-500/30 hover:shadow-[0_24px_50px_-28px_rgba(8,145,178,0.45)]">
@@ -82,8 +93,8 @@ export async function CourseCard({
         />
         <CourseMetaTile
           icon={<PlaySquare className="size-4" />}
-          label={copy.lessons}
-          value={String(course.lessons.length)}
+          label={lessonLabel}
+          value={String(lessonCount)}
         />
       </div>
 

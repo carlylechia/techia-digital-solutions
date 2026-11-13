@@ -71,7 +71,7 @@ export async function buildAcademyCatalogContext(locale: Locale = "en") {
       lines.push(`  url: ${url}`);
       lines.push(`  category: ${category}`);
       lines.push(`  level: ${course.level}`);
-      lines.push(`  lessons: ${course._count.lessons}`);
+      lines.push(`  lessons: ${course.lessonCount ?? course._count.lessons}`);
       lines.push(`  price: ${price}`);
       lines.push(`  included_in_full_pack: ${course.includedInFullPack ? "yes" : "no"}`);
       if (inPacks.length) lines.push(`  included_in_packs: ${inPacks.join("; ")}`);

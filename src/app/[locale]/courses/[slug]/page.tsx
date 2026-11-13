@@ -30,6 +30,7 @@ import {
   getStorefrontPack,
   getStorefrontPacks,
 } from "@/lib/courses/catalog-service";
+import { displayedLessonCount } from "@/lib/courses/lesson-count";
 import {
   getCourseAcademyFaqs,
   getCourseAcademySteps,
@@ -498,6 +499,18 @@ export default async function CoursePackDetailPage({
     });
   }
 
+  // Keep the hero badge aligned with the catalog cards: prefer the
+  // administrator-entered count, then fall back to the database rows.
+  const lessonCount = displayedLessonCount(course);
+  const lessonCountLabel =
+    locale === "fr"
+      ? lessonCount === 1
+        ? "leçon"
+        : "leçons"
+      : lessonCount === 1
+        ? "lesson"
+        : "lessons";
+
   return (
     <main>
       <JsonLd
@@ -532,7 +545,7 @@ export default async function CoursePackDetailPage({
         description={course.description}
         imageUrl={course.imageUrl}
         headingSize="compact"
-        badges={[course.levelLabel, `${course.lessons.length} ${copy.lesson.toLowerCase()}s`]}
+        badges={[course.levelLabel, `${lessonCount} ${lessonCountLabel}`]}
         actions={[
           ...(course.previewVideo
             ? [
