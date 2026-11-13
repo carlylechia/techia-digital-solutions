@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
+import type { PrismaClient } from "@prisma/client";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -9,6 +10,7 @@ import {
   GraduationCap,
   Layers,
   Package,
+  Plus,
   Receipt,
   Video,
   Wallet,
@@ -21,12 +23,24 @@ import { authOptions } from "@/lib/auth";
 import { getPrisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/admin/permissions";
 import { createMetadata } from "@/lib/seo";
-import { loadAdminAcademyCatalog } from "@/lib/admin/academy";
+import {
+  loadAdminAcademyCatalog,
+  type AdminAcademyCatalog,
+} from "@/lib/admin/academy";
 import { formatMoney } from "@/lib/payments/money";
 import { AcademyImageField } from "@/components/courses/AcademyImageField";
 import { AcademyActionForm, type AcademyActionState } from "@/components/courses/AcademyActionForm";
 import { AcademyPreviewVideoFields } from "@/components/courses/AcademyPreviewVideoFields";
 import { AcademyRemovePreviewForm } from "@/components/courses/AcademyRemovePreviewForm";
+import { AcademyCatalogBrowser, type AcademyCatalogItem } from "@/components/courses/AcademyCatalogBrowser";
+import { AcademyPackFields } from "@/components/courses/AcademyPackFields";
+import type { AcademyPackCourseOption } from "@/components/courses/AcademyPackCoursePicker";
+import {
+  ACADEMY_CURRENCY_OPTIONS as CURRENCY_OPTIONS,
+  academyHintClass as hintClass,
+  academyInputClass as inputClass,
+  academyLabelClass as labelClass,
+} from "@/components/courses/academy-form-styles";
 import { getYouTubeWatchUrl } from "@/lib/courses/preview-video";
 import {
   effectiveCoursePriceMinor,
@@ -36,14 +50,19 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const CURRENCY_OPTIONS = ["XAF", "USD", "CAD", "EUR"] as const;
+type AdminCourse = AdminAcademyCatalog["courses"][number];
+type AdminPack = AdminAcademyCatalog["packs"][number];
+
 type CurrencyOption = (typeof CURRENCY_OPTIONS)[number];
 
-const inputClass =
-  "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-primary outline-none transition placeholder:text-muted/70 focus:border-accent/60 focus:ring-2 focus:ring-accent/25";
-const labelClass =
-  "grid gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-muted";
-const hintClass = "text-xs font-medium normal-case tracking-normal text-muted";
+function toPackCourseOption(course: AdminCourse): AcademyPackCourseOption {
+  return {
+    id: course.id,
+    title: course.titleEn,
+    slug: course.slug,
+    status: course.status,
+  };
+}
 
 export async function generateMetadata({
   params,
@@ -92,6 +111,180 @@ function parseCurrency(value: FormDataEntryValue | null): CurrencyOption {
   return (CURRENCY_OPTIONS as readonly string[]).includes(raw) ? (raw as CurrencyOption) : "XAF";
 }
 
+function packText(formData: FormData, key: string) {
+  return String(formData.get(key) ?? "").trim();
+}
+
+function packOptionalText(formData: FormData, key: string) {
+  return packText(formData, key) || null;
+}
+
+/** One bullet per line keeps commas inside sentences safe. */
+function parsePackLines(formData: FormData, key: string) {
+  return packText(formData, key)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+/** Preserve the order the administrator arranged in the picker. */
+function parsePackCourseIds(formData: FormData) {
+  const seen = new Set<string>();
+  const ids: string[] = [];
+  for (const value of formData.getAll("courseIds")) {
+    const id = String(value ?? "").trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
+  }
+  return ids;
+}
+
+/**
+ * Re-check every selected course on the server. The dropdown only offers
+ * published courses, but a stale tab or a crafted request must not be able to
+ * add a draft/archived course to a pack. Courses already in the pack remain
+ * allowed even if they were later unpublished, so saving never silently drops
+ * content the administrator has not explicitly removed.
+ */
+async function resolvePackCourseIds(
+  prisma: PrismaClient,
+  formData: FormData,
+  currentCourseIds: Set<string>,
+) {
+  const ids = parsePackCourseIds(formData);
+  if (!ids.length) return ids;
+
+  const found = await prisma.academyCourse.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, status: true },
+  });
+  if (found.length !== ids.length) {
+    throw new Error("One or more selected courses no longer exist. Refresh and choose again.");
+  }
+
+  const statusById = new Map(found.map((course) => [course.id, course.status]));
+  const invalid = ids.filter(
+    (id) =>
+      statusById.get(id) !== "PUBLISHED" && !currentCourseIds.has(id),
+  );
+  if (invalid.length) {
+    throw new Error("Only published courses can be added to a pack. Remove the unpublished selection and try again.");
+  }
+
+  return ids;
+}
+
+const SAFE_ACADEMY_MESSAGES = [
+  "Title, short description",
+  "A valid slug",
+  "A pack needs",
+  "Only published courses",
+  "One or more selected courses",
+  "Type the exact pack slug",
+  "Pack not found",
+];
+
+async function createPack(
+  _previousState: AcademyActionState,
+  formData: FormData,
+): Promise<AcademyActionState> {
+  "use server";
+  try {
+    await requireCatalogManager();
+    const { getPrisma } = await import("@/lib/prisma");
+    const prisma = getPrisma();
+    if (!prisma) throw new Error("Database unavailable");
+
+    const titleEn = packText(formData, "titleEn");
+    const categoryLabelEn = packText(formData, "categoryLabelEn");
+    const taglineEn = packText(formData, "taglineEn");
+    const summaryEn = packText(formData, "summaryEn");
+    const descriptionEn = packText(formData, "descriptionEn");
+    if (!titleEn || !categoryLabelEn || !taglineEn || !summaryEn || !descriptionEn) {
+      throw new Error("A pack needs a title, category label, tagline, summary, and description.");
+    }
+
+    const slugInput = packText(formData, "slug");
+    const slug = slugify(slugInput || titleEn);
+    if (!slug) throw new Error("A valid slug is required.");
+
+    const status = String(formData.get("status") || "DRAFT");
+    const level = String(formData.get("level") || "BEGINNER_TO_INTERMEDIATE");
+    const courseIds = await resolvePackCourseIds(prisma, formData, new Set());
+
+    const created = await prisma.$transaction(async (tx) => {
+      const pack = await tx.academyCoursePack.create({
+        data: {
+          slug,
+          titleEn,
+          titleFr: packOptionalText(formData, "titleFr"),
+          shortTitleEn: packOptionalText(formData, "shortTitleEn"),
+          shortTitleFr: packOptionalText(formData, "shortTitleFr"),
+          categoryLabelEn,
+          categoryLabelFr: packOptionalText(formData, "categoryLabelFr"),
+          taglineEn,
+          taglineFr: packOptionalText(formData, "taglineFr"),
+          summaryEn,
+          summaryFr: packOptionalText(formData, "summaryFr"),
+          descriptionEn,
+          descriptionFr: packOptionalText(formData, "descriptionFr"),
+          bestForEn: parsePackLines(formData, "bestForEn"),
+          bestForFr: parsePackLines(formData, "bestForFr"),
+          learningOutcomesEn: parsePackLines(formData, "learningOutcomesEn"),
+          learningOutcomesFr: parsePackLines(formData, "learningOutcomesFr"),
+          whyChooseEn: parsePackLines(formData, "whyChooseEn"),
+          whyChooseFr: parsePackLines(formData, "whyChooseFr"),
+          level:
+            level === "BEGINNER" || level === "INTERMEDIATE"
+              ? level
+              : "BEGINNER_TO_INTERMEDIATE",
+          recommended: formData.get("recommended") === "on",
+          badgeEn: packOptionalText(formData, "badgeEn"),
+          badgeFr: packOptionalText(formData, "badgeFr"),
+          status:
+            status === "PUBLISHED" || status === "ARCHIVED" ? status : "DRAFT",
+          priceMinor: parseIntOrNull(formData.get("priceMinor")),
+          compareAtPriceMinor: parseIntOrNull(formData.get("compareAtPriceMinor")),
+          currency: parseCurrency(formData.get("currency")),
+          chariowProductId: packOptionalText(formData, "chariowProductId"),
+          imageUrl: packOptionalText(formData, "imageUrl"),
+          seoTitleEn: packOptionalText(formData, "seoTitleEn"),
+          seoTitleFr: packOptionalText(formData, "seoTitleFr"),
+          seoDescriptionEn: packOptionalText(formData, "seoDescriptionEn"),
+          seoDescriptionFr: packOptionalText(formData, "seoDescriptionFr"),
+          position: parseIntOrNull(formData.get("position")) ?? 0,
+          publishedAt: status === "PUBLISHED" ? new Date() : null,
+        },
+      });
+
+      if (courseIds.length) {
+        await tx.academyCoursePackItem.createMany({
+          data: courseIds.map((courseId, position) => ({
+            packId: pack.id,
+            courseId,
+            position,
+          })),
+        });
+      }
+
+      return pack;
+    });
+
+    revalidateAcademy();
+    return {
+      ok: true,
+      message:
+        created.status === "PUBLISHED"
+          ? `Pack created and published with ${courseIds.length} course${courseIds.length === 1 ? "" : "s"}. “${created.titleEn}” now appears on the storefront.`
+          : `Pack created with ${courseIds.length} course${courseIds.length === 1 ? "" : "s"}. “${created.titleEn}” is in the Packs view below — publish it to show it on the storefront.`,
+      ts: Date.now(),
+    };
+  } catch (error) {
+    return { ok: false, message: friendlyAcademyError(error, "pack"), ts: Date.now() };
+  }
+}
+
 async function requireCatalogManager() {
   const { getServerSession } = await import("next-auth");
   const { authOptions } = await import("@/lib/auth");
@@ -123,7 +316,7 @@ function friendlyAcademyError(error: unknown, noun: "course" | "pack"): string {
     return `This ${noun} was changed or removed elsewhere. Refresh the page and try again.`;
   }
   const message = error instanceof Error ? error.message : "";
-  if (message.startsWith("Title, short description") || message.startsWith("A valid slug")) {
+  if (SAFE_ACADEMY_MESSAGES.some((prefix) => message.startsWith(prefix))) {
     return message;
   }
   if (message === "Unauthorized") {
@@ -305,28 +498,131 @@ async function updatePack(
     if (!prisma) throw new Error("Database unavailable");
     const id = String(formData.get("id") || "");
     if (!id) throw new Error("Missing id");
-    const status = String(formData.get("status") || "PUBLISHED");
-    const updated = await prisma.academyCoursePack.update({
+
+    const current = await prisma.academyCoursePack.findUnique({
       where: { id },
-      data: {
-        titleEn: String(formData.get("titleEn") || "").trim() || undefined,
-        summaryEn: String(formData.get("summaryEn") || "").trim() || undefined,
-        descriptionEn: String(formData.get("descriptionEn") || "").trim() || undefined,
-        seoTitleEn: String(formData.get("seoTitleEn") || "").trim() || null,
-        seoDescriptionEn: String(formData.get("seoDescriptionEn") || "").trim() || null,
-        priceMinor: parseIntOrNull(formData.get("priceMinor")),
-        compareAtPriceMinor: parseIntOrNull(formData.get("compareAtPriceMinor")),
-        currency: parseCurrency(formData.get("currency")),
-        chariowProductId: String(formData.get("chariowProductId") || "").trim() || null,
-        imageUrl: String(formData.get("imageUrl") || "").trim() || null,
-        status: status === "DRAFT" || status === "ARCHIVED" ? status : "PUBLISHED",
-        publishedAt: status === "PUBLISHED" ? new Date() : null,
+      select: {
+        slug: true,
+        status: true,
+        level: true,
+        publishedAt: true,
+        items: { select: { courseId: true } },
       },
     });
+    if (!current) throw new Error("Pack not found");
+
+    const slugInput = packText(formData, "slug");
+    const slug = slugInput ? slugify(slugInput) : undefined;
+    if (slugInput && !slug) throw new Error("A valid slug is required.");
+
+    const status = String(formData.get("status") || current.status);
+    const level = String(formData.get("level") || current.level);
+    const courseIds = await resolvePackCourseIds(
+      prisma,
+      formData,
+      new Set(current.items.map((item) => item.courseId)),
+    );
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const pack = await tx.academyCoursePack.update({
+        where: { id },
+        data: {
+          slug,
+          titleEn: packText(formData, "titleEn") || undefined,
+          titleFr: packOptionalText(formData, "titleFr"),
+          shortTitleEn: packOptionalText(formData, "shortTitleEn"),
+          shortTitleFr: packOptionalText(formData, "shortTitleFr"),
+          categoryLabelEn: packText(formData, "categoryLabelEn") || undefined,
+          categoryLabelFr: packOptionalText(formData, "categoryLabelFr"),
+          taglineEn: packText(formData, "taglineEn") || undefined,
+          taglineFr: packOptionalText(formData, "taglineFr"),
+          summaryEn: packText(formData, "summaryEn") || undefined,
+          summaryFr: packOptionalText(formData, "summaryFr"),
+          descriptionEn: packText(formData, "descriptionEn") || undefined,
+          descriptionFr: packOptionalText(formData, "descriptionFr"),
+          bestForEn: parsePackLines(formData, "bestForEn"),
+          bestForFr: parsePackLines(formData, "bestForFr"),
+          learningOutcomesEn: parsePackLines(formData, "learningOutcomesEn"),
+          learningOutcomesFr: parsePackLines(formData, "learningOutcomesFr"),
+          whyChooseEn: parsePackLines(formData, "whyChooseEn"),
+          whyChooseFr: parsePackLines(formData, "whyChooseFr"),
+          level:
+            level === "BEGINNER" || level === "INTERMEDIATE"
+              ? level
+              : "BEGINNER_TO_INTERMEDIATE",
+          recommended: formData.get("recommended") === "on",
+          badgeEn: packOptionalText(formData, "badgeEn"),
+          badgeFr: packOptionalText(formData, "badgeFr"),
+          priceMinor: parseIntOrNull(formData.get("priceMinor")),
+          compareAtPriceMinor: parseIntOrNull(formData.get("compareAtPriceMinor")),
+          currency: parseCurrency(formData.get("currency")),
+          chariowProductId: packOptionalText(formData, "chariowProductId"),
+          imageUrl: packOptionalText(formData, "imageUrl"),
+          seoTitleEn: packOptionalText(formData, "seoTitleEn"),
+          seoTitleFr: packOptionalText(formData, "seoTitleFr"),
+          seoDescriptionEn: packOptionalText(formData, "seoDescriptionEn"),
+          seoDescriptionFr: packOptionalText(formData, "seoDescriptionFr"),
+          position: parseIntOrNull(formData.get("position")) ?? 0,
+          status:
+            status === "DRAFT" || status === "ARCHIVED" ? status : "PUBLISHED",
+          publishedAt:
+            status === "PUBLISHED" ? current.publishedAt ?? new Date() : null,
+        },
+      });
+
+      await tx.academyCoursePackItem.deleteMany({ where: { packId: id } });
+      if (courseIds.length) {
+        await tx.academyCoursePackItem.createMany({
+          data: courseIds.map((courseId, position) => ({
+            packId: id,
+            courseId,
+            position,
+          })),
+        });
+      }
+
+      return pack;
+    });
+
     revalidateAcademy();
     return {
       ok: true,
-      message: `Pack saved. “${updated.titleEn}” is ${updated.status === "PUBLISHED" ? "live on the storefront" : "not visible to the public (" + updated.status.toLowerCase() + ")"}.`,
+      message: `Pack saved with ${courseIds.length} course${courseIds.length === 1 ? "" : "s"}. “${updated.titleEn}” is ${updated.status === "PUBLISHED" ? "live on the storefront" : "not visible to the public (" + updated.status.toLowerCase() + ")"}.`,
+      ts: Date.now(),
+    };
+  } catch (error) {
+    return { ok: false, message: friendlyAcademyError(error, "pack"), ts: Date.now() };
+  }
+}
+
+async function deletePack(
+  _previousState: AcademyActionState,
+  formData: FormData,
+): Promise<AcademyActionState> {
+  "use server";
+  try {
+    await requireCatalogManager();
+    const { getPrisma } = await import("@/lib/prisma");
+    const prisma = getPrisma();
+    if (!prisma) throw new Error("Database unavailable");
+    const id = String(formData.get("id") || "");
+    if (!id) throw new Error("Missing id");
+    const confirmSlug = packText(formData, "confirmSlug");
+
+    const pack = await prisma.academyCoursePack.findUnique({
+      where: { id },
+      select: { id: true, slug: true, titleEn: true },
+    });
+    if (!pack) throw new Error("Pack not found");
+    if (confirmSlug !== pack.slug) {
+      throw new Error("Type the exact pack slug to confirm deletion.");
+    }
+
+    await prisma.academyCoursePack.delete({ where: { id } });
+    revalidateAcademy();
+    return {
+      ok: true,
+      message: `Pack “${pack.titleEn}” deleted. Existing order history keeps its saved title and slug snapshot.`,
       ts: Date.now(),
     };
   } catch (error) {
@@ -515,6 +811,460 @@ function SectionHeader({
   );
 }
 
+function CourseAdminPanel({
+  course,
+  canManage,
+}: {
+  course: AdminCourse;
+  canManage: boolean;
+}) {
+  return (
+    <details className="gradient-border rounded-[1.5rem] scroll-mt-24">
+      <summary className="elevated-panel cursor-pointer list-none p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold tracking-wide text-muted">/{course.slug}</p>
+            <p className="mt-0.5 truncate text-lg font-semibold text-primary">{course.titleEn}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusPill value={course.status} />
+            <PreviewStatusPill
+              configured={Boolean(course.previewVideoId)}
+              enabled={course.previewVideoEnabled}
+            />
+            <PricePill priceMinor={course.priceMinor} currency={course.currency} kind="course" />
+            {course.moduleCount !== null ? <MetaPill>{course.moduleCount} modules</MetaPill> : null}
+            {course.lessonCount !== null ? (
+              <MetaPill>{course.lessonCount} lessons</MetaPill>
+            ) : (
+              <MetaPill>{course._count.lessons} lessons (auto)</MetaPill>
+            )}
+            {course.pathCount !== null ? <MetaPill>{course.pathCount} paths</MetaPill> : null}
+            {course._count.packItems > 0 ? <MetaPill>{course._count.packItems} pack{course._count.packItems === 1 ? "" : "s"}</MetaPill> : null}
+          </div>
+        </div>
+      </summary>
+      {canManage ? (
+        <AcademyActionForm
+          action={updateCourse}
+          submitLabel="Save course"
+          helper="Saving revalidates the courses page, course detail pages, and the sitemap."
+        >
+          <input type="hidden" name="id" value={course.id} />
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className={labelClass}>
+              Title (EN)
+              <input name="titleEn" defaultValue={course.titleEn} className={inputClass} />
+            </label>
+            <label className={labelClass}>
+              Status
+              <select name="status" defaultValue={course.status} className={inputClass}>
+                <option value="PUBLISHED">Published</option>
+                <option value="DRAFT">Draft</option>
+                <option value="ARCHIVED">Archived</option>
+              </select>
+            </label>
+          </div>
+          <label className={labelClass}>
+            Short description (EN)
+            <textarea name="shortDescriptionEn" defaultValue={course.shortDescriptionEn} rows={2} className={inputClass} />
+          </label>
+          <label className={labelClass}>
+            Description (EN)
+            <textarea name="descriptionEn" defaultValue={course.descriptionEn} rows={4} className={inputClass} />
+          </label>
+
+          <div className="rounded-2xl border border-border bg-surface-strong/40 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Course structure</p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-3">
+              <label className={labelClass}>
+                Modules
+                <input name="moduleCount" type="number" min={0} defaultValue={course.moduleCount ?? ""} className={inputClass} placeholder="0" />
+                <span className={hintClass}>Currently recorded: modules in this course</span>
+              </label>
+              <label className={labelClass}>
+                Lessons
+                <input name="lessonCount" type="number" min={0} defaultValue={course.lessonCount ?? ""} className={inputClass} placeholder="0" />
+                <span className={hintClass}>Auto count from the database: {course._count.lessons}</span>
+              </label>
+              <label className={labelClass}>
+                Paths
+                <input name="pathCount" type="number" min={0} defaultValue={course.pathCount ?? ""} className={inputClass} placeholder="0" />
+                <span className={hintClass}>Learning paths this course appears in</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-surface-strong/40 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Pricing &amp; delivery</p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <label className={labelClass}>
+                Currency
+                <select name="currency" defaultValue={course.currency} className={inputClass}>
+                  {CURRENCY_OPTIONS.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </label>
+              <label className={labelClass}>
+                Price (minor)
+                <input name="priceMinor" type="number" min={0} defaultValue={course.priceMinor ?? ""} className={inputClass} />
+                <span className={hintClass}>Blank = default 2,000 FCFA (XAF items only)</span>
+              </label>
+              <label className={labelClass}>
+                Compare-at (minor)
+                <input name="compareAtPriceMinor" type="number" min={0} defaultValue={course.compareAtPriceMinor ?? ""} className={inputClass} />
+              </label>
+              <label className={labelClass}>
+                Chariow product ID
+                <input name="chariowProductId" defaultValue={course.chariowProductId ?? ""} className={inputClass} />
+              </label>
+            </div>
+            <div className="mt-4">
+              <AcademyImageField name="imageUrl" defaultValue={course.imageUrl ?? ""} label="Cover image" />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className={labelClass}>
+              SEO title (EN)
+              <input name="seoTitleEn" defaultValue={course.seoTitleEn ?? ""} className={inputClass} />
+            </label>
+            <label className={labelClass}>
+              SEO description (EN)
+              <input name="seoDescriptionEn" defaultValue={course.seoDescriptionEn ?? ""} className={inputClass} />
+            </label>
+          </div>
+        </AcademyActionForm>
+      ) : (
+        <div className="elevated-panel border-t border-border p-5 text-sm text-muted">
+          Read-only view. Ask an administrator with catalog permissions to edit this course.
+        </div>
+      )}
+
+      {canManage ? (
+        <div className="border-t border-border bg-surface-strong/20 p-4 sm:p-5">
+          <div className="mb-4">
+            <p className="text-sm font-semibold text-primary">Free introductory video</p>
+            <p className="mt-1 max-w-3xl text-xs leading-6 text-muted">
+              Host the 4–5 minute introduction on the official teChia YouTube channel as an
+              Unlisted video, then paste a normal watch link here. Customers only see a
+              lightweight poster until they click Play. For a custom poster, use a
+              1280×720 WebP or JPEG under about 200 KB.
+            </p>
+          </div>
+          <AcademyActionForm
+            action={updateCoursePreview}
+            submitLabel="Save preview"
+            pendingLabel="Saving preview…"
+            helper="Saving a preview immediately revalidates the public course page. The rest of the course data is untouched."
+          >
+            <input type="hidden" name="id" value={course.id} />
+            <AcademyPreviewVideoFields
+              defaultUrl={getYouTubeWatchUrl(course.previewVideoId ?? "") ?? ""}
+              defaultTitle={course.previewVideoTitle ?? ""}
+              defaultDurationLabel={course.previewVideoDurationLabel ?? ""}
+              defaultEnabled={course.previewVideoEnabled}
+              hasExistingPreview={Boolean(course.previewVideoId)}
+            />
+            <AcademyImageField
+              name="previewVideoPoster"
+              defaultValue={course.previewVideoPoster ?? ""}
+              label="Preview poster (optional)"
+            />
+          </AcademyActionForm>
+          {course.previewVideoId ? (
+            <AcademyRemovePreviewForm
+              action={removeCoursePreview}
+              courseId={course.id}
+            />
+          ) : null}
+        </div>
+      ) : null}
+    </details>
+  );
+}
+
+function CourseCreatePanel({
+  categories,
+}: {
+  categories: AdminAcademyCatalog["categories"];
+}) {
+  return (
+    <details className="rounded-2xl border border-dashed border-border bg-surface/70">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-4 sm:px-5">
+        <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+          <Plus className="size-4 text-accent" /> Add a new course
+        </span>
+        <span className="text-xs text-muted">
+          Click to open the course form
+        </span>
+      </summary>
+      <div className="border-t border-border p-4 sm:p-5">
+        <AcademyActionForm
+          action={createCourse}
+          submitLabel="Create course"
+          pendingLabel="Creating course…"
+          helper="Publishing sets the public timestamp and revalidates the courses page and sitemap."
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className={labelClass}>
+              Title (EN) *
+              <input name="titleEn" required className={inputClass} placeholder="e.g. Introduction to SEO" />
+            </label>
+            <label className={labelClass}>
+              Slug <span className="normal-case text-muted/70">(auto from title if blank)</span>
+              <input name="slug" className={inputClass} placeholder="intro-to-seo" />
+            </label>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className={labelClass}>
+              Title (FR)
+              <input name="titleFr" className={inputClass} placeholder="Titre en français" />
+            </label>
+            <label className={labelClass}>
+              Category
+              <select name="categoryId" defaultValue="" className={inputClass}>
+                <option value="">Uncategorized</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>{category.nameEn}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label className={labelClass}>
+            Short description (EN) *
+            <textarea name="shortDescriptionEn" required rows={2} className={inputClass} placeholder="One or two sentences shown on cards" />
+          </label>
+          <label className={labelClass}>
+            Short description (FR)
+            <textarea name="shortDescriptionFr" rows={2} className={inputClass} />
+          </label>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <label className={labelClass}>
+              Description (EN) *
+              <textarea name="descriptionEn" required rows={4} className={inputClass} />
+            </label>
+            <label className={labelClass}>
+              Description (FR)
+              <textarea name="descriptionFr" rows={4} className={inputClass} />
+            </label>
+          </div>
+          <label className={labelClass}>
+            Skills (EN, comma-separated)
+            <input name="skillsEn" className={inputClass} placeholder="SEO, Content, Analytics" />
+          </label>
+
+          <div className="rounded-2xl border border-border bg-surface-strong/40 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Course structure</p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-3">
+              <label className={labelClass}>
+                Modules
+                <input name="moduleCount" type="number" min={0} className={inputClass} placeholder="0" />
+                <span className={hintClass}>Number of modules inside this course</span>
+              </label>
+              <label className={labelClass}>
+                Lessons
+                <input name="lessonCount" type="number" min={0} className={inputClass} placeholder="0" />
+                <span className={hintClass}>Teaching units in this course</span>
+              </label>
+              <label className={labelClass}>
+                Paths
+                <input name="pathCount" type="number" min={0} className={inputClass} placeholder="0" />
+                <span className={hintClass}>Learning paths this course appears in</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-surface-strong/40 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Pricing &amp; delivery</p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <label className={labelClass}>
+                Currency
+                <select name="currency" defaultValue="XAF" className={inputClass}>
+                  {CURRENCY_OPTIONS.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                <span className={hintClass}>Storefront currencies</span>
+              </label>
+              <label className={labelClass}>
+                Price (minor units)
+                <input name="priceMinor" type="number" min={0} className={inputClass} placeholder="e.g. 10000" />
+                <span className={hintClass}>Blank = default 2,000 FCFA (XAF items only)</span>
+              </label>
+              <label className={labelClass}>
+                Compare-at (minor)
+                <input name="compareAtPriceMinor" type="number" min={0} className={inputClass} />
+              </label>
+              <label className={labelClass}>
+                Chariow product ID
+                <input name="chariowProductId" className={inputClass} />
+              </label>
+            </div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              <label className={labelClass}>
+                Status
+                <select name="status" defaultValue="DRAFT" className={inputClass}>
+                  <option value="PUBLISHED">Published</option>
+                  <option value="DRAFT">Draft</option>
+                  <option value="ARCHIVED">Archived</option>
+                </select>
+                <span className={hintClass}>Only published courses are public</span>
+              </label>
+              <label className={labelClass}>
+                Level
+                <select name="level" defaultValue="BEGINNER_TO_INTERMEDIATE" className={inputClass}>
+                  <option value="BEGINNER">Beginner</option>
+                  <option value="BEGINNER_TO_INTERMEDIATE">Beginner → Intermediate</option>
+                  <option value="INTERMEDIATE">Intermediate</option>
+                </select>
+              </label>
+              <label className={labelClass}>
+                Position
+                <input name="position" type="number" defaultValue={0} className={inputClass} />
+              </label>
+            </div>
+            <div className="mt-4">
+              <AcademyImageField name="imageUrl" label="Cover image" />
+            </div>
+            <div className="mt-4 flex flex-wrap gap-6 text-sm">
+              <label className="flex items-center gap-2 text-muted">
+                <input type="checkbox" name="includedInFullPack" defaultChecked className="size-4 accent-cyan-400" /> Included in full pack
+              </label>
+              <label className="flex items-center gap-2 text-muted">
+                <input type="checkbox" name="financialDisclaimerRequired" className="size-4 accent-cyan-400" /> Financial disclaimer required
+              </label>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className={labelClass}>
+              SEO title (EN)
+              <input name="seoTitleEn" className={inputClass} />
+            </label>
+            <label className={labelClass}>
+              SEO description (EN)
+              <input name="seoDescriptionEn" className={inputClass} />
+            </label>
+          </div>
+        </AcademyActionForm>
+      </div>
+    </details>
+  );
+}
+
+function PackCreatePanel({ courses }: { courses: AdminCourse[] }) {
+  const publishedCourses = courses.filter(
+    (course) => course.status === "PUBLISHED",
+  );
+
+  return (
+    <details className="rounded-2xl border border-dashed border-border bg-surface/70">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-4 sm:px-5">
+        <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+          <Plus className="size-4 text-accent" /> Add a new pack
+        </span>
+        <span className="text-xs text-muted">
+          Click to open the pack form
+        </span>
+      </summary>
+      <div className="border-t border-border p-4 sm:p-5">
+        <AcademyActionForm
+          action={createPack}
+          submitLabel="Create pack"
+          pendingLabel="Creating pack…"
+          helper="Only published courses can be added. Publish the pack to show it on the storefront."
+        >
+          <AcademyPackFields courses={publishedCourses.map(toPackCourseOption)} />
+        </AcademyActionForm>
+      </div>
+    </details>
+  );
+}
+
+function PackAdminPanel({
+  pack,
+  courses,
+  canManage,
+}: {
+  pack: AdminPack;
+  courses: AdminCourse[];
+  canManage: boolean;
+}) {
+  return (
+    <details className="gradient-border rounded-[1.5rem] scroll-mt-24">
+      <summary className="elevated-panel cursor-pointer list-none p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold tracking-wide text-muted">/{pack.slug}</p>
+            <p className="mt-0.5 truncate text-lg font-semibold text-primary">{pack.titleEn}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusPill value={pack.status} />
+            <PricePill priceMinor={pack.priceMinor} currency={pack.currency} kind="pack" />
+            <MetaPill>{pack._count.items} courses</MetaPill>
+            {pack.recommended ? <MetaPill>Recommended</MetaPill> : null}
+          </div>
+        </div>
+      </summary>
+      {canManage ? (
+        <>
+          <AcademyActionForm
+            action={updatePack}
+            submitLabel="Save pack"
+            helper={`Included courses: ${pack.items.map((item) => item.course.titleEn).join(", ") || "—"}`}
+          >
+            <input type="hidden" name="id" value={pack.id} />
+            <AcademyPackFields pack={pack} courses={courses.map(toPackCourseOption)} />
+          </AcademyActionForm>
+
+          <details className="border-t border-border bg-surface-strong/20">
+            <summary className="cursor-pointer list-none p-4 sm:p-5">
+              <span className="text-xs font-bold uppercase tracking-[0.14em] text-red-300">
+                Danger zone
+              </span>
+              <span className="ml-2 text-xs text-muted">
+                Permanently delete this pack
+              </span>
+            </summary>
+            <div className="px-4 pb-5 sm:px-5">
+              <AcademyActionForm
+                action={deletePack}
+                submitLabel="Delete pack permanently"
+                pendingLabel="Deleting…"
+                helper={`Type ${pack.slug} to confirm. Past orders keep their saved title and slug snapshots.`}
+              >
+                <input type="hidden" name="id" value={pack.id} />
+                <label className={labelClass}>
+                  Confirm slug
+                  <input
+                    name="confirmSlug"
+                    required
+                    autoComplete="off"
+                    className={inputClass}
+                    placeholder={pack.slug}
+                  />
+                  <span className={hintClass}>
+                    This removes the pack and its course links. The public URL stops
+                    working immediately. To hide it without deleting it, set the
+                    status to Archived instead.
+                  </span>
+                </label>
+              </AcademyActionForm>
+            </div>
+          </details>
+        </>
+      ) : (
+        <div className="elevated-panel border-t border-border p-5 text-sm text-muted">
+          Read-only view. Ask an administrator with catalog permissions to edit this pack.
+        </div>
+      )}
+    </details>
+  );
+}
+
+
 export default async function AdminAcademyPage({
   params,
 }: {
@@ -567,6 +1317,62 @@ export default async function AdminAcademyPage({
     (course) => course.previewVideoEnabled && Boolean(course.previewVideoId),
   ).length;
   const packCourseCount = new Set(packs.flatMap((pack) => pack.items.map((item) => item.courseId))).size;
+
+  const courseItems: AcademyCatalogItem[] = courses.map((course) => ({
+    id: course.id,
+    title: course.titleEn,
+    slug: course.slug,
+    status: course.status,
+    position: course.position,
+    effectivePriceMinor: effectiveCoursePriceMinor(
+      course.priceMinor,
+      course.currency,
+    ),
+    courseCount: 0,
+    updatedAt: course.updatedAt.toISOString(),
+    searchText: [
+      course.titleEn,
+      course.titleFr,
+      course.slug,
+      course.category?.nameEn,
+      course.category?.nameFr,
+      course.level,
+      ...course.skillsEn,
+      ...course.skillsFr,
+    ]
+      .filter(Boolean)
+      .join(" "),
+    content: <CourseAdminPanel course={course} canManage={canManage} />,
+  }));
+
+  const packItems: AcademyCatalogItem[] = packs.map((pack) => ({
+    id: pack.id,
+    title: pack.titleEn,
+    slug: pack.slug,
+    status: pack.status,
+    position: pack.position,
+    effectivePriceMinor: effectivePackPriceMinor(pack.priceMinor, pack.currency),
+    courseCount: pack.items.length,
+    updatedAt: pack.updatedAt.toISOString(),
+    searchText: [
+      pack.titleEn,
+      pack.titleFr,
+      pack.slug,
+      pack.categoryLabelEn,
+      pack.categoryLabelFr,
+      pack.level,
+      pack.badgeEn,
+      ...pack.items.flatMap((item) => [
+        item.course.titleEn,
+        item.course.slug,
+      ]),
+    ]
+      .filter(Boolean)
+      .join(" "),
+    content: (
+      <PackAdminPanel pack={pack} courses={courses} canManage={canManage} />
+    ),
+  }));
 
   return (
     <main className="page-frame relative min-h-dvh overflow-hidden px-3 py-6 text-primary sm:px-4 sm:py-10">
@@ -631,15 +1437,9 @@ export default async function AdminAcademyPage({
 
             <nav aria-label="Section shortcuts" className="mt-6 flex flex-wrap gap-2">
               {canManage ? (
-                <a href="#create-course" className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/40 hover:text-accent">
-                  + Add course
-                </a>
-              ) : null}
-              {canManage ? (
                 <a href="#payments" className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/40 hover:text-accent">Payment methods</a>
               ) : null}
-              <a href="#courses" className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/40 hover:text-accent">Courses</a>
-              <a href="#packs" className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/40 hover:text-accent">Packs</a>
+              <a href="#catalog" className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/40 hover:text-accent">Catalog</a>
               <a href="#orders" className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/40 hover:text-accent">Orders</a>
             </nav>
           </div>
@@ -707,440 +1507,25 @@ export default async function AdminAcademyPage({
           </section>
         ) : null}
 
-        {/* Create course */}
-        {canManage ? (
-          <section className="grid gap-4">
-            <SectionHeader id="create-course" icon={GraduationCap} title="Add a new course" hint="Created courses land in the list below; publish them to appear on the storefront." />
-            <details className="gradient-border rounded-[1.5rem] scroll-mt-24" open>
-              <summary className="elevated-panel flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-5">
-                <span className="flex items-center gap-2.5 text-sm font-semibold text-primary">
-                  <Layers className="size-4 text-accent" /> Course creation form
-                </span>
-                <span className="text-xs text-muted">Required: title, short description, description</span>
-              </summary>
-              <AcademyActionForm
-                action={createCourse}
-                submitLabel="Create course"
-                pendingLabel="Creating course…"
-                helper="Publishing sets the public timestamp and revalidates the courses page and sitemap."
-              >
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className={labelClass}>
-                    Title (EN) *
-                    <input name="titleEn" required className={inputClass} placeholder="e.g. Introduction to SEO" />
-                  </label>
-                  <label className={labelClass}>
-                    Slug <span className="normal-case text-muted/70">(auto from title if blank)</span>
-                    <input name="slug" className={inputClass} placeholder="intro-to-seo" />
-                  </label>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className={labelClass}>
-                    Title (FR)
-                    <input name="titleFr" className={inputClass} placeholder="Titre en français" />
-                  </label>
-                  <label className={labelClass}>
-                    Category
-                    <select name="categoryId" defaultValue="" className={inputClass}>
-                      <option value="">Uncategorized</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>{category.nameEn}</option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <label className={labelClass}>
-                  Short description (EN) *
-                  <textarea name="shortDescriptionEn" required rows={2} className={inputClass} placeholder="One or two sentences shown on cards" />
-                </label>
-                <label className={labelClass}>
-                  Short description (FR)
-                  <textarea name="shortDescriptionFr" rows={2} className={inputClass} />
-                </label>
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <label className={labelClass}>
-                    Description (EN) *
-                    <textarea name="descriptionEn" required rows={4} className={inputClass} />
-                  </label>
-                  <label className={labelClass}>
-                    Description (FR)
-                    <textarea name="descriptionFr" rows={4} className={inputClass} />
-                  </label>
-                </div>
-                <label className={labelClass}>
-                  Skills (EN, comma-separated)
-                  <input name="skillsEn" className={inputClass} placeholder="SEO, Content, Analytics" />
-                </label>
-
-                <div className="rounded-2xl border border-border bg-surface-strong/40 p-4">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Course structure</p>
-                  <div className="mt-3 grid gap-4 sm:grid-cols-3">
-                    <label className={labelClass}>
-                      Modules
-                      <input name="moduleCount" type="number" min={0} className={inputClass} placeholder="0" />
-                      <span className={hintClass}>Number of modules inside this course</span>
-                    </label>
-                    <label className={labelClass}>
-                      Lessons
-                      <input name="lessonCount" type="number" min={0} className={inputClass} placeholder="0" />
-                      <span className={hintClass}>Teaching units in this course</span>
-                    </label>
-                    <label className={labelClass}>
-                      Paths
-                      <input name="pathCount" type="number" min={0} className={inputClass} placeholder="0" />
-                      <span className={hintClass}>Learning paths this course appears in</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-border bg-surface-strong/40 p-4">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Pricing &amp; delivery</p>
-                  <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <label className={labelClass}>
-                      Currency
-                      <select name="currency" defaultValue="XAF" className={inputClass}>
-                        {CURRENCY_OPTIONS.map((option) => (
-                          <option key={option} value={option}>{option}</option>
-                        ))}
-                      </select>
-                      <span className={hintClass}>Storefront currencies</span>
-                    </label>
-                    <label className={labelClass}>
-                      Price (minor units)
-                      <input name="priceMinor" type="number" min={0} className={inputClass} placeholder="e.g. 10000" />
-                      <span className={hintClass}>Blank = default 2,000 FCFA (XAF items only)</span>
-                    </label>
-                    <label className={labelClass}>
-                      Compare-at (minor)
-                      <input name="compareAtPriceMinor" type="number" min={0} className={inputClass} />
-                    </label>
-                    <label className={labelClass}>
-                      Chariow product ID
-                      <input name="chariowProductId" className={inputClass} />
-                    </label>
-                  </div>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                    <label className={labelClass}>
-                      Status
-                      <select name="status" defaultValue="DRAFT" className={inputClass}>
-                        <option value="PUBLISHED">Published</option>
-                        <option value="DRAFT">Draft</option>
-                        <option value="ARCHIVED">Archived</option>
-                      </select>
-                      <span className={hintClass}>Only published courses are public</span>
-                    </label>
-                    <label className={labelClass}>
-                      Level
-                      <select name="level" defaultValue="BEGINNER_TO_INTERMEDIATE" className={inputClass}>
-                        <option value="BEGINNER">Beginner</option>
-                        <option value="BEGINNER_TO_INTERMEDIATE">Beginner → Intermediate</option>
-                        <option value="INTERMEDIATE">Intermediate</option>
-                      </select>
-                    </label>
-                    <label className={labelClass}>
-                      Position
-                      <input name="position" type="number" defaultValue={0} className={inputClass} />
-                    </label>
-                  </div>
-                  <div className="mt-4">
-                    <AcademyImageField name="imageUrl" label="Cover image" />
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-6 text-sm">
-                    <label className="flex items-center gap-2 text-muted">
-                      <input type="checkbox" name="includedInFullPack" defaultChecked className="size-4 accent-cyan-400" /> Included in full pack
-                    </label>
-                    <label className="flex items-center gap-2 text-muted">
-                      <input type="checkbox" name="financialDisclaimerRequired" className="size-4 accent-cyan-400" /> Financial disclaimer required
-                    </label>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className={labelClass}>
-                    SEO title (EN)
-                    <input name="seoTitleEn" className={inputClass} />
-                  </label>
-                  <label className={labelClass}>
-                    SEO description (EN)
-                    <input name="seoDescriptionEn" className={inputClass} />
-                  </label>
-                </div>
-              </AcademyActionForm>
-            </details>
-          </section>
-        ) : null}
-
-        {/* Courses */}
-        <section className="grid gap-4">
-          <SectionHeader id="courses" icon={BookOpen} title="Courses" count={courses.length} hint="Expand a course to edit its content, structure, pricing, and cover image." />
-          <div className="grid gap-4">
-            {courses.map((course) => (
-              <details key={course.id} className="gradient-border rounded-[1.5rem] scroll-mt-24">
-                <summary className="elevated-panel cursor-pointer list-none p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold tracking-wide text-muted">/{course.slug}</p>
-                      <p className="mt-0.5 truncate text-lg font-semibold text-primary">{course.titleEn}</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <StatusPill value={course.status} />
-                      <PreviewStatusPill
-                        configured={Boolean(course.previewVideoId)}
-                        enabled={course.previewVideoEnabled}
-                      />
-                      <PricePill priceMinor={course.priceMinor} currency={course.currency} kind="course" />
-                      {course.moduleCount !== null ? <MetaPill>{course.moduleCount} modules</MetaPill> : null}
-                      {course.lessonCount !== null ? (
-                        <MetaPill>{course.lessonCount} lessons</MetaPill>
-                      ) : (
-                        <MetaPill>{course._count.lessons} lessons (auto)</MetaPill>
-                      )}
-                      {course.pathCount !== null ? <MetaPill>{course.pathCount} paths</MetaPill> : null}
-                      {course._count.packItems > 0 ? <MetaPill>{course._count.packItems} pack{course._count.packItems === 1 ? "" : "s"}</MetaPill> : null}
-                    </div>
-                  </div>
-                </summary>
-                {canManage ? (
-                  <AcademyActionForm
-                    action={updateCourse}
-                    submitLabel="Save course"
-                    helper="Saving revalidates the courses page, course detail pages, and the sitemap."
-                  >
-                    <input type="hidden" name="id" value={course.id} />
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className={labelClass}>
-                        Title (EN)
-                        <input name="titleEn" defaultValue={course.titleEn} className={inputClass} />
-                      </label>
-                      <label className={labelClass}>
-                        Status
-                        <select name="status" defaultValue={course.status} className={inputClass}>
-                          <option value="PUBLISHED">Published</option>
-                          <option value="DRAFT">Draft</option>
-                          <option value="ARCHIVED">Archived</option>
-                        </select>
-                      </label>
-                    </div>
-                    <label className={labelClass}>
-                      Short description (EN)
-                      <textarea name="shortDescriptionEn" defaultValue={course.shortDescriptionEn} rows={2} className={inputClass} />
-                    </label>
-                    <label className={labelClass}>
-                      Description (EN)
-                      <textarea name="descriptionEn" defaultValue={course.descriptionEn} rows={4} className={inputClass} />
-                    </label>
-
-                    <div className="rounded-2xl border border-border bg-surface-strong/40 p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Course structure</p>
-                      <div className="mt-3 grid gap-4 sm:grid-cols-3">
-                        <label className={labelClass}>
-                          Modules
-                          <input name="moduleCount" type="number" min={0} defaultValue={course.moduleCount ?? ""} className={inputClass} placeholder="0" />
-                          <span className={hintClass}>Currently recorded: modules in this course</span>
-                        </label>
-                        <label className={labelClass}>
-                          Lessons
-                          <input name="lessonCount" type="number" min={0} defaultValue={course.lessonCount ?? ""} className={inputClass} placeholder="0" />
-                          <span className={hintClass}>Auto count from the database: {course._count.lessons}</span>
-                        </label>
-                        <label className={labelClass}>
-                          Paths
-                          <input name="pathCount" type="number" min={0} defaultValue={course.pathCount ?? ""} className={inputClass} placeholder="0" />
-                          <span className={hintClass}>Learning paths this course appears in</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-border bg-surface-strong/40 p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Pricing &amp; delivery</p>
-                      <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                        <label className={labelClass}>
-                          Currency
-                          <select name="currency" defaultValue={course.currency} className={inputClass}>
-                            {CURRENCY_OPTIONS.map((option) => (
-                              <option key={option} value={option}>{option}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className={labelClass}>
-                          Price (minor)
-                          <input name="priceMinor" type="number" min={0} defaultValue={course.priceMinor ?? ""} className={inputClass} />
-                          <span className={hintClass}>Blank = default 2,000 FCFA (XAF items only)</span>
-                        </label>
-                        <label className={labelClass}>
-                          Compare-at (minor)
-                          <input name="compareAtPriceMinor" type="number" min={0} defaultValue={course.compareAtPriceMinor ?? ""} className={inputClass} />
-                        </label>
-                        <label className={labelClass}>
-                          Chariow product ID
-                          <input name="chariowProductId" defaultValue={course.chariowProductId ?? ""} className={inputClass} />
-                        </label>
-                      </div>
-                      <div className="mt-4">
-                        <AcademyImageField name="imageUrl" defaultValue={course.imageUrl ?? ""} label="Cover image" />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className={labelClass}>
-                        SEO title (EN)
-                        <input name="seoTitleEn" defaultValue={course.seoTitleEn ?? ""} className={inputClass} />
-                      </label>
-                      <label className={labelClass}>
-                        SEO description (EN)
-                        <input name="seoDescriptionEn" defaultValue={course.seoDescriptionEn ?? ""} className={inputClass} />
-                      </label>
-                    </div>
-                  </AcademyActionForm>
-                ) : (
-                  <div className="elevated-panel border-t border-border p-5 text-sm text-muted">
-                    Read-only view. Ask an administrator with catalog permissions to edit this course.
-                  </div>
-                )}
-
-                {canManage ? (
-                  <div className="border-t border-border bg-surface-strong/20 p-4 sm:p-5">
-                    <div className="mb-4">
-                      <p className="text-sm font-semibold text-primary">Free introductory video</p>
-                      <p className="mt-1 max-w-3xl text-xs leading-6 text-muted">
-                        Host the 4–5 minute introduction on the official teChia YouTube channel as an
-                        Unlisted video, then paste a normal watch link here. Customers only see a
-                        lightweight poster until they click Play. For a custom poster, use a
-                        1280×720 WebP or JPEG under about 200 KB.
-                      </p>
-                    </div>
-                    <AcademyActionForm
-                      action={updateCoursePreview}
-                      submitLabel="Save preview"
-                      pendingLabel="Saving preview…"
-                      helper="Saving a preview immediately revalidates the public course page. The rest of the course data is untouched."
-                    >
-                      <input type="hidden" name="id" value={course.id} />
-                      <AcademyPreviewVideoFields
-                        defaultUrl={getYouTubeWatchUrl(course.previewVideoId ?? "") ?? ""}
-                        defaultTitle={course.previewVideoTitle ?? ""}
-                        defaultDurationLabel={course.previewVideoDurationLabel ?? ""}
-                        defaultEnabled={course.previewVideoEnabled}
-                        hasExistingPreview={Boolean(course.previewVideoId)}
-                      />
-                      <AcademyImageField
-                        name="previewVideoPoster"
-                        defaultValue={course.previewVideoPoster ?? ""}
-                        label="Preview poster (optional)"
-                      />
-                    </AcademyActionForm>
-                    {course.previewVideoId ? (
-                      <AcademyRemovePreviewForm
-                        action={removeCoursePreview}
-                        courseId={course.id}
-                      />
-                    ) : null}
-                  </div>
-                ) : null}
-              </details>
-            ))}
-            {!courses.length ? (
-              <p className="rounded-2xl border border-dashed border-border bg-surface p-5 text-sm text-muted">No courses yet.</p>
-            ) : null}
-          </div>
-        </section>
-
-        {/* Packs */}
-        <section className="grid gap-4">
-          <SectionHeader id="packs" icon={Package} title="Packs" count={packs.length} hint="Bundles of courses sold as one product. Bonuses apply to pack purchases." />
-          <div className="grid gap-4">
-            {packs.map((pack) => (
-              <details key={pack.id} className="gradient-border rounded-[1.5rem] scroll-mt-24">
-                <summary className="elevated-panel cursor-pointer list-none p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold tracking-wide text-muted">/{pack.slug}</p>
-                      <p className="mt-0.5 truncate text-lg font-semibold text-primary">{pack.titleEn}</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <StatusPill value={pack.status} />
-                      <PricePill priceMinor={pack.priceMinor} currency={pack.currency} kind="pack" />
-                      <MetaPill>{pack._count.items} courses</MetaPill>
-                    </div>
-                  </div>
-                </summary>
-                {canManage ? (
-                  <AcademyActionForm
-                    action={updatePack}
-                    submitLabel="Save pack"
-                    helper={`Included courses: ${pack.items.map((item) => item.course.titleEn).join(", ") || "—"}`}
-                  >
-                    <input type="hidden" name="id" value={pack.id} />
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className={labelClass}>
-                        Title (EN)
-                        <input name="titleEn" defaultValue={pack.titleEn} className={inputClass} />
-                      </label>
-                      <label className={labelClass}>
-                        Status
-                        <select name="status" defaultValue={pack.status} className={inputClass}>
-                          <option value="PUBLISHED">Published</option>
-                          <option value="DRAFT">Draft</option>
-                          <option value="ARCHIVED">Archived</option>
-                        </select>
-                      </label>
-                    </div>
-                    <label className={labelClass}>
-                      Summary (EN)
-                      <textarea name="summaryEn" defaultValue={pack.summaryEn} rows={2} className={inputClass} />
-                    </label>
-                    <label className={labelClass}>
-                      Description (EN)
-                      <textarea name="descriptionEn" defaultValue={pack.descriptionEn} rows={4} className={inputClass} />
-                    </label>
-                    <div className="rounded-2xl border border-border bg-surface-strong/40 p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Pricing &amp; delivery</p>
-                      <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                        <label className={labelClass}>
-                          Currency
-                          <select name="currency" defaultValue={pack.currency} className={inputClass}>
-                            {CURRENCY_OPTIONS.map((option) => (
-                              <option key={option} value={option}>{option}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className={labelClass}>
-                          Price (minor)
-                          <input name="priceMinor" type="number" min={0} defaultValue={pack.priceMinor ?? ""} className={inputClass} />
-                          <span className={hintClass}>Blank = default 5,000 FCFA (XAF items only)</span>
-                        </label>
-                        <label className={labelClass}>
-                          Compare-at (minor)
-                          <input name="compareAtPriceMinor" type="number" min={0} defaultValue={pack.compareAtPriceMinor ?? ""} className={inputClass} />
-                        </label>
-                        <label className={labelClass}>
-                          Chariow product ID
-                          <input name="chariowProductId" defaultValue={pack.chariowProductId ?? ""} className={inputClass} />
-                        </label>
-                      </div>
-                      <div className="mt-4">
-                        <AcademyImageField name="imageUrl" defaultValue={pack.imageUrl ?? ""} label="Pack cover image" />
-                      </div>
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className={labelClass}>
-                        SEO title (EN)
-                        <input name="seoTitleEn" defaultValue={pack.seoTitleEn ?? ""} className={inputClass} />
-                      </label>
-                      <label className={labelClass}>
-                        SEO description (EN)
-                        <input name="seoDescriptionEn" defaultValue={pack.seoDescriptionEn ?? ""} className={inputClass} />
-                      </label>
-                    </div>
-                  </AcademyActionForm>
-                ) : (
-                  <div className="elevated-panel border-t border-border p-5 text-sm text-muted">
-                    Read-only view. Ask an administrator with catalog permissions to edit this pack.
-                  </div>
-                )}
-              </details>
-            ))}
-          </div>
+        {/* Catalog */}
+        <section id="catalog" className="grid scroll-mt-24 gap-4">
+          <SectionHeader
+            id="catalog-heading"
+            icon={Layers}
+            title="Catalog"
+            count={courses.length + packs.length}
+            hint="Switch between courses and packs. Search, filter by status, and sort as the catalog grows. Expand any item to edit every field."
+          />
+          <AcademyCatalogBrowser
+            courses={courseItems}
+            packs={packItems}
+            coursesActions={
+              canManage ? <CourseCreatePanel categories={categories} /> : null
+            }
+            packsActions={
+              canManage ? <PackCreatePanel courses={courses} /> : null
+            }
+          />
         </section>
 
         {/* Orders */}

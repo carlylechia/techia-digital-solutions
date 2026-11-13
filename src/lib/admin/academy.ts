@@ -17,7 +17,16 @@ export async function loadAdminAcademyCatalog(prisma: PrismaClient) {
       include: {
         items: {
           orderBy: [{ position: "asc" }],
-          include: { course: { select: { id: true, slug: true, titleEn: true } } },
+          include: {
+            course: {
+              select: {
+                id: true,
+                slug: true,
+                titleEn: true,
+                status: true,
+              },
+            },
+          },
         },
         _count: { select: { items: true } },
       },
