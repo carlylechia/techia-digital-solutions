@@ -1,6 +1,6 @@
-import { whatsappLink } from "@/lib/email";
 import type { Locale } from "@/content/site";
 import { getPublicAppPath } from "@/lib/site-routes";
+import { normalizeWhatsappUrl, whatsappLink } from "@/lib/whatsapp";
 
 export const CHARIOW_CHECKOUT_ENV_KEYS = {
   fullPack: "NEXT_PUBLIC_CHARIOW_FULL_PACK_URL",
@@ -56,20 +56,10 @@ export function getChariowCheckoutUrl(envKey: CheckoutEnvKey) {
 export function getCoursesWhatsappUrl(message?: string) {
   const directUrl = cleanEnv(process.env.NEXT_PUBLIC_COURSES_WHATSAPP_URL);
   if (directUrl) {
-    try {
-      const url = new URL(directUrl);
-      const isWhatsappHost =
-        url.hostname.includes("wa.me") || url.hostname.includes("whatsapp");
-
-      if (message && isWhatsappHost && !url.searchParams.has("text")) {
-        url.searchParams.set("text", message);
-        return url.toString();
-      }
-
-      return directUrl;
-    } catch {
-      return directUrl;
-    }
+    const normalized = normalizeWhatsappUrl(directUrl, message);
+    // A malformed direct URL must never become a relative href that resolves
+    // against this site. Fall through to the configured official number.
+    if (normalized) return normalized;
   }
 
   const number = configuredWhatsappNumber();

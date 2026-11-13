@@ -10,7 +10,7 @@ import {
   type BuyerBonusItem,
 } from "@/lib/courses/bonusPacks";
 import { getCoursePackById } from "@/lib/courses/coursePacks";
-import { whatsappLink } from "@/lib/email";
+import { whatsappLink } from "@/lib/whatsapp";
 
 export const STANDARD_BONUS_IDS = [
   "digital-skills-learning-roadmap",

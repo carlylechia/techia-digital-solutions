@@ -1,5 +1,8 @@
 import { Resend } from "resend";
 import { escapeEmailHtml, renderEmailLayout, renderEmailText, safeEmailHref, sanitizeEmailHeader } from "@/lib/email-layout";
+import { whatsappLink } from "@/lib/whatsapp";
+
+export { whatsappLink };
 
 /** Strip surrounding quotes that may be present if env values were pasted with quotes in Vercel. */
 function cleanEnv(value: string | undefined): string | undefined {
@@ -289,12 +292,6 @@ export async function sendWriterInviteEmail(data: {
 
 export async function sendWriterPasswordResetEmail(data: { toEmail: string; toName: string; temporaryPassword: string; loginUrl: string }) {
   return sendWriterInviteEmail(data);
-}
-
-export function whatsappLink(number: string, message?: string) {
-  const clean = number.replace(/\D/g, "");
-  const encoded = message ? `?text=${encodeURIComponent(message)}` : "";
-  return `https://wa.me/${clean}${encoded}`;
 }
 
 export function officialWhatsappLink(message?: string) {
