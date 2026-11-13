@@ -26,7 +26,7 @@ export function LanguageGate({ locale }: { locale: Locale }) {
 
   return (
     <div className="fixed inset-0 z-[100] grid place-items-center bg-black/70 p-4 backdrop-blur-xl" role="dialog" aria-modal="true" aria-labelledby="language-title">
-      <div className="premium-card max-w-lg p-6 text-center shadow-2xl">
+      <div className="premium-card w-full min-w-0 max-w-lg p-6 text-center shadow-2xl">
         <p className="eyebrow mx-auto mb-3 justify-center">Welcome / Bienvenue</p>
         <h2 id="language-title" className="text-2xl font-semibold text-primary">{locale === "fr" ? "Choisissez votre langue préférée" : "Choose your preferred language"}</h2>
         <p className="mt-3 text-sm leading-6 text-muted">{locale === "fr" ? "Sélectionnez l’anglais ou le français. Vous pourrez changer de langue à tout moment depuis la barre de navigation." : "Select English or French. You can change this anytime from the navigation bar."}</p>

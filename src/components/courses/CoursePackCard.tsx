@@ -60,7 +60,7 @@ export async function CoursePackCard({
 
   return (
     <article
-      className={cn("group h-full rounded-[1.65rem]", emphasize && "gradient-border p-px")}
+      className={cn("group h-full min-w-0 max-w-full rounded-[1.65rem]", emphasize && "gradient-border p-px")}
     >
       <div
         className={cn(
@@ -68,8 +68,8 @@ export async function CoursePackCard({
           emphasize && "elevated-panel border-transparent",
         )}
       >
-        <div className="flex items-center justify-between gap-3">
-          <p className="min-w-0 truncate text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-500/90">
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+          <p className="line-clamp-2 min-w-[8rem] flex-1 break-words text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-cyan-700 dark:text-cyan-500/90 min-[480px]:text-xs min-[480px]:tracking-[0.18em]">
             {pack.category}
           </p>
           {pack.badge ? (
@@ -80,7 +80,7 @@ export async function CoursePackCard({
           ) : null}
         </div>
 
-        <h3 className="mt-3 line-clamp-2 text-2xl font-semibold leading-snug text-primary">
+        <h3 className="mt-3 line-clamp-2 text-xl font-semibold leading-snug text-primary sm:text-2xl">
           {pack.title}
         </h3>
 
@@ -88,7 +88,7 @@ export async function CoursePackCard({
           {pack.summary}
         </p>
 
-        <div className="mt-5 grid grid-cols-2 gap-2.5">
+        <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           <CourseMetaTile
             icon={<Signal className="size-4" />}
             label={copy.level}
@@ -118,7 +118,7 @@ export async function CoursePackCard({
         ) : null}
 
         <div className="mt-auto pt-5">
-          <div className="flex items-end justify-between gap-3 border-t border-border/70 pt-4">
+          <div className="flex flex-col gap-3 border-t border-border/70 pt-4 min-[400px]:flex-row min-[400px]:items-end min-[400px]:justify-between">
             <div className="min-w-0">
               <span className="block text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted">
                 {copy.price}
@@ -129,7 +129,7 @@ export async function CoursePackCard({
                 </span>
               ) : null}
             </div>
-            <div className="shrink-0 text-right">
+            <div className="min-w-0 text-left min-[400px]:shrink-0 min-[400px]:text-right">
               {compareAtPriceMinor ? (
                 <span className="block text-[11px] font-medium text-muted">
                   {copy.separately}:{" "}
@@ -146,7 +146,7 @@ export async function CoursePackCard({
             </div>
           </div>
 
-          <div className="mt-3.5 flex flex-nowrap gap-2.5">
+          <div className="mt-3.5 flex flex-col gap-2.5 min-[360px]:flex-row">
             <CourseTrackedLink
               href={pack.path}
               eventName="course_pack_click"
@@ -156,7 +156,7 @@ export async function CoursePackCard({
                 pack_title: pack.title,
                 source_page: sourcePage,
               }}
-              className="btn-secondary min-w-0 flex-1 whitespace-nowrap px-4 py-2.5 text-sm"
+              className="btn-secondary w-full min-w-0 flex-1 whitespace-nowrap px-4 py-2.5 text-sm min-[360px]:w-auto"
             >
               <span className="min-w-0 truncate">{detailLabel}</span>
             </CourseTrackedLink>
@@ -167,7 +167,7 @@ export async function CoursePackCard({
               showPrice={false}
               hints={hints}
               chariowProductId={pack.chariowProductId}
-              className="min-w-0 flex-1 px-4 py-2.5 text-sm"
+              className="min-w-0 flex-1 px-4 py-2.5 text-sm min-[360px]:w-auto"
             />
           </div>
         </div>

@@ -697,7 +697,7 @@ export default async function CoursePackDetailPage({
             <div className="elevated-panel p-6 sm:p-7 md:p-8">
               <SectionHeading eyebrow={copy.inPacks} title={copy.inPacks} description={course.shortDescription} align="left" className="mb-0" />
               <div className="mt-8">
-                <RelatedCoursePacks locale={locale} packs={containingPacks} />
+                <RelatedCoursePacks locale={locale} packs={containingPacks} embedded />
               </div>
             </div>
           </div>

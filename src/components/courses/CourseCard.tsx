@@ -53,9 +53,9 @@ export async function CourseCard({
       : null;
 
   return (
-    <article className="group flex h-full flex-col rounded-[1.6rem] border border-border bg-surface p-5 transition duration-300 hover:-translate-y-1 hover:border-cyan-500/30 hover:shadow-[0_24px_50px_-28px_rgba(8,145,178,0.45)]">
-      <div className="flex items-center justify-between gap-3">
-        <p className="min-w-0 truncate text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-500/90">
+    <article className="group flex h-full min-w-0 max-w-full flex-col rounded-[1.6rem] border border-border bg-surface p-5 transition duration-300 hover:-translate-y-1 hover:border-cyan-500/30 hover:shadow-[0_24px_50px_-28px_rgba(8,145,178,0.45)]">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+        <p className="line-clamp-2 min-w-[8rem] flex-1 break-words text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-cyan-700 dark:text-cyan-500/90 min-[480px]:text-xs min-[480px]:tracking-[0.18em]">
           {course.category?.name}
         </p>
         {course.includedInFullPack ? (
@@ -74,7 +74,7 @@ export async function CourseCard({
         {course.shortDescription}
       </p>
 
-      <div className="mt-5 grid grid-cols-2 gap-2.5">
+      <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         <CourseMetaTile
           icon={<Signal className="size-4" />}
           label={copy.level}
@@ -115,10 +115,10 @@ export async function CourseCard({
           </div>
         </div>
 
-        <div className="mt-3.5 flex flex-nowrap gap-2.5">
+        <div className="mt-3.5 flex flex-col gap-2.5 min-[360px]:flex-row">
           <Link
             href={course.path}
-            className="btn-secondary min-w-0 flex-1 whitespace-nowrap px-4 py-2.5 text-sm"
+            className="btn-secondary w-full min-w-0 flex-1 whitespace-nowrap px-4 py-2.5 text-sm min-[360px]:w-auto"
           >
             <span className="min-w-0 truncate">{copy.view}</span>
           </Link>
@@ -137,7 +137,7 @@ export async function CourseCard({
             showPrice={false}
             hints={hints}
             chariowProductId={course.chariowProductId}
-            className="min-w-0 flex-1 px-4 py-2.5 text-sm"
+            className="min-w-0 flex-1 px-4 py-2.5 text-sm min-[360px]:w-auto"
           />
         </div>
       </div>

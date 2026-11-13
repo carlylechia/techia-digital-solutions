@@ -305,6 +305,21 @@ textarea {
 }
 
 @layer base {
+  /*
+   * Mobile-first grid safety net.
+   *
+   * An implicit grid column is an `auto` track, whose automatic minimum is the
+   * min-content width of its items. A single long, non-wrapping label (for
+   * example a course category or a price) can therefore make the track wider
+   * than the viewport, even when the grid container itself is constrained.
+   * Defaulting every grid to one shrinkable column keeps the layout inside the
+   * container on mobile; explicit `grid-cols-*` utilities still override this
+   * at every breakpoint.
+   */
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   h1,
   h2,
   h3,
