@@ -19,6 +19,8 @@ export async function CoursePackCard({
   courseLabelPlural,
   detailLabel,
   checkoutLabel,
+  compareAtPriceMinor,
+  savingsLabel,
 }: {
   pack: StorefrontPack;
   locale: Locale;
@@ -30,11 +32,25 @@ export async function CoursePackCard({
   courseLabelPlural: string;
   detailLabel: string;
   checkoutLabel: string;
+  /** Sum of the current course prices when the pack is genuinely cheaper. */
+  compareAtPriceMinor?: number | null;
+  /** Pre-formatted, locale-aware value note derived from live prices. */
+  savingsLabel?: string | null;
 }) {
   const copy =
     locale === "fr"
-      ? { level: "Niveau", price: "Prix", priceSoon: "Prix à venir" }
-      : { level: "Level", price: "Price", priceSoon: "Price coming soon" };
+      ? {
+          level: "Niveau",
+          price: "Prix",
+          priceSoon: "Prix à venir",
+          separately: "Séparément",
+        }
+      : {
+          level: "Level",
+          price: "Price",
+          priceSoon: "Price coming soon",
+          separately: "Separately",
+        };
   const hints = await getCheckoutHints();
   const priceMinor =
     typeof pack.priceMinor === "number" && pack.priceMinor > 0
@@ -102,17 +118,32 @@ export async function CoursePackCard({
         ) : null}
 
         <div className="mt-auto pt-5">
-          <div className="flex items-baseline justify-between gap-3 border-t border-border/70 pt-4">
-            <span className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted">
-              {copy.price}
-            </span>
-            {priceMinor ? (
-              <span className="text-lg font-bold text-primary">
-                {formatMoney(priceMinor, currency, locale)}
+          <div className="flex items-end justify-between gap-3 border-t border-border/70 pt-4">
+            <div className="min-w-0">
+              <span className="block text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted">
+                {copy.price}
               </span>
-            ) : (
-              <span className="text-sm font-medium text-muted">{copy.priceSoon}</span>
-            )}
+              {savingsLabel ? (
+                <span className="mt-1.5 inline-flex rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                  {savingsLabel}
+                </span>
+              ) : null}
+            </div>
+            <div className="shrink-0 text-right">
+              {compareAtPriceMinor ? (
+                <span className="block text-[11px] font-medium text-muted">
+                  {copy.separately}:{" "}
+                  {formatMoney(compareAtPriceMinor, currency, locale)}
+                </span>
+              ) : null}
+              {priceMinor ? (
+                <span className="block text-lg font-bold text-primary">
+                  {formatMoney(priceMinor, currency, locale)}
+                </span>
+              ) : (
+                <span className="text-sm font-medium text-muted">{copy.priceSoon}</span>
+              )}
+            </div>
           </div>
 
           <div className="mt-3.5 flex flex-nowrap gap-2.5">

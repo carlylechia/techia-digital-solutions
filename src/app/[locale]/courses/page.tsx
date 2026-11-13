@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Mail, MessageCircle } from "lucide-react";
+import { ArrowRight, Mail, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
 import { notFound } from "next/navigation";
 import { BonusClaimButton } from "@/components/courses/BonusClaimButton";
 import { BuyerBonusSection } from "@/components/courses/BuyerBonusSection";
@@ -21,6 +21,7 @@ import { PageBreadcrumbs } from "@/components/ui/page-breadcrumbs";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { isLocale, type Locale } from "@/content/site";
 import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
+import { formatMoney } from "@/lib/payments/money";
 import { getCheckoutHints } from "@/lib/payments/providers";
 import {
   getCoursesBonusClaimDestination,
@@ -34,6 +35,7 @@ import {
   listPublishedCourses,
   type CatalogSort,
 } from "@/lib/courses/catalog-service";
+import { calculatePackValue } from "@/lib/courses/pack-value";
 import {
   getCourseAcademyFaqs,
   getCourseAcademySteps,
@@ -68,11 +70,25 @@ function buildViewHref(
   searchParams: { q?: string; category?: string; sort?: string },
 ) {
   const params = new URLSearchParams();
-  params.set("view", view);
+  // Courses are the default storefront view, so keep that URL clean.
+  if (view === "packs") params.set("view", "packs");
   if (searchParams.q) params.set("q", searchParams.q);
   if (searchParams.category) params.set("category", searchParams.category);
   if (searchParams.sort) params.set("sort", searchParams.sort);
-  return `${getPublicAppPath("/courses")}?${params.toString()}#catalog`;
+  const query = params.toString();
+  return `${getPublicAppPath("/courses")}${query ? `?${query}` : ""}#catalog`;
+}
+
+function packValueLabel(
+  locale: Locale,
+  savingsMinor: number,
+  savingsPercent: number,
+  currency: string,
+) {
+  const amount = formatMoney(savingsMinor, currency, locale);
+  return locale === "fr"
+    ? `Économisez ${amount} (${savingsPercent} %)`
+    : `Save ${amount} (${savingsPercent}%)`;
 }
 
 export default async function CoursesPage({
@@ -86,7 +102,7 @@ export default async function CoursesPage({
   if (!isLocale(rawLocale)) notFound();
   const locale = rawLocale as Locale;
   const { q, category, sort, view } = await searchParams;
-  const activeView: "courses" | "packs" = view === "courses" ? "courses" : "packs";
+  const activeView: "courses" | "packs" = view === "packs" ? "packs" : "courses";
 
   const [packs, courses, categories] = await Promise.all([
     getStorefrontPacks(locale),
@@ -98,6 +114,25 @@ export default async function CoursesPage({
   if (!fullPack) notFound();
   const subpacks = packs.filter((pack) => pack.id !== fullPack.id);
   const allPacks = [fullPack, ...subpacks];
+  const packValues = new Map(
+    allPacks.map((pack) => {
+      const value = calculatePackValue(pack, courses);
+      return [
+        pack.id,
+        value
+          ? {
+              compareAtPriceMinor: value.separateTotalMinor,
+              savingsLabel: packValueLabel(
+                locale,
+                value.savingsMinor,
+                value.savingsPercent,
+                pack.priceCurrency,
+              ),
+            }
+          : null,
+      ] as const;
+    }),
+  );
 
   const filteredCourses = filterCatalogCourses(courses, {
     query: q,
@@ -137,25 +172,34 @@ export default async function CoursesPage({
     locale === "fr"
       ? {
           heroEyebrow: "teChia Digital Academy",
-          heroTitle: "Apprenez des compétences digitales utiles et passez à l’action.",
+          heroTitle: "Des compétences utiles. Des cours achetés en toute confiance.",
           heroDescription:
-            "Choisissez un cours individuel pour un besoin précis, ou un pack pour progresser plus vite avec un parcours complet. Trouvez, comparez et achetez en quelques clics.",
-          heroPrimary: "Voir les packs",
-          heroSecondary: "Voir les cours individuels",
-          heroBadges: ["Cours pratiques", "Packs à forte valeur", "Paiement sécurisé"],
-          searchEyebrow: "Trouver rapidement",
-          searchTitle: "Recherchez le bon cours ou le bon pack",
+            "Achetez des cours digitaux pratiques à votre rythme. Choisissez un cours pour un objectif précis, ou un pack qui réunit des cours complémentaires dans une formule complète.",
+          heroPrimary: "Voir les cours",
+          heroSecondary: "Explorer les packs",
+          heroTrust: ["Paiement sécurisé", "Cours pratiques", "Valeur des packs"],
+          trustLine: "Paiement sécurisé · Prix clairs · Aide avant achat",
+          searchEyebrow: "Boutique de l’académie",
+          searchTitle: "Trouvez le cours adapté à votre objectif",
           searchDescription:
-            "Utilisez la recherche et les filtres pour trouver exactement ce qu’il vous faut, puis choisissez la formule qui correspond à votre objectif.",
-          toggleCourses: "Cours individuels",
+            "Recherchez par compétence, filtrez par catégorie, comparez les prix et achetez le cours qui vous convient. Les packs sont disponibles pour un parcours plus large.",
+          toggleCourses: "Cours",
           togglePacks: "Packs de cours",
-          coursesTitle: "Cours individuels",
+          coursesTitle: "Tous les cours",
           coursesDescription:
-            "Idéal si vous voulez maîtriser une compétence précise. Choisissez un cours, consultez le programme et achetez quand vous êtes prêt.",
+            "Des cours pratiques et ciblés, achetables à l’unité. Choisissez une compétence, consultez le cours et payez en toute sécurité.",
           packsTitle: "Packs de cours",
           packsDescription:
-            "Idéal si vous voulez un parcours complet et plus de valeur. Achetez un pack pour apprendre plusieurs compétences complémentaires.",
-          featuredPackLabel: "Pack recommandé",
+            "Des formules spéciales qui réunissent des cours complémentaires dans un seul parcours — plus simple pour élargir vos compétences et obtenir plus de valeur.",
+          bundleEyebrow: "Élargissez vos compétences",
+          bundleTitle: "Vous voulez plusieurs compétences ? Réunissez-les dans un pack.",
+          bundleBody:
+            "Les packs réunissent des cours complémentaires dans une seule formule, pour suivre un parcours complet au lieu de choisir chaque cours séparément.",
+          bundleCta: "Explorer les packs",
+          packsIntroEyebrow: "Formules spéciales",
+          packsIntroTitle: "Plus de compétences, une seule formule.",
+          packsIntroBody:
+            "Chaque pack réunit des cours complémentaires dans un parcours unique. Choisissez un pack pour élargir vos compétences, suivre une structure claire et payer une seule fois.",
           noCoursesTitle: "Aucun cours trouvé",
           noCoursesBody: "Essayez un autre mot-clé, changez de catégorie ou effacez les filtres.",
           noPacksTitle: "Aucun pack trouvé",
@@ -176,10 +220,10 @@ export default async function CoursesPage({
             "Des parcours clairs, des compétences pratiques et un achat simple pour vous aider à apprendre ce qui compte vraiment pour votre travail, votre business ou votre carrière.",
           faqEyebrow: "FAQ",
           faqTitle: "Questions fréquentes",
-          finalTitle: "Prêt à commencer aujourd’hui ?",
+          finalTitle: "Prêt à apprendre quelque chose d’utile ?",
           finalBody:
-            "Choisissez un cours individuel pour aller droit au but, ou optez pour un pack pour économiser et progresser plus vite.",
-          browseCourses: "Explorer les cours",
+            "Achetez un cours pour une compétence ciblée, ou choisissez un pack qui réunit des cours complémentaires dans un parcours complet.",
+          browseCourses: "Voir les cours",
           browsePacks: "Explorer les packs",
           supportWhatsapp: "Demander conseil sur WhatsApp",
           supportEmail: "Contacter par email",
@@ -187,30 +231,39 @@ export default async function CoursesPage({
           aiCtaEyebrow: "Besoin d'aide pour choisir ?",
           aiCtaTitle: "Parlez à l’agent IA teChia",
           aiCtaBody:
-            "Si vous hésitez entre un cours et un pack, l’agent IA peut vous recommander la meilleure option selon votre objectif, votre niveau et votre budget.",
+            "Si vous hésitez entre un cours et un pack, l’agent IA peut comparer les options selon votre objectif, votre niveau et votre budget.",
           aiCtaButton: "Demander conseil à l’IA",
         }
       : {
           heroEyebrow: "teChia Digital Academy",
-          heroTitle: "Learn practical digital skills and take action with confidence.",
+          heroTitle: "Skills you can use. Courses you can buy with confidence.",
           heroDescription:
-            "Choose a single course for a specific goal, or pick a pack for a complete learning path and better value. Find, compare, and buy in just a few clicks.",
-          heroPrimary: "Browse Course Packs",
-          heroSecondary: "Browse Individual Courses",
-          heroBadges: ["Practical courses", "High-value packs", "Secure checkout"],
-          searchEyebrow: "Find it fast",
-          searchTitle: "Search for the right course or pack",
+            "Shop practical digital courses at your own pace. Pick a course for one clear goal, or choose a course pack that combines related courses into one complete learning package.",
+          heroPrimary: "Shop courses",
+          heroSecondary: "Explore course packs",
+          heroTrust: ["Secure checkout", "Practical lessons", "Bundle value"],
+          trustLine: "Secure checkout · Clear pricing · Help before you buy",
+          searchEyebrow: "Shop the academy",
+          searchTitle: "Find the right course for your goal",
           searchDescription:
-            "Use search and filters to find what you need, then choose the option that fits your goal and budget.",
-          toggleCourses: "Individual Courses",
-          togglePacks: "Course Packs",
-          coursesTitle: "Individual courses",
+            "Search by skill, filter by category, compare prices, and buy the course that fits. Course packs are available when you want a broader learning path.",
+          toggleCourses: "Courses",
+          togglePacks: "Course packs",
+          coursesTitle: "All courses",
           coursesDescription:
-            "Best if you want to master one specific skill. Pick a course, review the outline, and buy when you’re ready.",
+            "Focused, practical courses you can buy one at a time. Choose a skill, review the course, and check out securely.",
           packsTitle: "Course packs",
           packsDescription:
-            "Best if you want a complete path and more value. Buy a pack to learn multiple related skills together.",
-          featuredPackLabel: "Recommended pack",
+            "Special packages that combine related courses into one learning path — a simpler way to build broader skills and get more value.",
+          bundleEyebrow: "Build a broader skill set",
+          bundleTitle: "Want more than one skill? Combine courses in a pack.",
+          bundleBody:
+            "Course packs bundle related courses into one package, so you can follow a complete path instead of choosing every course separately.",
+          bundleCta: "Explore course packs",
+          packsIntroEyebrow: "Special packages",
+          packsIntroTitle: "More skills, one complete package.",
+          packsIntroBody:
+            "Each pack combines related courses into a single learning path. Choose a pack when you want a broader skill set, a clear structure, and one simple checkout.",
           noCoursesTitle: "No courses found",
           noCoursesBody: "Try a different keyword, change the category, or clear filters.",
           noPacksTitle: "No packs found",
@@ -231,20 +284,27 @@ export default async function CoursesPage({
             "Clear learning paths, practical skills, and a simple buying experience to help you learn what matters for work, business, or career growth.",
           faqEyebrow: "FAQ",
           faqTitle: "Frequently asked questions",
-          finalTitle: "Ready to start learning today?",
+          finalTitle: "Ready to learn something useful?",
           finalBody:
-            "Choose an individual course to focus on one skill, or pick a pack to save more and make faster progress.",
-          browseCourses: "Explore courses",
-          browsePacks: "Explore packs",
+            "Shop a course for one focused skill, or choose a pack that combines related courses into a complete learning path.",
+          browseCourses: "Shop courses",
+          browsePacks: "Explore course packs",
           supportWhatsapp: "Ask on WhatsApp",
           supportEmail: "Contact by email",
           clearFilters: "Clear filters",
           aiCtaEyebrow: "Need help choosing?",
           aiCtaTitle: "Talk to the teChia AI agent",
           aiCtaBody:
-            "If you are unsure whether to buy a single course or a pack, the AI agent can recommend the best option for your goal, level, and budget.",
+            "If you are unsure which course or pack fits your goal, the AI agent can compare options using your objective, level, and budget.",
           aiCtaButton: "Ask the AI agent",
         };
+
+  const resultLabel =
+    activeView === "packs"
+      ? `${filteredPacks.length} ${filteredPacks.length === 1 ? "pack" : "packs"}`
+      : `${filteredCourses.length} ${
+          filteredCourses.length === 1 ? copy.courseSingular : copy.coursePlural
+        }`;
 
   return (
     <main>
@@ -306,16 +366,27 @@ export default async function CoursesPage({
                   {copy.heroDescription}
                 </p>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                  <Link href={buildViewHref("packs", { q, category, sort })} className="btn-primary justify-center px-5 py-3">
+                  <Link
+                    href={buildViewHref("courses", { q, category, sort })}
+                    className="btn-primary justify-center px-5 py-3"
+                  >
                     {copy.heroPrimary}
                   </Link>
                   <Link
-                    href={buildViewHref("courses", { q, category, sort })}
+                    href={buildViewHref("packs", { q, category, sort })}
                     className="btn-secondary justify-center border-white/30 bg-white/10 px-5 py-3 text-white backdrop-blur-sm hover:bg-white/20"
                   >
                     {copy.heroSecondary}
                   </Link>
                 </div>
+                <ul className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-white/75">
+                  {copy.heroTrust.map((item) => (
+                    <li key={item} className="inline-flex items-center gap-1.5">
+                      <ShieldCheck className="size-3.5 text-cyan-300/90" aria-hidden="true" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>
@@ -325,44 +396,71 @@ export default async function CoursesPage({
       <section id="catalog" className="container scroll-mt-24 py-4 sm:py-6">
         <div className="gradient-border rounded-[1.95rem]">
           <div className="elevated-panel p-6 sm:p-7 md:p-8">
-            <SectionHeading
-              eyebrow={copy.searchEyebrow}
-              title={copy.searchTitle}
-              description={copy.searchDescription}
-              align="left"
-              className="mb-0"
-            />
-
-            <div
-              className="mt-6 inline-flex rounded-full border border-border bg-background/70 p-1"
-              role="group"
-              aria-label={locale === "fr" ? "Choisir l’affichage" : "Choose view"}
-            >
-              <Link
-                href={buildViewHref("packs", { q, category, sort })}
-                aria-current={activeView === "packs" ? "page" : undefined}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                  activeView === "packs"
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-muted hover:text-primary"
-                }`}
-              >
-                {copy.togglePacks}
-              </Link>
-              <Link
-                href={buildViewHref("courses", { q, category, sort })}
-                aria-current={activeView === "courses" ? "page" : undefined}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                  activeView === "courses"
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-muted hover:text-primary"
-                }`}
-              >
-                {copy.toggleCourses}
-              </Link>
+            <div className="max-w-3xl">
+              <p className="eyebrow">{copy.searchEyebrow}</p>
+              <h2 className="mt-3 text-balance text-3xl font-semibold text-primary sm:text-4xl">
+                {copy.searchTitle}
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-muted sm:text-base">
+                {copy.searchDescription}
+              </p>
             </div>
 
-            <div className="mt-6">
+            <div className="mt-6 flex flex-col gap-4 border-t border-border/70 pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                className="inline-flex w-fit rounded-full border border-border bg-background/70 p-1"
+                role="group"
+                aria-label={locale === "fr" ? "Choisir l’affichage" : "Choose view"}
+              >
+                <Link
+                  href={buildViewHref("courses", { q, category, sort })}
+                  aria-current={activeView === "courses" ? "page" : undefined}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                    activeView === "courses"
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted hover:text-primary"
+                  }`}
+                >
+                  {copy.toggleCourses}
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                      activeView === "courses"
+                        ? "bg-white/15 text-white"
+                        : "bg-background text-muted"
+                    }`}
+                  >
+                    {courses.length}
+                  </span>
+                </Link>
+                <Link
+                  href={buildViewHref("packs", { q, category, sort })}
+                  aria-current={activeView === "packs" ? "page" : undefined}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                    activeView === "packs"
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted hover:text-primary"
+                  }`}
+                >
+                  {copy.togglePacks}
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                      activeView === "packs"
+                        ? "bg-white/15 text-white"
+                        : "bg-background text-muted"
+                    }`}
+                  >
+                    {allPacks.length}
+                  </span>
+                </Link>
+              </div>
+
+              <p className="hidden items-center gap-2 text-xs font-medium text-muted sm:inline-flex">
+                <ShieldCheck className="size-4 text-cyan-700 dark:text-cyan-400" aria-hidden="true" />
+                {copy.trustLine}
+              </p>
+            </div>
+
+            <div className="mt-5">
               <CourseCatalogFilters
                 locale={locale}
                 categories={categories.map((c) => ({ slug: c.slug, name: c.name }))}
@@ -370,34 +468,44 @@ export default async function CoursesPage({
               />
             </div>
 
-            <p className="mt-4 text-sm text-muted" aria-live="polite">
-              {activeView === "packs"
-                ? `${filteredPacks.length} ${
-                    locale === "fr" ? "packs" : "packs"
-                  }`
-                : `${filteredCourses.length} ${
-                    locale === "fr" ? "cours" : "courses"
-                  }`}
+            <p className="mt-4 text-sm font-medium text-primary" aria-live="polite">
+              {resultLabel}
             </p>
 
             {activeView === "packs" ? (
-              <div className="mt-8">
-                <SectionHeading
-                  eyebrow={copy.togglePacks}
-                  title={copy.packsTitle}
-                  description={copy.packsDescription}
-                  align="left"
-                  className="mb-0"
-                />
+              <div className="mt-6">
+                <div className="rounded-[1.45rem] border border-cyan-500/20 bg-cyan-500/[0.06] p-5 sm:p-6">
+                  <div className="flex items-start gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-cyan-500/15 text-cyan-700 dark:text-cyan-400">
+                      <Sparkles className="size-5" aria-hidden="true" />
+                    </span>
+                    <div>
+                      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-400">
+                        {copy.packsIntroEyebrow}
+                      </p>
+                      <h3 className="mt-1.5 text-xl font-semibold text-primary sm:text-2xl">
+                        {copy.packsIntroTitle}
+                      </h3>
+                      <p className="mt-2 max-w-3xl text-sm leading-7 text-muted">
+                        {copy.packsIntroBody}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
                 {filteredPacks.length ? (
                   <>
                     {filteredPacks.some((p) => p.recommended) ? (
-                      <div className="mt-8">
-                        <FeaturedFullPack locale={locale} pack={fullPack} />
+                      <div className="mt-6">
+                        <FeaturedFullPack
+                          locale={locale}
+                          pack={fullPack}
+                          compareAtPriceMinor={packValues.get(fullPack.id)?.compareAtPriceMinor}
+                          savingsLabel={packValues.get(fullPack.id)?.savingsLabel}
+                        />
                       </div>
                     ) : null}
-                    <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                       {filteredPacks
                         .filter((p) => !p.recommended)
                         .map((pack) => (
@@ -412,12 +520,14 @@ export default async function CoursesPage({
                             courseLabelPlural={copy.coursePlural}
                             detailLabel={copy.viewDetails}
                             checkoutLabel={copy.buyNow}
+                            compareAtPriceMinor={packValues.get(pack.id)?.compareAtPriceMinor}
+                            savingsLabel={packValues.get(pack.id)?.savingsLabel}
                           />
                         ))}
                     </div>
                   </>
                 ) : (
-                  <div className="mt-8 rounded-[1.45rem] border border-border bg-surface p-6">
+                  <div className="mt-6 rounded-[1.45rem] border border-border bg-surface p-6">
                     <h3 className="text-xl font-semibold text-primary">{copy.noPacksTitle}</h3>
                     <p className="mt-3 text-sm leading-7 text-muted">{copy.noPacksBody}</p>
                     <Link
@@ -464,31 +574,61 @@ export default async function CoursesPage({
                 </div>
               </div>
             ) : (
-              <div className="mt-8">
-                <SectionHeading
-                  eyebrow={copy.toggleCourses}
-                  title={copy.coursesTitle}
-                  description={copy.coursesDescription}
-                  align="left"
-                  className="mb-0"
-                />
+              <div className="mt-6">
+                <div>
+                  <h3 className="text-xl font-semibold text-primary sm:text-2xl">
+                    {copy.coursesTitle}
+                  </h3>
+                  <p className="mt-2 max-w-3xl text-sm leading-7 text-muted">
+                    {copy.coursesDescription}
+                  </p>
+                </div>
+
                 {filteredCourses.length ? (
-                  <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                    {filteredCourses.map((course) => (
-                      <CourseCard
-                        key={course.id}
-                        course={course}
-                        locale={locale}
-                        sourcePage="courses_catalog"
-                      />
-                    ))}
-                  </div>
+                  <>
+                    <Link
+                      href={buildViewHref("packs", { q, category, sort })}
+                      className="group mt-5 flex flex-col gap-4 rounded-[1.35rem] border border-cyan-500/25 bg-cyan-500/[0.06] p-5 transition hover:border-cyan-500/45 hover:bg-cyan-500/[0.09] sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-cyan-500/15 text-cyan-700 dark:text-cyan-400">
+                          <Sparkles className="size-5" aria-hidden="true" />
+                        </span>
+                        <div>
+                          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-400">
+                            {copy.bundleEyebrow}
+                          </p>
+                          <p className="mt-1 text-base font-semibold text-primary">
+                            {copy.bundleTitle}
+                          </p>
+                          <p className="mt-1 max-w-3xl text-sm leading-6 text-muted">
+                            {copy.bundleBody}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-cyan-700 dark:text-cyan-400">
+                        {copy.bundleCta}
+                        <ArrowRight className="size-4 transition group-hover:translate-x-0.5" aria-hidden="true" />
+                      </span>
+                    </Link>
+
+                    <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                      {filteredCourses.map((course) => (
+                        <CourseCard
+                          key={course.id}
+                          course={course}
+                          locale={locale}
+                          sourcePage="courses_catalog"
+                        />
+                      ))}
+                    </div>
+                  </>
                 ) : (
-                  <div className="mt-8 rounded-[1.45rem] border border-border bg-surface p-6">
+                  <div className="mt-6 rounded-[1.45rem] border border-border bg-surface p-6">
                     <h3 className="text-xl font-semibold text-primary">{copy.noCoursesTitle}</h3>
                     <p className="mt-3 text-sm leading-7 text-muted">{copy.noCoursesBody}</p>
                     <Link
-                      href={`${getPublicAppPath("/courses")}?view=courses#catalog`}
+                      href={`${getPublicAppPath("/courses")}#catalog`}
                       className="btn-secondary mt-5 justify-center px-5 py-3"
                     >
                       {copy.clearFilters}
@@ -566,11 +706,17 @@ export default async function CoursesPage({
             <h2 className="max-w-4xl text-4xl font-semibold text-primary md:text-5xl">{copy.finalTitle}</h2>
             <p className="mt-5 max-w-3xl text-base leading-8 text-muted">{copy.finalBody}</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Link href={buildViewHref("packs", { q, category, sort })} className="btn-primary justify-center px-5 py-3">
-                {copy.browsePacks}
-              </Link>
-              <Link href={buildViewHref("courses", { q, category, sort })} className="btn-secondary justify-center px-5 py-3">
+              <Link
+                href={buildViewHref("courses", { q, category, sort })}
+                className="btn-primary justify-center px-5 py-3"
+              >
                 {copy.browseCourses}
+              </Link>
+              <Link
+                href={buildViewHref("packs", { q, category, sort })}
+                className="btn-secondary justify-center px-5 py-3"
+              >
+                {copy.browsePacks}
               </Link>
             </div>
             {whatsappUrl || supportEmail ? (

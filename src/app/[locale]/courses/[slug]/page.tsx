@@ -215,7 +215,13 @@ export default async function CoursePackDetailPage({
             `${pack.courseCount} ${pack.courseCount === 1 ? copy.courseSingular : copy.coursePlural}`,
             getCoursePackLevelLabel(locale, pack.level),
           ]}
-          actions={[{ href: "/courses", label: copy.viewAllPacks, variant: "secondary" }]}
+          actions={[
+            {
+              href: `${getPublicAppPath("/courses")}?view=packs#catalog`,
+              label: copy.viewAllPacks,
+              variant: "secondary",
+            },
+          ]}
           aside={
             <div className="rounded-[1.55rem] bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(251,113,133,0.14),transparent_28%)] p-5 sm:p-6">
               <div className="flex items-center justify-between gap-3">

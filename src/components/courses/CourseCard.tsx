@@ -26,6 +26,7 @@ export async function CourseCard({
           price: "Prix",
           inFullPack: "Dans le pack complet",
           priceSoon: "Prix à venir",
+          save: "Économisez",
         }
       : {
           view: "View course",
@@ -35,8 +36,21 @@ export async function CourseCard({
           price: "Price",
           inFullPack: "In full pack",
           priceSoon: "Price coming soon",
+          save: "Save",
         };
   const hints = await getCheckoutHints();
+  const compareAtPriceMinor =
+    course.compareAtPriceMinor &&
+    course.priceMinor &&
+    course.compareAtPriceMinor > course.priceMinor
+      ? course.compareAtPriceMinor
+      : null;
+  const savingsPercent =
+    compareAtPriceMinor && course.priceMinor
+      ? Math.round(
+          ((compareAtPriceMinor - course.priceMinor) / compareAtPriceMinor) * 100,
+        )
+      : null;
 
   return (
     <article className="group flex h-full flex-col rounded-[1.6rem] border border-border bg-surface p-5 transition duration-300 hover:-translate-y-1 hover:border-cyan-500/30 hover:shadow-[0_24px_50px_-28px_rgba(8,145,178,0.45)]">
@@ -74,19 +88,31 @@ export async function CourseCard({
       </div>
 
       <div className="mt-auto pt-5">
-        <div className="flex items-baseline justify-between gap-3 border-t border-border/70 pt-4">
+        <div className="flex items-end justify-between gap-3 border-t border-border/70 pt-4">
           <span className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted">
             {copy.price}
           </span>
-          {course.priceMinor ? (
-            <span className="text-lg font-bold text-primary">
-              {formatMoney(course.priceMinor, course.currency, locale)}
-            </span>
-          ) : (
-            <span className="text-sm font-medium text-muted">
-              {copy.priceSoon}
-            </span>
-          )}
+          <div className="shrink-0 text-right">
+            {compareAtPriceMinor && savingsPercent ? (
+              <span className="block text-[11px] font-medium text-muted">
+                <span className="line-through">
+                  {formatMoney(compareAtPriceMinor, course.currency, locale)}
+                </span>{" "}
+                <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                  {copy.save} {savingsPercent}%
+                </span>
+              </span>
+            ) : null}
+            {course.priceMinor ? (
+              <span className="block text-lg font-bold text-primary">
+                {formatMoney(course.priceMinor, course.currency, locale)}
+              </span>
+            ) : (
+              <span className="text-sm font-medium text-muted">
+                {copy.priceSoon}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="mt-3.5 flex flex-nowrap gap-2.5">

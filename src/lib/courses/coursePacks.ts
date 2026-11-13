@@ -615,22 +615,27 @@ export function getCourseAcademyFaqs(locale: Locale): CourseFaqItem[] {
       {
         question: "Que se passe-t-il après le paiement ?",
         answer:
-          "Après votre achat via Chariow, vous recevez les instructions d’accès liées au pack choisi. Si vous avez un problème, vous pouvez contacter teChia via WhatsApp ou email si ces contacts sont configurés.",
+          "Après votre achat, vous recevez les instructions d’accès liées au cours ou au pack choisi. Si vous avez un problème, vous pouvez contacter teChia via WhatsApp ou email si ces contacts sont configurés.",
       },
       {
-        question: "Puis-je acheter un seul sous-pack ?",
+        question: "Puis-je acheter un seul cours ?",
         answer:
-          "Oui. Chaque sous-pack est conçu pour un objectif d’apprentissage précis. Vous pouvez acheter uniquement le pack qui correspond à votre besoin actuel.",
+          "Oui. Chaque cours publié peut être acheté seul. Choisissez celui qui correspond à la compétence que vous voulez développer.",
+      },
+      {
+        question: "Qu’est-ce qu’un pack de cours ?",
+        answer:
+          "Un pack réunit des cours complémentaires dans une seule formule et un seul parcours. C’est l’option la plus simple si vous voulez élargir vos compétences ou suivre plusieurs cours liés.",
       },
       {
         question: "Le pack complet est-il la meilleure valeur ?",
         answer:
-          "Oui. Le pack complet donne accès aux 16 cours et reste le meilleur choix si vous voulez la bibliothèque entière au lieu d’acheter plusieurs petits packs séparément.",
+          "Le pack complet inclut les 16 cours. C’est le choix le plus complet si vous voulez toute la bibliothèque d’apprentissage en un seul achat.",
       },
       {
         question: "Les cours conviennent-ils aux débutants ?",
         answer:
-          "La plupart des packs conviennent aux débutants et aux apprenants qui veulent des compétences digitales pratiques et accessibles. Les sujets plus techniques demandent parfois un peu plus de patience, mais la structure reste pensée pour être abordable.",
+          "La plupart des cours conviennent aux débutants et aux apprenants qui veulent des compétences digitales pratiques et accessibles. Les sujets plus techniques demandent parfois un peu plus de patience, mais la structure reste pensée pour être abordable.",
       },
       {
         question: "Puis-je suivre les cours sur téléphone ?",
@@ -640,7 +645,7 @@ export function getCourseAcademyFaqs(locale: Locale): CourseFaqItem[] {
       {
         question: "Ai-je besoin d’une expérience préalable ?",
         answer:
-          "Pas forcément. La majorité des packs sont conçus comme des points d’entrée accessibles, surtout pour les apprenants qui veulent progresser étape par étape.",
+          "Pas forcément. La majorité des cours sont conçus comme des points d’entrée accessibles, surtout pour les apprenants qui veulent progresser étape par étape.",
       },
       {
         question: "Que faire si j’ai un problème de paiement ?",
@@ -659,22 +664,27 @@ export function getCourseAcademyFaqs(locale: Locale): CourseFaqItem[] {
     {
       question: "What happens after I pay?",
       answer:
-        "After completing your purchase through Chariow, you will receive the access instructions connected to the course pack you selected. If you have any issue, you can contact teChia support through WhatsApp or email when those support links are available.",
+        "After your purchase, you will receive the access instructions connected to the course or pack you selected. If you have any issue, you can contact teChia support through WhatsApp or email when those support links are available.",
     },
     {
-      question: "Can I buy only one subpack?",
+      question: "Can I buy just one course?",
       answer:
-        "Yes. Each subpack is designed for a specific learning goal. You can buy only the pack that matches your current need.",
+        "Yes. Every published course can be purchased on its own. Choose the course that matches the skill you want to build.",
+    },
+    {
+      question: "What is a course pack?",
+      answer:
+        "A course pack combines related courses into one package and one learning path. It is the simplest option when you want to broaden your skills or follow several related courses.",
     },
     {
       question: "Is the full pack better value?",
       answer:
-        "Yes. The full pack gives you access to all 16 courses and is the best option if you want the complete learning library instead of buying smaller packs separately.",
+        "The full pack includes all 16 courses. It is the most complete option if you want the entire learning library in one purchase.",
     },
     {
       question: "Are the courses beginner-friendly?",
       answer:
-        "Most packs are suitable for beginners and learners who want practical, easy-to-follow digital skills. Some tech-focused topics may require more patience, but the structure is designed to stay accessible.",
+        "Most courses are suitable for beginners and learners who want practical, easy-to-follow digital skills. Some tech-focused topics may require more patience, but the structure is designed to stay accessible.",
     },
     {
       question: "Can I access the courses on my phone?",
@@ -684,7 +694,7 @@ export function getCourseAcademyFaqs(locale: Locale): CourseFaqItem[] {
     {
       question: "Do I need previous experience?",
       answer:
-        "Not necessarily. Most packs are structured as approachable entry points for learners who want to build skills step by step.",
+        "Not necessarily. Most courses are structured as approachable entry points for learners who want to build skills step by step.",
     },
     {
       question: "What if I have payment issues?",
@@ -702,16 +712,16 @@ export function getCourseAcademyFaqs(locale: Locale): CourseFaqItem[] {
 export function getCourseAcademySteps(locale: Locale) {
   if (locale === "fr") {
     return [
-      "Choisissez le pack qui correspond à votre objectif",
-      "Finalisez le paiement via Chariow",
+      "Choisissez le cours ou le pack qui correspond à votre objectif",
+      "Finalisez votre paiement en toute sécurité",
       "Recevez les instructions d’accès",
       "Commencez à apprendre à votre rythme",
     ];
   }
 
   return [
-    "Choose your pack",
-    "Complete payment through Chariow",
+    "Choose the course or pack that fits your goal",
+    "Complete your payment securely",
     "Receive access instructions",
     "Start learning at your pace",
   ];

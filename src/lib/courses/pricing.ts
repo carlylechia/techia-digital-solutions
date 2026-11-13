@@ -1,7 +1,7 @@
 /**
  * Academy default pricing, decided by the business (Carlyle):
- *  - individual course: 2,000 FCFA
- *  - course pack:       5,000 FCFA
+ *  - course:      2,000 FCFA
+ *  - course pack: 5,000 FCFA
  *
  * XAF (FCFA) is a zero-decimal currency, so minor units == major units.
  *
@@ -26,7 +26,7 @@ function isXaf(currency: string | null | undefined) {
 }
 
 /**
- * Effective price for a single course: the admin-set value, or the 2,000 FCFA
+ * Effective price for a course: the admin-set value, or the 2,000 FCFA
  * default when unset and still selling in XAF. `null` = genuinely unpriced
  * (non-XAF currency without a manually set price).
  */
