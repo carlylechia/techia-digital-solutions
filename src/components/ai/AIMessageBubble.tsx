@@ -1,5 +1,6 @@
 import type { Message } from "./AIChatPanel";
 import { AlertCircle, Bot } from "lucide-react";
+import { AIMessageContent } from "./AIMessageContent";
 
 interface Props {
   message: Message;
@@ -41,12 +42,11 @@ export function AIMessageBubble({ message }: Props) {
             : "bg-surface border border-border text-primary",
         ].join(" ")}
       >
-        {message.content.split("\n").map((line, i, arr) => (
-          <span key={i}>
-            {line}
-            {i < arr.length - 1 && <br />}
-          </span>
-        ))}
+        {isError ? (
+          message.content
+        ) : (
+          <AIMessageContent content={message.content} />
+        )}
       </div>
     </div>
   );

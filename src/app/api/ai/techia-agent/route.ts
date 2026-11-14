@@ -3,11 +3,30 @@ import { NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
 import { AI_CONFIG } from "@/lib/ai/config";
 import { hashIp } from "@/lib/ai/ip-hash";
-import { estimateTokens, estimateRequestTokens, estimateCost } from "@/lib/ai/token-estimation";
+import {
+  estimateTokens,
+  estimateRequestTokens,
+  estimateCost,
+} from "@/lib/ai/token-estimation";
 import { TECHIA_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { buildAcademyCatalogContext } from "@/lib/ai/academy-catalog-context";
+import {
+  resolveAcademyRecommendation,
+  resolveAcademyRecommendationRef,
+} from "@/lib/ai/academy-recommendation";
+import {
+  buildCheckoutMessage,
+  isPurchaseIntent,
+  messageMentionsCheckout,
+  stripRecommendationMarkers,
+  type RecommendationRef,
+} from "@/lib/ai/recommendation";
+import { getPublicAppPath } from "@/lib/site-routes";
 import { requestIp } from "@/lib/rate-limit";
-import { notifyAdminOfAILead, notifyAdminOfAIDemoRequest } from "@/lib/ai/notifications";
+import {
+  notifyAdminOfAILead,
+  notifyAdminOfAIDemoRequest,
+} from "@/lib/ai/notifications";
 import { getErrorMessage, isPrismaSchemaDriftError } from "@/lib/prisma-errors";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -87,7 +106,7 @@ class OpenAIProviderError extends Error {
     kind: "quota" | "rate_limit" | "config" | "api",
     message: string,
     status?: number,
-    code?: string | null
+    code?: string | null,
   ) {
     super(message);
     this.name = "OpenAIProviderError";
@@ -100,7 +119,7 @@ class OpenAIProviderError extends Error {
 // ─── OpenAI via native fetch (no SDK dependency) ───────────────────────────────
 
 async function callOpenAI(
-  messages: Array<{ role: string; content: string }>
+  messages: Array<{ role: string; content: string }>,
 ): Promise<{ content: string; inputTokens: number; outputTokens: number }> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -109,7 +128,7 @@ async function callOpenAI(
   if (openAIUnavailableUntil > Date.now() && openAIUnavailableReason) {
     throw new OpenAIProviderError(
       openAIUnavailableReason,
-      `OpenAI provider temporarily unavailable: ${openAIUnavailableReason}`
+      `OpenAI provider temporarily unavailable: ${openAIUnavailableReason}`,
     );
   }
 
@@ -137,22 +156,38 @@ async function callOpenAI(
       parsed = null;
     }
 
-    const providerMessage = parsed?.error?.message || errText || "unknown error";
+    const providerMessage =
+      parsed?.error?.message || errText || "unknown error";
     const providerCode = parsed?.error?.code ?? null;
 
     if (response.status === 429 && providerCode === "insufficient_quota") {
       openAIUnavailableUntil = Date.now() + OPENAI_QUOTA_BACKOFF_MS;
       openAIUnavailableReason = "quota";
-      throw new OpenAIProviderError("quota", providerMessage, response.status, providerCode);
+      throw new OpenAIProviderError(
+        "quota",
+        providerMessage,
+        response.status,
+        providerCode,
+      );
     }
 
     if (response.status === 429) {
       openAIUnavailableUntil = Date.now() + OPENAI_RATE_LIMIT_BACKOFF_MS;
       openAIUnavailableReason = "rate_limit";
-      throw new OpenAIProviderError("rate_limit", providerMessage, response.status, providerCode);
+      throw new OpenAIProviderError(
+        "rate_limit",
+        providerMessage,
+        response.status,
+        providerCode,
+      );
     }
 
-    throw new OpenAIProviderError("api", providerMessage, response.status, providerCode);
+    throw new OpenAIProviderError(
+      "api",
+      providerMessage,
+      response.status,
+      providerCode,
+    );
   }
 
   const data = (await response.json()) as OpenAIChatResponse;
@@ -172,6 +207,43 @@ function friendlyError(message: string, status = 200): NextResponse {
 }
 
 type PrismaClient = NonNullable<ReturnType<typeof getPrisma>>;
+
+function readRecommendationRef(value: unknown): RecommendationRef | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const candidate = value as Record<string, unknown>;
+  const type =
+    candidate.type === "pack"
+      ? "pack"
+      : candidate.type === "course"
+        ? "course"
+        : null;
+  const slug =
+    typeof candidate.slug === "string"
+      ? candidate.slug.trim().slice(0, 120)
+      : "";
+  if (!type || !/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(slug)) return null;
+  return { type, slug };
+}
+
+function buildRecommendationContext(
+  active: RecommendationRef | null,
+  leadCaptured: boolean,
+) {
+  const leadStatus = leadCaptured
+    ? "LEAD DETAILS: already saved. Do not ask for name or email again; direct the visitor to secure checkout."
+    : "LEAD DETAILS: not saved yet. Do not ask for name or email in the chat. When the visitor is ready to buy, tell them to complete the short secure form that the interface shows, then the interface takes them to checkout.";
+
+  if (!active) {
+    return `${leadStatus}\nCURRENT RECOMMENDATION: none yet. Recommend a specific published item from the catalog when appropriate.`;
+  }
+
+  return `${leadStatus}
+CURRENT RECOMMENDATION: ${active.type} “${active.slug}”.
+- Stay with this item when the visitor confirms, asks to continue, or signals they are ready to buy.
+- Do not restart discovery or switch items unless the visitor explicitly asks for a different recommendation.
+- Product page: ${getPublicAppPath(`/courses/${active.slug}`)}
+- Use the matching checkout_url from the catalog for this exact item.`;
+}
 
 function isAIStorageUnavailableError(error: unknown): boolean {
   return isPrismaSchemaDriftError(error, [...AI_STORAGE_OBJECTS]);
@@ -204,7 +276,7 @@ async function logAbuseEvent(
     sessionId?: string;
     reason: string;
     metadata?: Record<string, unknown>;
-  }
+  },
 ) {
   if (!prisma) return;
   try {
@@ -213,7 +285,9 @@ async function logAbuseEvent(
         ipHash: data.ipHash,
         sessionId: data.sessionId,
         reason: data.reason,
-        metadata: data.metadata ? (data.metadata as import("@prisma/client").Prisma.InputJsonValue) : {},
+        metadata: data.metadata
+          ? (data.metadata as import("@prisma/client").Prisma.InputJsonValue)
+          : {},
       },
     });
   } catch (err) {
@@ -223,7 +297,9 @@ async function logAbuseEvent(
   }
 }
 
-async function getDailyTokenUsage(prisma: PrismaClient | null): Promise<number> {
+async function getDailyTokenUsage(
+  prisma: PrismaClient | null,
+): Promise<number> {
   if (!prisma) return 0;
   try {
     const startOfDay = new Date();
@@ -238,33 +314,50 @@ async function getDailyTokenUsage(prisma: PrismaClient | null): Promise<number> 
   }
 }
 
-async function getSessionDailyCount(prisma: PrismaClient | null, sessionId: string): Promise<number> {
+async function getSessionDailyCount(
+  prisma: PrismaClient | null,
+  sessionId: string,
+): Promise<number> {
   if (!prisma) return 0;
   try {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     return await prisma.aIUsage.count({
-      where: { sessionId, requestType: "PUBLIC_AGENT", createdAt: { gte: startOfDay } },
+      where: {
+        sessionId,
+        requestType: "PUBLIC_AGENT",
+        createdAt: { gte: startOfDay },
+      },
     });
   } catch {
     return 0;
   }
 }
 
-async function getIpDailyCount(prisma: PrismaClient | null, ipHash: string): Promise<number> {
+async function getIpDailyCount(
+  prisma: PrismaClient | null,
+  ipHash: string,
+): Promise<number> {
   if (!prisma) return 0;
   try {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     return await prisma.aIUsage.count({
-      where: { ipHash, requestType: "PUBLIC_AGENT", createdAt: { gte: startOfDay } },
+      where: {
+        ipHash,
+        requestType: "PUBLIC_AGENT",
+        createdAt: { gte: startOfDay },
+      },
     });
   } catch {
     return 0;
   }
 }
 
-async function getConversationMessageCount(prisma: PrismaClient | null, conversationId: string): Promise<number> {
+async function getConversationMessageCount(
+  prisma: PrismaClient | null,
+  conversationId: string,
+): Promise<number> {
   if (!prisma) return 0;
   try {
     const conv = await prisma.aIConversation.findUnique({
@@ -277,11 +370,17 @@ async function getConversationMessageCount(prisma: PrismaClient | null, conversa
   }
 }
 
-function buildContextMessages(history: ChatMessage[], summary: string | null): ChatMessage[] {
+function buildContextMessages(
+  history: ChatMessage[],
+  summary: string | null,
+): ChatMessage[] {
   const maxHistory = 6;
   const recent = history.slice(-maxHistory);
   if (summary && history.length > maxHistory) {
-    return [{ role: "assistant", content: `[Conversation summary: ${summary}]` }, ...recent];
+    return [
+      { role: "assistant", content: `[Conversation summary: ${summary}]` },
+      ...recent,
+    ];
   }
   return recent;
 }
@@ -296,7 +395,9 @@ export async function POST(request: NextRequest) {
   // 1. Check agent enabled
   if (!AI_CONFIG.enabled) {
     await logAbuseEvent(prisma, { ipHash, reason: "AI_AGENT_DISABLED" });
-    return friendlyError("The AI assistant is temporarily unavailable. Please contact teChia directly.");
+    return friendlyError(
+      "The AI assistant is temporarily unavailable. Please contact teChia directly.",
+    );
   }
 
   // 2. Parse body safely
@@ -304,8 +405,14 @@ export async function POST(request: NextRequest) {
   try {
     const contentLength = Number(request.headers.get("content-length") || 0);
     if (contentLength > 32_000) {
-      await logAbuseEvent(prisma, { ipHash, reason: "INVALID_REQUEST", metadata: { contentLength } });
-      return friendlyError("Your message is too long. Please shorten it and try again.");
+      await logAbuseEvent(prisma, {
+        ipHash,
+        reason: "INVALID_REQUEST",
+        metadata: { contentLength },
+      });
+      return friendlyError(
+        "Your message is too long. Please shorten it and try again.",
+      );
     }
     body = await request.json();
     if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -315,20 +422,28 @@ export async function POST(request: NextRequest) {
     return friendlyError("Invalid request format.");
   }
 
-  const userMessage = typeof body.message === "string" ? body.message.trim() : "";
-  const sessionId = typeof body.sessionId === "string" ? body.sessionId.slice(0, 64) : "";
+  const userMessage =
+    typeof body.message === "string" ? body.message.trim() : "";
+  const sessionId =
+    typeof body.sessionId === "string" ? body.sessionId.slice(0, 64) : "";
   const conversationId =
-    typeof body.conversationId === "string" ? body.conversationId.slice(0, 64) : null;
-  const pagePath = typeof body.pagePath === "string" ? body.pagePath.slice(0, 256) : "";
+    typeof body.conversationId === "string"
+      ? body.conversationId.slice(0, 64)
+      : null;
+  const pagePath =
+    typeof body.pagePath === "string" ? body.pagePath.slice(0, 256) : "";
   const requestLocale = body.locale === "fr" ? "fr" : "en";
+  const activeRecommendation = readRecommendationRef(body.activeRecommendation);
+  const leadCaptured = body.leadCaptured === true;
   const history: ChatMessage[] = Array.isArray(body.history)
     ? (body.history as unknown[])
         .filter(
           (m): m is ChatMessage =>
             typeof m === "object" &&
             m !== null &&
-            ((m as ChatMessage).role === "user" || (m as ChatMessage).role === "assistant") &&
-            typeof (m as ChatMessage).content === "string"
+            ((m as ChatMessage).role === "user" ||
+              (m as ChatMessage).role === "assistant") &&
+            typeof (m as ChatMessage).content === "string",
         )
         .slice(-8)
     : [];
@@ -345,7 +460,9 @@ export async function POST(request: NextRequest) {
       reason: "MESSAGE_TOO_LONG",
       metadata: { length: userMessage.length },
     });
-    return friendlyError("Your message is too long. Please shorten it and try again.");
+    return friendlyError(
+      "Your message is too long. Please shorten it and try again.",
+    );
   }
   if (!sessionId) {
     return friendlyError("Invalid session. Please refresh the page.");
@@ -365,7 +482,7 @@ export async function POST(request: NextRequest) {
       metadata: { count: sessionCount },
     });
     return friendlyError(
-      "You've reached today's free AI assistant limit. Please contact teChia directly or try again tomorrow."
+      "You've reached today's free AI assistant limit. Please contact teChia directly or try again tomorrow.",
     );
   }
   if (ipCount >= AI_CONFIG.maxMessagesPerIpPerDay) {
@@ -376,7 +493,7 @@ export async function POST(request: NextRequest) {
       metadata: { count: ipCount },
     });
     return friendlyError(
-      "We're receiving too many AI requests from this network. Please try again later or contact teChia directly."
+      "We're receiving too many AI requests from this network. Please try again later or contact teChia directly.",
     );
   }
 
@@ -391,7 +508,7 @@ export async function POST(request: NextRequest) {
         metadata: { count: msgCount },
       });
       return friendlyError(
-        "This conversation has reached its message limit. Please start a new conversation or contact teChia directly."
+        "This conversation has reached its message limit. Please start a new conversation or contact teChia directly.",
       );
     }
   }
@@ -406,26 +523,30 @@ export async function POST(request: NextRequest) {
       metadata: { dailyTokens },
     });
     return friendlyError(
-      "The AI assistant is temporarily unavailable due to high usage. Please contact teChia directly."
+      "The AI assistant is temporarily unavailable due to high usage. Please contact teChia directly.",
     );
   }
 
   // 7. Estimate tokens before calling OpenAI
   const contextMessages = buildContextMessages(history, null);
-  const academyCatalogContext = await buildAcademyCatalogContext(requestLocale).catch(
-    () => "Academy catalog is temporarily unavailable.",
-  );
+  const academyCatalogContext = await buildAcademyCatalogContext(
+    requestLocale,
+  ).catch(() => "Academy catalog is temporarily unavailable.");
   const pageContext = pagePath.includes("/courses")
     ? "The visitor is currently on the courses/catalog page. Prioritize course and pack recommendations, include direct course/pack URLs, and guide them toward checkout when they are ready."
     : "";
-  const systemPrompt = `${TECHIA_SYSTEM_PROMPT}\n\n${pageContext}\n\n${academyCatalogContext}`;
+  const recommendationContext = buildRecommendationContext(
+    activeRecommendation,
+    leadCaptured,
+  );
+  const systemPrompt = `${TECHIA_SYSTEM_PROMPT}\n\n${pageContext}\n\n${recommendationContext}\n\n${academyCatalogContext}`;
   const allMessages = [
     { role: "system", content: systemPrompt },
     ...contextMessages,
     { role: "user", content: userMessage },
   ];
   const estimatedInputTokens = estimateRequestTokens(
-    allMessages as Array<{ role: string; content: string }>
+    allMessages as Array<{ role: string; content: string }>,
   );
   const estimatedTotal = estimatedInputTokens + AI_CONFIG.maxOutputTokens;
   if (estimatedTotal + dailyTokens > AI_CONFIG.dailyTokenBudget * 1.05) {
@@ -436,7 +557,7 @@ export async function POST(request: NextRequest) {
       metadata: { estimatedTotal },
     });
     return friendlyError(
-      "The AI assistant is temporarily unavailable due to high usage. Please contact teChia directly."
+      "The AI assistant is temporarily unavailable due to high usage. Please contact teChia directly.",
     );
   }
 
@@ -452,7 +573,10 @@ export async function POST(request: NextRequest) {
       if (isAIStorageUnavailableError(err)) {
         logAIStorageIssue("conversation_create_skipped", err);
       } else {
-        console.error("[ai-agent] conversation_create_failed", getErrorMessage(err));
+        console.error(
+          "[ai-agent] conversation_create_failed",
+          getErrorMessage(err),
+        );
       }
     }
   }
@@ -469,7 +593,10 @@ export async function POST(request: NextRequest) {
     actualOutputTokens = result.outputTokens;
   } catch (err) {
     const errorMessage = getErrorMessage(err);
-    if (err instanceof OpenAIProviderError && (err.kind === "quota" || err.kind === "rate_limit")) {
+    if (
+      err instanceof OpenAIProviderError &&
+      (err.kind === "quota" || err.kind === "rate_limit")
+    ) {
       console.warn("[ai-agent] openai_call_failed", errorMessage);
     } else {
       console.error("[ai-agent] openai_call_failed", errorMessage);
@@ -478,7 +605,40 @@ export async function POST(request: NextRequest) {
   }
 
   if (!assistantMessage) {
-    return friendlyError("The AI assistant did not return a response. Please try again.");
+    return friendlyError(
+      "The AI assistant did not return a response. Please try again.",
+    );
+  }
+
+  const recommendation = await resolveAcademyRecommendation(
+    prisma,
+    requestLocale,
+    assistantMessage,
+    activeRecommendation,
+  ).catch((err) => {
+    console.error(
+      "[ai-agent] recommendation_resolve_failed",
+      getErrorMessage(err),
+    );
+    return null;
+  });
+
+  let finalMessage = stripRecommendationMarkers(assistantMessage);
+  if (!finalMessage) {
+    finalMessage = recommendation
+      ? `I recommend ${recommendation.title}.`
+      : "I’m ready to help — what would you like to do next?";
+  }
+
+  if (
+    recommendation &&
+    isPurchaseIntent(userMessage) &&
+    !messageMentionsCheckout(finalMessage, recommendation)
+  ) {
+    finalMessage = `${finalMessage}\n\n${buildCheckoutMessage(
+      recommendation,
+      leadCaptured,
+    )}`;
   }
 
   const totalTokens = actualInputTokens + actualOutputTokens;
@@ -489,13 +649,17 @@ export async function POST(request: NextRequest) {
     try {
       await prisma.$transaction([
         prisma.aIMessage.create({
-          data: { conversationId: activeConversationId, role: "user", content: userMessage },
+          data: {
+            conversationId: activeConversationId,
+            role: "user",
+            content: userMessage,
+          },
         }),
         prisma.aIMessage.create({
           data: {
             conversationId: activeConversationId,
             role: "assistant",
-            content: assistantMessage,
+            content: finalMessage,
           },
         }),
         prisma.aIConversation.update({
@@ -541,8 +705,9 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({
-    message: assistantMessage,
+    message: finalMessage,
     conversationId: activeConversationId,
+    recommendation,
     usage: {
       inputTokens: actualInputTokens,
       outputTokens: actualOutputTokens,
@@ -563,15 +728,23 @@ export async function PUT(request: NextRequest) {
 
   const action = typeof body?.action === "string" ? body.action : "";
   const prisma = getPrisma();
+  const requestLocale = body?.locale === "fr" ? "fr" : "en";
+  const recommendationRef = readRecommendationRef(body?.recommendation);
 
   if (action === "save_lead") {
     const data = body?.data as SaveLeadPayload | undefined;
     if (!data?.serviceInterest || !data?.projectSummary || !data?.leadScore) {
-      return NextResponse.json({ error: "Missing required lead fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required lead fields" },
+        { status: 400 },
+      );
     }
     const validScores: string[] = ["HOT", "WARM", "COLD"];
     if (!validScores.includes(data.leadScore)) {
-      return NextResponse.json({ error: "Invalid lead score" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid lead score" },
+        { status: 400 },
+      );
     }
 
     let leadId: string | null = null;
@@ -590,7 +763,9 @@ export async function PUT(request: NextRequest) {
             projectSummary: data.projectSummary,
             leadScore: data.leadScore,
             conversationId:
-              typeof body?.conversationId === "string" ? body.conversationId : null,
+              typeof body?.conversationId === "string"
+                ? body.conversationId
+                : null,
           },
         });
         leadId = lead.id;
@@ -601,11 +776,26 @@ export async function PUT(request: NextRequest) {
           console.error("[ai-agent] lead_save_failed", getErrorMessage(err));
           return NextResponse.json(
             { error: "Failed to save lead. Please try again." },
-            { status: 500 }
+            { status: 500 },
           );
         }
       }
     }
+
+    // Validate the chosen course/pack against the live catalog before the
+    // client redirects, so a stale or manipulated slug can never send the
+    // visitor to an invalid checkout.
+    const checkoutRecommendation = await resolveAcademyRecommendationRef(
+      prisma,
+      requestLocale,
+      recommendationRef,
+    ).catch((err) => {
+      console.error(
+        "[ai-agent] lead_recommendation_resolve_failed",
+        getErrorMessage(err),
+      );
+      return null;
+    });
 
     // Notify admin for HOT/WARM leads
     if (data.leadScore === "HOT" || data.leadScore === "WARM") {
@@ -622,7 +812,11 @@ export async function PUT(request: NextRequest) {
       }).catch(() => {});
     }
 
-    return NextResponse.json({ ok: true, leadId });
+    return NextResponse.json({
+      ok: true,
+      leadId,
+      recommendation: checkoutRecommendation,
+    });
   }
 
   if (action === "save_demo_request") {
@@ -641,11 +835,15 @@ export async function PUT(request: NextRequest) {
             email: data.email || null,
             phone: data.phone || null,
             companyName: data.companyName || null,
-            preferredDate: data.preferredDate ? new Date(data.preferredDate) : null,
+            preferredDate: data.preferredDate
+              ? new Date(data.preferredDate)
+              : null,
             preferredContactMethod: data.preferredContactMethod || null,
             notes: data.notes || null,
             conversationId:
-              typeof body?.conversationId === "string" ? body.conversationId : null,
+              typeof body?.conversationId === "string"
+                ? body.conversationId
+                : null,
           },
         });
         demoId = demo.id;
@@ -653,10 +851,13 @@ export async function PUT(request: NextRequest) {
         if (isAIStorageUnavailableError(err)) {
           logAIStorageIssue("demo_request_save_skipped", err);
         } else {
-          console.error("[ai-agent] demo_request_save_failed", getErrorMessage(err));
+          console.error(
+            "[ai-agent] demo_request_save_failed",
+            getErrorMessage(err),
+          );
           return NextResponse.json(
             { error: "Failed to save demo request. Please try again." },
-            { status: 500 }
+            { status: 500 },
           );
         }
       }

@@ -63,6 +63,14 @@ Use the exact webhook secrets configured in env. Live end-to-end payment success
 
 `src/app/api/ai/techia-agent/route.ts` injects live published catalog context (`src/lib/ai/academy-catalog-context.ts`) so recommendations use DB-published courses/packs only, avoid unpublished items and invented details/prices, and include trading/crypto educational disclaimers.
 
+### Recommendation and checkout handoff
+
+- The catalog context gives the model each item's product URL and exact `checkout_url`, and asks it to end a specific recommendation with a hidden `[[TECHIA_RECOMMEND:<type>:<slug>]]` marker.
+- The server strips the marker and resolves it against the live `PUBLISHED` catalog (`src/lib/ai/academy-recommendation.ts`). Explicit checkout URLs are honoured next; ordinary product links and the previous recommendation anchor the conversation. If a reply names a published course/pack but contains no URL or marker, the server title-matches the live catalog so the interface still receives a recommendation.
+- The response includes a structured `recommendation` (`type`, `slug`, localized title, product path, checkout path, price label). The chat renders a clickable recommendation card and converts Markdown and bare course URLs into real links.
+- When the visitor confirms a purchase, the chat shows the lead form. Saving it revalidates the chosen item server-side and returns the canonical checkout path; the form then redirects the visitor to `/courses/checkout?item=<type>:<slug>`. Unpublished, mismatched, or stale slugs never receive a checkout redirect.
+- Lead notifications still fire when the form is saved; payment itself is only confirmed by verified provider webhooks, never by the chat redirect.
+
 ## Migrations
 
 ```bash

@@ -506,6 +506,7 @@ A production-ready AI-powered business growth assistant embedded across the teCh
 - **Lead qualification assistant** — Scores leads as HOT, WARM, or COLD based on conversation signals.
 - **Demo request assistant** — Collects demo preferences and saves them to the database.
 - **Project brief generator** — Summarises the visitor's project for internal follow-up.
+- **Academy course advisor** — Recommends published courses and packs, renders secure checkout links, captures purchase details in-chat, and redirects to the validated checkout after the lead is saved.
 - **Admin monitoring** — Admin pages for leads, conversations, and usage at `/admin/ai-leads`, `/admin/ai-conversations`, `/admin/ai-usage`.
 
 ### UI entry points
@@ -621,6 +622,7 @@ A production-ready AI-powered business growth assistant embedded across the teCh
 - **Lead qualification assistant** — Scores leads as HOT, WARM, or COLD based on conversation signals.
 - **Demo request assistant** — Collects demo preferences and saves them to the database.
 - **Project brief generator** — Summarises the visitor's project for internal follow-up.
+- **Academy course advisor** — Recommends published courses and packs, renders secure checkout links, captures purchase details in-chat, and redirects to the validated checkout after the lead is saved.
 - **Admin monitoring** — Admin pages at `/admin/ai-leads`, `/admin/ai-conversations`, `/admin/ai-usage`.
 
 ### UI entry points

@@ -1,21 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
-
-interface RecommendedItem {
-  type: "course" | "pack";
-  slug: string;
-  title: string;
-}
+import type { AcademyRecommendation } from "@/lib/ai/recommendation";
 
 interface Props {
   conversationId: string | null;
-  onSuccess: (item?: RecommendedItem | null) => void;
-  recommendedItem?: RecommendedItem | null;
+  onSuccess: (recommendation?: AcademyRecommendation | null) => void;
+  recommendedItem?: AcademyRecommendation | null;
   checkoutUrl?: string;
   checkoutLabel?: string;
+  locale?: "en" | "fr";
+  /** Set to 0 in tests or when a caller wants to show the link only. */
+  autoRedirectMs?: number;
 }
 
 export function LeadCaptureCard({
@@ -24,20 +22,51 @@ export function LeadCaptureCard({
   recommendedItem,
   checkoutUrl,
   checkoutLabel,
+  locale = "en",
+  autoRedirectMs = 1800,
 }: Props) {
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
     companyName: "",
-    serviceInterest: recommendedItem
-      ? `Course purchase: ${recommendedItem.title}`
-      : "",
+    serviceInterest: "",
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  // Once the server has validated (or rejected) the recommendation, its answer
+  // is authoritative. `attempted: true` with a null recommendation means the
+  // item is no longer purchasable, so we must not fall back to a stale client
+  // checkout URL.
+  const [resolution, setResolution] = useState<{
+    attempted: boolean;
+    recommendation: AcademyRecommendation | null;
+  }>({ attempted: false, recommendation: null });
+
+  const effectiveRecommendation = resolution.attempted
+    ? resolution.recommendation
+    : (recommendedItem ?? null);
+  const resolvedCheckoutUrl = resolution.attempted
+    ? (effectiveRecommendation?.checkoutPath ?? null)
+    : (effectiveRecommendation?.checkoutPath ?? checkoutUrl ?? null);
+  const resolvedCheckoutLabel =
+    (resolution.attempted ? null : checkoutLabel) ||
+    (effectiveRecommendation
+      ? `Continue to checkout for ${effectiveRecommendation.title}`
+      : "Continue to secure checkout");
+  const serviceInterestValue =
+    form.serviceInterest ||
+    (recommendedItem ? `Course purchase: ${recommendedItem.title}` : "");
+
+  useEffect(() => {
+    if (!submitted || !resolvedCheckoutUrl || autoRedirectMs <= 0) return;
+    const timer = window.setTimeout(() => {
+      window.location.assign(resolvedCheckoutUrl);
+    }, autoRedirectMs);
+    return () => window.clearTimeout(timer);
+  }, [autoRedirectMs, resolvedCheckoutUrl, submitted]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +87,10 @@ export function LeadCaptureCard({
         body: JSON.stringify({
           action: "save_lead",
           conversationId,
+          locale,
+          recommendation: recommendedItem
+            ? { type: recommendedItem.type, slug: recommendedItem.slug }
+            : undefined,
           data: {
             name: form.name,
             email: form.email,
@@ -65,24 +98,36 @@ export function LeadCaptureCard({
             companyName: form.companyName || undefined,
             serviceInterest:
               form.serviceInterest.trim() ||
-              (recommendedItem
-                ? `Course purchase: ${recommendedItem.title}`
+              (effectiveRecommendation
+                ? `Course purchase: ${effectiveRecommendation.title}`
                 : "Digital Services"),
             projectSummary:
               form.message ||
-              (recommendedItem
-                ? `AI Growth Agent lead for course purchase: ${recommendedItem.title} (${recommendedItem.slug}). Name: ${form.name}.`
+              (effectiveRecommendation
+                ? `AI Growth Agent lead for course purchase: ${effectiveRecommendation.title} (${effectiveRecommendation.slug}). Name: ${form.name}.`
                 : `Lead from AI Growth Agent. Name: ${form.name}, Service interest: ${form.serviceInterest || "General"}`),
             leadScore: "WARM",
           },
         }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        recommendation?: AcademyRecommendation | null;
+      };
       if (!data.ok && data.error) {
         setError(data.error);
       } else {
+        const attempted = Object.prototype.hasOwnProperty.call(
+          data,
+          "recommendation",
+        );
+        const confirmed = attempted
+          ? (data.recommendation ?? null)
+          : (recommendedItem ?? null);
+        setResolution({ attempted, recommendation: confirmed });
         setSubmitted(true);
-        onSuccess(recommendedItem);
+        onSuccess(confirmed);
       }
     } catch {
       setError("Failed to submit. Please try again.");
@@ -96,17 +141,21 @@ export function LeadCaptureCard({
       <div className="my-3 rounded-2xl border border-success/30 bg-success/5 p-4">
         <div className="flex items-center gap-2 text-success">
           <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-          <p className="text-[13px] font-medium">Thanks — your request has been saved.</p>
+          <p className="text-[13px] font-medium">
+            Thanks — your request has been saved.
+          </p>
         </div>
         <p className="mt-1 text-[12px] text-muted">
-          The teChia team can now review your project details and follow up with you.
+          {resolvedCheckoutUrl
+            ? "Taking you to the secure checkout for your recommended item. If the page does not open, use the button below."
+            : "The teChia team can now review your request and follow up with you."}
         </p>
-        {checkoutUrl ? (
+        {resolvedCheckoutUrl ? (
           <Link
-            href={checkoutUrl}
+            href={resolvedCheckoutUrl}
             className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[12px] font-semibold text-white transition-all hover:bg-accent/90"
           >
-            {checkoutLabel || "Continue to checkout"}
+            {resolvedCheckoutLabel}
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         ) : null}
@@ -116,6 +165,22 @@ export function LeadCaptureCard({
 
   return (
     <div className="my-3 rounded-2xl border border-accent/20 bg-accent/[0.03] p-4">
+      {effectiveRecommendation ? (
+        <div className="mb-3 rounded-xl border border-accent/20 bg-surface/80 px-3 py-2.5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-accent">
+            Selected{" "}
+            {effectiveRecommendation.type === "pack" ? "course pack" : "course"}
+          </p>
+          <p className="mt-0.5 text-[12px] font-semibold leading-5 text-primary">
+            {effectiveRecommendation.title}
+          </p>
+          {effectiveRecommendation.priceLabel ? (
+            <p className="mt-0.5 text-[11px] text-muted">
+              {effectiveRecommendation.priceLabel}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <p className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-accent">
         Share your details
       </p>
@@ -148,15 +213,19 @@ export function LeadCaptureCard({
             type="text"
             placeholder="Company (optional)"
             value={form.companyName}
-            onChange={(e) => setForm((p) => ({ ...p, companyName: e.target.value }))}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, companyName: e.target.value }))
+            }
             className="rounded-lg border border-border bg-surface px-3 py-2 text-[12px] text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/30"
           />
         </div>
         <input
           type="text"
           placeholder="What service are you looking for?"
-          value={form.serviceInterest}
-          onChange={(e) => setForm((p) => ({ ...p, serviceInterest: e.target.value }))}
+          value={serviceInterestValue}
+          onChange={(e) =>
+            setForm((p) => ({ ...p, serviceInterest: e.target.value }))
+          }
           className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-[12px] text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/30"
         />
         {error && <p className="text-[11px] text-red-400">{error}</p>}

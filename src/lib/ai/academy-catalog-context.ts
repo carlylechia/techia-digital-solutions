@@ -8,6 +8,7 @@ import {
   effectiveCoursePriceMinor,
   effectivePackPriceMinor,
 } from "@/lib/courses/pricing";
+import { buildCheckoutPath } from "@/lib/ai/recommendation";
 
 function fromLocale(locale: Locale, en: string, fr?: string | null) {
   if (locale === "fr") return fr?.trim() || en;
@@ -27,7 +28,18 @@ export async function buildAcademyCatalogContext(locale: Locale = "en") {
         orderBy: [{ position: "asc" }, { titleEn: "asc" }],
         include: {
           category: true,
-          packItems: { include: { pack: { select: { slug: true, titleEn: true, titleFr: true, status: true } } } },
+          packItems: {
+            include: {
+              pack: {
+                select: {
+                  slug: true,
+                  titleEn: true,
+                  titleFr: true,
+                  status: true,
+                },
+              },
+            },
+          },
           _count: { select: { lessons: true } },
         },
       }),
@@ -37,28 +49,58 @@ export async function buildAcademyCatalogContext(locale: Locale = "en") {
         include: {
           items: {
             orderBy: [{ position: "asc" }],
-            include: { course: { select: { slug: true, titleEn: true, titleFr: true } } },
+            include: {
+              course: { select: { slug: true, titleEn: true, titleFr: true } },
+            },
           },
         },
       }),
     ]);
 
     const lines: string[] = [];
-    lines.push("LIVE PUBLISHED ACADEMY CATALOG (use this as the source of truth):");
-    lines.push("- Only recommend courses/packs listed below. Never recommend unpublished or archived items.");
-    lines.push("- Never invent prices, discounts, availability, certifications, instructors, duration, or syllabus details not shown.");
-    lines.push("- Prices listed below are the live catalog prices; never quote any other amount.");
-    lines.push("- For trading and cryptocurrency topics, provide educational guidance only with clear disclaimers: no financial/investment advice and no guaranteed returns or income.");
-    lines.push("- Recommend the option that best fits the user's goal, level, and budget; do not automatically recommend the most expensive product.");
+    lines.push(
+      "LIVE PUBLISHED ACADEMY CATALOG (use this as the source of truth):",
+    );
+    lines.push(
+      "- Only recommend courses/packs listed below. Never recommend unpublished or archived items.",
+    );
+    lines.push(
+      "- Never invent prices, discounts, availability, certifications, instructors, duration, or syllabus details not shown.",
+    );
+    lines.push(
+      "- Prices listed below are the live catalog prices; never quote any other amount.",
+    );
+    lines.push(
+      "- Every purchasable item includes an exact checkout_url. Use that URL only when the visitor is ready to buy; never build or guess a checkout URL yourself.",
+    );
+    lines.push(
+      "- An item marked “Price not configured” is not purchasable yet: describe it as coming soon and never send the visitor to checkout for it.",
+    );
+    lines.push(
+      "- Whenever you share a course or pack URL, format it as a Markdown link with a clear label, for example [Course title](url). Never print a URL in square brackets without the parentheses.",
+    );
+    lines.push(
+      "- Whenever you name one specific recommended item, end your reply with exactly one hidden marker line: [[TECHIA_RECOMMEND:course:<slug>]] or [[TECHIA_RECOMMEND:pack:<slug>]] using that item's slug below. The marker is removed before the visitor sees the message. Do not explain or mention the marker.",
+    );
+    lines.push(
+      "- For trading and cryptocurrency topics, provide educational guidance only with clear disclaimers: no financial/investment advice and no guaranteed returns or income.",
+    );
+    lines.push(
+      "- Recommend the option that best fits the user's goal, level, and budget; do not automatically recommend the most expensive product.",
+    );
     lines.push("");
 
     lines.push("INDIVIDUAL COURSES:");
     for (const course of courses) {
       const title = fromLocale(locale, course.titleEn, course.titleFr);
-      const coursePriceMinor = effectiveCoursePriceMinor(course.priceMinor, course.currency);
-      const price = coursePriceMinor === null
-        ? "Price not configured"
-        : formatMoney(coursePriceMinor, course.currency, locale);
+      const coursePriceMinor = effectiveCoursePriceMinor(
+        course.priceMinor,
+        course.currency,
+      );
+      const price =
+        coursePriceMinor === null
+          ? "Price not configured"
+          : formatMoney(coursePriceMinor, course.currency, locale);
       const url = getPublicAppPath(`/courses/${course.slug}`);
       const category = course.category
         ? fromLocale(locale, course.category.nameEn, course.category.nameFr)
@@ -69,16 +111,30 @@ export async function buildAcademyCatalogContext(locale: Locale = "en") {
       lines.push(`- ${title}`);
       lines.push(`  slug: ${course.slug}`);
       lines.push(`  url: ${url}`);
+      if (coursePriceMinor !== null) {
+        lines.push(
+          `  checkout_url: ${buildCheckoutPath("course", course.slug)}`,
+        );
+      }
       lines.push(`  category: ${category}`);
       lines.push(`  level: ${course.level}`);
       lines.push(`  lessons: ${course.lessonCount ?? course._count.lessons}`);
       lines.push(`  price: ${price}`);
-      lines.push(`  included_in_full_pack: ${course.includedInFullPack ? "yes" : "no"}`);
-      if (inPacks.length) lines.push(`  included_in_packs: ${inPacks.join("; ")}`);
+      lines.push(
+        `  included_in_full_pack: ${course.includedInFullPack ? "yes" : "no"}`,
+      );
+      if (inPacks.length)
+        lines.push(`  included_in_packs: ${inPacks.join("; ")}`);
       if (course.financialDisclaimerRequired) {
-        lines.push("  note: educational only; trading/crypto requires financial-risk disclaimers");
+        lines.push(
+          "  note: educational only; trading/crypto requires financial-risk disclaimers",
+        );
       }
-      const summary = fromLocale(locale, course.shortDescriptionEn, course.shortDescriptionFr);
+      const summary = fromLocale(
+        locale,
+        course.shortDescriptionEn,
+        course.shortDescriptionFr,
+      );
       if (summary) lines.push(`  summary: ${summary}`);
     }
 
@@ -86,10 +142,14 @@ export async function buildAcademyCatalogContext(locale: Locale = "en") {
     lines.push("COURSE PACKS:");
     for (const pack of packs) {
       const title = fromLocale(locale, pack.titleEn, pack.titleFr);
-      const packPriceMinor = effectivePackPriceMinor(pack.priceMinor, pack.currency);
-      const price = packPriceMinor === null
-        ? "Price not configured"
-        : formatMoney(packPriceMinor, pack.currency, locale);
+      const packPriceMinor = effectivePackPriceMinor(
+        pack.priceMinor,
+        pack.currency,
+      );
+      const price =
+        packPriceMinor === null
+          ? "Price not configured"
+          : formatMoney(packPriceMinor, pack.currency, locale);
       const url = getPublicAppPath(`/courses/${pack.slug}`);
       const included = pack.items.map((item) =>
         fromLocale(locale, item.course.titleEn, item.course.titleFr),
@@ -97,6 +157,9 @@ export async function buildAcademyCatalogContext(locale: Locale = "en") {
       lines.push(`- ${title}`);
       lines.push(`  slug: ${pack.slug}`);
       lines.push(`  url: ${url}`);
+      if (packPriceMinor !== null) {
+        lines.push(`  checkout_url: ${buildCheckoutPath("pack", pack.slug)}`);
+      }
       lines.push(`  course_count: ${pack.items.length}`);
       lines.push(`  price: ${price}`);
       if (pack.recommended) lines.push("  flagship: yes (complete collection)");

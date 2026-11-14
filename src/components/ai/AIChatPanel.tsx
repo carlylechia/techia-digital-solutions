@@ -6,12 +6,17 @@ import { Send, Sparkles, X } from "lucide-react";
 import { AIMessageBubble } from "./AIMessageBubble";
 import { AIQuickActions } from "./AIQuickActions";
 import { LeadCaptureCard } from "./LeadCaptureCard";
+import { RecommendationCard } from "./RecommendationCard";
 import { TypingIndicator } from "./TypingIndicator";
 import {
   COURSE_QUICK_ACTIONS,
   INTRO_MESSAGE,
   QUICK_ACTIONS,
 } from "@/lib/ai/prompts";
+import {
+  isPurchaseIntent,
+  type AcademyRecommendation,
+} from "@/lib/ai/recommendation";
 
 export interface Message {
   id: string;
@@ -42,6 +47,7 @@ interface AgentResponse {
   message?: string;
   error?: string;
   conversationId?: string;
+  recommendation?: AcademyRecommendation | null;
 }
 
 export function AIChatPanel({ onClose }: AIChatPanelProps) {
@@ -56,24 +62,25 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
   const [showLeadCapture, setShowLeadCapture] = useState(false);
   const [leadCaptured, setLeadCaptured] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [recommendedCheckout, setRecommendedCheckout] = useState<{
-    type: "course" | "pack";
-    slug: string;
-    title: string;
-  } | null>(null);
+  const [recommendedCheckout, setRecommendedCheckout] =
+    useState<AcademyRecommendation | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionId = useRef(getOrCreateSessionId());
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, showLeadCapture, recommendedCheckout]);
 
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || isLoading) return;
 
-      const userMsg: Message = { id: generateId(), role: "user", content: trimmed };
+      const userMsg: Message = {
+        id: generateId(),
+        role: "user",
+        content: trimmed,
+      };
       setMessages((prev) => [...prev, userMsg]);
       setInput("");
       setIsLoading(true);
@@ -93,6 +100,13 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
             history,
             pagePath: pathname,
             locale: requestLocale,
+            activeRecommendation: recommendedCheckout
+              ? {
+                  type: recommendedCheckout.type,
+                  slug: recommendedCheckout.slug,
+                }
+              : null,
+            leadCaptured,
           }),
         });
 
@@ -101,7 +115,12 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
         if (data.error) {
           setMessages((prev) => [
             ...prev,
-            { id: generateId(), role: "assistant", content: data.error!, isError: true },
+            {
+              id: generateId(),
+              role: "assistant",
+              content: data.error!,
+              isError: true,
+            },
           ]);
         } else if (data.message) {
           setMessages((prev) => [
@@ -112,48 +131,45 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
             setConversationId(data.conversationId);
           }
 
-          const courseLinks = Array.from(
-            data.message.matchAll(/\[([^\]]+)\]\(\/courses\/([^)\s]+)\)/g),
-          );
-          const lastCourseLink = courseLinks.at(-1);
-          if (lastCourseLink) {
-            const title = lastCourseLink[1].trim();
-            const slug = lastCourseLink[2].trim().replace(/\/$/, "");
-            if (slug) {
-              setRecommendedCheckout({
-                type: /pack/i.test(slug) ? "pack" : "course",
-                slug,
-                title,
-              });
-            }
+          const nextRecommendation = data.recommendation ?? recommendedCheckout;
+          if (data.recommendation) {
+            setRecommendedCheckout(data.recommendation);
           }
 
-          // Show lead capture after a few exchanges if not captured yet.
+          // The recommendation is now structured by the server against the
+          // published catalog. Show the secure details form as soon as the
+          // visitor agrees to buy instead of waiting for an arbitrary number
+          // of messages.
           const totalMsgs = messages.length + 2;
-          if (totalMsgs >= 6 && !leadCaptured && !showLeadCapture) {
-            const lowerContent = data.message.toLowerCase();
-            const contactTriggers = [
-              "contact",
-              "reach",
-              "email",
-              "phone",
-              "name",
-              "get in touch",
-              "follow up",
-              "demo",
-              "proposal",
-              "details",
-              "checkout",
-              "enroll",
-              "purchase",
-            ];
-            const userAgreed = /\b(yes|yeah|sure|buy|purchase|enroll|sounds good|let's do it|get it)\b/i.test(
-              trimmed,
-            );
+          const lowerContent = data.message.toLowerCase();
+          const lowerUser = trimmed.toLowerCase();
+          const contactTriggers = [
+            "contact",
+            "reach me",
+            "email",
+            "phone",
+            "call me",
+            "get in touch",
+            "follow up",
+            "demo",
+            "proposal",
+            "quote",
+            "details",
+          ];
+          const contactIntent =
+            contactTriggers.some((trigger) => lowerUser.includes(trigger)) ||
+            contactTriggers.some((trigger) => lowerContent.includes(trigger));
+          const sharedContactDetails =
+            /[^\s@]+@[^\s@]+\.[^\s@]+/.test(trimmed) ||
+            /\b\d{7,}\b/.test(trimmed.replace(/[\s()+-]/g, ""));
+
+          if (!leadCaptured && !showLeadCapture) {
             if (
-              contactTriggers.some((trigger) => lowerContent.includes(trigger)) ||
-              (userAgreed && recommendedCheckout)
+              nextRecommendation &&
+              (isPurchaseIntent(trimmed) || sharedContactDetails)
             ) {
+              setShowLeadCapture(true);
+            } else if (totalMsgs >= 4 && contactIntent) {
               setShowLeadCapture(true);
             }
           }
@@ -163,7 +179,12 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
           "The AI assistant is temporarily unavailable. Please try again later or contact teChia directly.";
         setMessages((prev) => [
           ...prev,
-          { id: generateId(), role: "assistant", content: errMsg, isError: true },
+          {
+            id: generateId(),
+            role: "assistant",
+            content: errMsg,
+            isError: true,
+          },
         ]);
       } finally {
         setIsLoading(false);
@@ -178,7 +199,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       recommendedCheckout,
       pathname,
       requestLocale,
-    ]
+    ],
   );
 
   const handleSubmit = useCallback(
@@ -186,7 +207,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       e.preventDefault();
       void sendMessage(input);
     },
-    [input, sendMessage]
+    [input, sendMessage],
   );
 
   const handleKeyDown = useCallback(
@@ -196,7 +217,7 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
         void sendMessage(input);
       }
     },
-    [input, sendMessage]
+    [input, sendMessage],
   );
 
   const showQuickActions = messages.length <= 1;
@@ -213,7 +234,9 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
           <p className="truncate text-[13px] font-semibold text-primary leading-none">
             teChia AI Growth Agent
           </p>
-          <p className="text-[11px] text-muted mt-0.5">Digital Solutions Consultant</p>
+          <p className="text-[11px] text-muted mt-0.5">
+            Digital Solutions Consultant
+          </p>
         </div>
         <button
           onClick={onClose}
@@ -230,17 +253,15 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
           <AIMessageBubble key={msg.id} message={msg} />
         ))}
         {isLoading && <TypingIndicator />}
-        {showLeadCapture && !leadCaptured && (
+        {recommendedCheckout && !showLeadCapture ? (
+          <RecommendationCard recommendation={recommendedCheckout} />
+        ) : null}
+        {showLeadCapture && (
           <LeadCaptureCard
             conversationId={conversationId}
             recommendedItem={recommendedCheckout}
-            checkoutUrl={
-              recommendedCheckout
-                ? `/courses/checkout?item=${recommendedCheckout.type}:${encodeURIComponent(
-                    recommendedCheckout.slug,
-                  )}`
-                : undefined
-            }
+            locale={requestLocale}
+            checkoutUrl={recommendedCheckout?.checkoutPath ?? undefined}
             checkoutLabel={
               recommendedCheckout
                 ? `Continue to checkout for ${recommendedCheckout.title}`
@@ -248,7 +269,6 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
             }
             onSuccess={(item) => {
               setLeadCaptured(true);
-              setShowLeadCapture(false);
               if (item) setRecommendedCheckout(item);
             }}
           />
@@ -266,7 +286,10 @@ export function AIChatPanel({ onClose }: AIChatPanelProps) {
       )}
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="border-t border-border bg-surface p-3 flex-shrink-0">
+      <form
+        onSubmit={handleSubmit}
+        className="border-t border-border bg-surface p-3 flex-shrink-0"
+      >
         <div className="flex items-end gap-2">
           <textarea
             value={input}
