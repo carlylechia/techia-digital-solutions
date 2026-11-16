@@ -113,6 +113,7 @@ export default async function AIUsagePage({
           _count: { id: true },
           where: { requestType: { in: editorialTypes }, createdAt: { gte: startOfMonth } },
         }),
+        prisma.aIUsage.count({ where: { costAvailable: false } }),
         prisma.aIUsage.findMany({
           orderBy: { createdAt: "desc" },
           skip: (page - 1) * pageSize,
@@ -157,7 +158,7 @@ export default async function AIUsagePage({
     );
   }
 
-  const [todayStats, editorialTodayStats, monthStats, editorialMonthStats, recentRecords, total] = result.data;
+  const [todayStats, editorialTodayStats, monthStats, editorialMonthStats, unknownCostCount, recentRecords, total] = result.data;
 
   const totalPages = Math.ceil(total / pageSize);
   const baseHref = "/admin/ai-usage";
@@ -206,7 +207,7 @@ export default async function AIUsagePage({
               Est. month cost
             </p>
             <p className="mt-2 text-3xl font-bold text-primary">
-              ${(monthStats._sum.estimatedCost ?? 0).toFixed(4)}
+              {monthStats._sum.estimatedCost === null ? "Unknown" : `$${monthStats._sum.estimatedCost.toFixed(4)}`}
             </p>
           </div>
           <div className="rounded-2xl border border-border bg-surface p-5">
@@ -222,7 +223,15 @@ export default async function AIUsagePage({
               Editorial month cost
             </p>
             <p className="mt-2 text-3xl font-bold text-primary">
-              ${(editorialMonthStats._sum.estimatedCost ?? 0)?.toFixed(4) ?? "n/a"}
+              {editorialMonthStats._sum.estimatedCost === null ? "Unknown" : `$${editorialMonthStats._sum.estimatedCost.toFixed(4)}`}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Unknown-cost requests
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {unknownCostCount.toLocaleString()}
             </p>
           </div>
         </div>
