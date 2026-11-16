@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, Sparkles, Wand2, Image as ImageIcon, Languages, ClipboardCheck, Check, X } from "lucide-react";
 import type { BlogLocale } from "@/lib/blog/constants";
+import { normalizeArticleHtml } from "@/lib/blog/sanitize";
 import type {
   EditorialArticlePackage,
   EditorialEditAction,
@@ -81,6 +82,9 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
   const [refineScope, setRefineScope] = useState<"suggestion" | "selected" | "full">("suggestion");
   const [refineTarget, setRefineTarget] = useState("");
   const [refineBaseContent, setRefineBaseContent] = useState<string | null>(null);
+  const [refineCapturedScope, setRefineCapturedScope] = useState<"suggestion" | "selected" | "full">("suggestion");
+  const [refineCapturedTarget, setRefineCapturedTarget] = useState("");
+  const [refineCapturedBase, setRefineCapturedBase] = useState<string | null>(null);
 
   const [translateDirection, setTranslateDirection] = useState<"en_to_fr" | "fr_to_en" | "improve_translation">("en_to_fr");
   const [translateContent, setTranslateContent] = useState("");
@@ -90,6 +94,9 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
   const [translateScope, setTranslateScope] = useState<"suggestion" | "selected" | "full">("suggestion");
   const [translateTarget, setTranslateTarget] = useState("");
   const [translateBaseContent, setTranslateBaseContent] = useState<string | null>(null);
+  const [translateCapturedScope, setTranslateCapturedScope] = useState<"suggestion" | "selected" | "full">("suggestion");
+  const [translateCapturedTarget, setTranslateCapturedTarget] = useState("");
+  const [translateCapturedBase, setTranslateCapturedBase] = useState<string | null>(null);
 
   const [reviewContent, setReviewContent] = useState("");
   const [reviewPending, setReviewPending] = useState(false);
@@ -197,6 +204,9 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
     setRefinePending(true);
     setError(null);
     setRefineBaseContent(article?.articleContent || null);
+    setRefineCapturedScope(refineScope);
+    setRefineCapturedTarget(refineTarget);
+    setRefineCapturedBase(article?.articleContent || null);
     try {
       const result = await postJson<{ ok: true; result: string; notes: string[] }>(
         "/api/editorial/ai/edit",
@@ -234,6 +244,9 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
     setTranslatePending(true);
     setError(null);
     setTranslateBaseContent(article?.articleContent || null);
+    setTranslateCapturedScope(translateScope);
+    setTranslateCapturedTarget(translateTarget);
+    setTranslateCapturedBase(article?.articleContent || null);
     try {
       const result = await postJson<{ ok: true; translatedContent: string; notes: string[] }>(
         "/api/editorial/ai/translate",
@@ -282,23 +295,32 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
 
   function applyRefineToArticle() {
     if (!refineResult || !article) return;
-    if (refineBaseContent !== null && article.articleContent !== refineBaseContent) {
+    if (refineCapturedScope !== refineScope) {
+      setError("The refinement scope changed. Run refinement again.");
+      return;
+    }
+    if (refineCapturedTarget !== refineTarget) {
+      setError("The selected passage changed. Run refinement again.");
+      return;
+    }
+    if (refineCapturedBase !== null && article.articleContent !== refineCapturedBase) {
       setError("The article changed after refinement started. Review and retry.");
       return;
     }
-    if (refineScope === "full") {
+    if (refineCapturedScope === "full") {
       if (!window.confirm("Replace the entire article content with the refined version?")) return;
       setArticle({ ...article, articleContent: refineResult });
       setRefineResult(null);
       return;
     }
-    if (refineScope === "selected") {
-      const occurrences = article.articleContent.split(refineTarget).length - 1;
+    if (refineCapturedScope === "selected") {
+      const target = refineCapturedTarget;
+      const occurrences = article.articleContent.split(target).length - 1;
       if (occurrences !== 1) {
         setError("The selected passage must occur exactly once. Update the selection and retry.");
         return;
       }
-      setArticle({ ...article, articleContent: article.articleContent.replace(refineTarget, refineResult) });
+      setArticle({ ...article, articleContent: article.articleContent.replace(target, refineResult) });
       setRefineResult(null);
       return;
     }
@@ -307,23 +329,32 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
 
   function applyTranslateToArticle() {
     if (!translateResult || !article) return;
-    if (translateBaseContent !== null && article.articleContent !== translateBaseContent) {
+    if (translateCapturedScope !== translateScope) {
+      setError("The translation scope changed. Run translation again.");
+      return;
+    }
+    if (translateCapturedTarget !== translateTarget) {
+      setError("The selected passage changed. Run translation again.");
+      return;
+    }
+    if (translateCapturedBase !== null && article.articleContent !== translateCapturedBase) {
       setError("The article changed after translation started. Review and retry.");
       return;
     }
-    if (translateScope === "full") {
+    if (translateCapturedScope === "full") {
       if (!window.confirm("Replace the entire article content with the translated version?")) return;
       setArticle({ ...article, articleContent: translateResult });
       setTranslateResult(null);
       return;
     }
-    if (translateScope === "selected") {
-      const occurrences = article.articleContent.split(translateTarget).length - 1;
+    if (translateCapturedScope === "selected") {
+      const target = translateCapturedTarget;
+      const occurrences = article.articleContent.split(target).length - 1;
       if (occurrences !== 1) {
         setError("The selected passage must occur exactly once. Update the selection and retry.");
         return;
       }
-      setArticle({ ...article, articleContent: article.articleContent.replace(translateTarget, translateResult) });
+      setArticle({ ...article, articleContent: article.articleContent.replace(target, translateResult) });
       setTranslateResult(null);
       return;
     }
@@ -457,7 +488,7 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
             </label>
             <div className="rounded-lg border border-border bg-surface-strong/40 p-4">
               <p className="mb-2 text-xs font-semibold text-primary">Rendered preview</p>
-              <div className="blog-prose max-w-none text-sm leading-7 text-muted" dangerouslySetInnerHTML={{ __html: article.articleContent }} />
+              <div className="blog-prose max-w-none text-sm leading-7 text-muted" dangerouslySetInnerHTML={{ __html: normalizeArticleHtml(article.articleContent) }} />
             </div>
             <div className="grid gap-3 md:grid-cols-2">
               <label className="form-label text-xs">SEO title
