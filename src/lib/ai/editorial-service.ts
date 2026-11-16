@@ -18,6 +18,8 @@ import {
 import { isEditorialAiEnabled, getEditorialTextModel, EDITORIAL_AI_CONFIG } from "./editorial-config";
 import { estimateTokens } from "./token-estimation";
 import { normalizeArticleHtml } from "@/lib/blog/sanitize";
+import { reserveEditorialUsage, finalizeEditorialUsage, failEditorialUsage } from "./editorial-usage";
+import { estimateEditorialTextCost } from "./editorial-pricing";
 
 export class EditorialAiError extends Error {
   readonly category: "disabled" | "not_configured" | "invalid_input" | "timeout" | "quota" | "auth" | "model_unavailable" | "api" | "malformed_output" | "limit_reached" | "too_large";
@@ -131,19 +133,26 @@ async function callOpenAiJson<T extends z.ZodTypeAny>(params: {
   const timer = setTimeout(() => controller.abort(), params.timeoutMs);
   let response: Response;
   try {
-    response = await fetch("https://api.openai.com/v1/chat/completions", {
+    response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       signal: controller.signal,
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model: params.model,
         temperature: 0.4,
-        max_tokens: params.maxTokens,
-        response_format: { type: "json_object" },
-        messages: [
+        max_output_tokens: params.maxTokens,
+        input: [
           { role: "system", content: params.system },
           { role: "user", content: params.user },
         ],
+        text: {
+          format: {
+            type: "json_schema",
+            name: "editorial_output",
+            strict: true,
+            schema: z.toJSONSchema(params.schema),
+          },
+        },
       }),
     });
   } catch (error) {
@@ -161,10 +170,11 @@ async function callOpenAiJson<T extends z.ZodTypeAny>(params: {
   }
 
   const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string | null } }>;
-    usage?: { prompt_tokens?: number; completion_tokens?: number };
+    output_text?: string;
+    output?: Array<{ content?: Array<{ text?: string }> }>;
+    usage?: { input_tokens?: number; output_tokens?: number };
   };
-  const content = payload.choices?.[0]?.message?.content ?? "";
+  const content = payload.output_text || payload.output?.[0]?.content?.[0]?.text || "";
   if (!content.trim()) throw new EditorialAiError("malformed_output", "The model returned an empty response.");
 
   const parsed = params.schema.safeParse(extractJson(content));
@@ -174,8 +184,8 @@ async function callOpenAiJson<T extends z.ZodTypeAny>(params: {
 
   return {
     data: parsed.data,
-    inputTokens: payload.usage?.prompt_tokens ?? estimateTokens(params.system + params.user),
-    outputTokens: payload.usage?.completion_tokens ?? estimateTokens(content),
+    inputTokens: payload.usage?.input_tokens ?? estimateTokens(params.system + params.user),
+    outputTokens: payload.usage?.output_tokens ?? estimateTokens(content),
   };
 }
 
@@ -243,44 +253,56 @@ export async function generateEditorialArticle(input: EditorialGenerateInput, ac
   const validatedInput = editorialGenerateInputSchema.safeParse(input);
   if (!validatedInput.success) throw new EditorialAiError("invalid_input", "The article brief is invalid.");
 
-  const maxWords = EDITORIAL_AI_CONFIG.maxArticleWords;
   const model = getEditorialTextModel();
+  if (!model) throw new EditorialAiError("not_configured", "OPENAI_EDITORIAL_TEXT_MODEL (or OPENAI_MODEL) is not configured.");
 
-  await checkEditorialUsage(actorId, EDITORIAL_REQUEST_TYPES.article, EDITORIAL_AI_CONFIG.maxArticleGenerationsPerDay);
-
-  const system = articleSystemPrompt();
-  const user = articleUserPrompt(validatedInput.data);
-  const result = await callOpenAiJson({
-    model,
-    system,
-    user,
-    schema: editorialArticleSchema,
-    timeoutMs: EDITORIAL_AI_CONFIG.timeoutMs,
-    maxTokens: Math.min(8192, maxWords * 2),
-  });
-
-  const article: EditorialArticlePackage = {
-    ...result.data,
-    suggestedSlug: slugify(result.data.suggestedSlug || result.data.title),
-    articleContent: normalizeArticleHtml(result.data.articleContent),
-  };
-
-  await recordEditorialUsage({
+  const maxWords = EDITORIAL_AI_CONFIG.maxArticleWords;
+  const reservationId = await reserveEditorialUsage({
     actorId,
-    model,
     requestType: EDITORIAL_REQUEST_TYPES.article,
-    inputTokens: result.inputTokens,
-    outputTokens: result.outputTokens,
+    limit: EDITORIAL_AI_CONFIG.maxArticleGenerationsPerDay,
+    model,
   });
 
-  const prisma = getPrisma();
-  if (prisma) {
-    await prisma.auditLog.create({
-      data: { actorId, action: "blog.ai_article_generated", entityType: "BlogPost", entityId: null, metadata: { model, title: article.title } },
-    }).catch(() => undefined);
-  }
+  try {
+    const system = articleSystemPrompt();
+    const user = articleUserPrompt(validatedInput.data);
+    const result = await callOpenAiJson({
+      model,
+      system,
+      user,
+      schema: editorialArticleSchema,
+      timeoutMs: EDITORIAL_AI_CONFIG.timeoutMs,
+      maxTokens: Math.min(8192, maxWords * 2),
+    });
 
-  return { article, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
+    const article: EditorialArticlePackage = {
+      ...result.data,
+      suggestedSlug: slugify(result.data.suggestedSlug || result.data.title),
+      articleContent: normalizeArticleHtml(result.data.articleContent),
+    };
+
+    const estimatedCost = estimateEditorialTextCost(model, result.inputTokens, result.outputTokens);
+    await finalizeEditorialUsage(reservationId, {
+      model,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      estimatedCost,
+      costAvailable: estimatedCost !== null,
+    });
+
+    const prisma = getPrisma();
+    if (prisma) {
+      await prisma.auditLog.create({
+        data: { actorId, action: "blog.ai_article_generated", entityType: "BlogPost", entityId: null, metadata: { model, title: article.title } },
+      }).catch(() => undefined);
+    }
+
+    return { article, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
+  } catch (error) {
+    await failEditorialUsage(reservationId);
+    throw error;
+  }
 }
 
 const editSystemPrompt = (action: string, language: string) => `${SYSTEM_BRAND}
@@ -302,12 +324,20 @@ export async function runEditorialEdit(input: z.infer<typeof editorialEditInputS
   const validated = editorialEditInputSchema.safeParse(input);
   if (!validated.success) throw new EditorialAiError("invalid_input", "Invalid edit request.");
   const model = getEditorialTextModel();
-  await checkEditorialUsage(actorId, EDITORIAL_REQUEST_TYPES.edit, EDITORIAL_AI_CONFIG.maxArticleGenerationsPerDay * 3);
+  if (!model) throw new EditorialAiError("not_configured", "OPENAI_EDITORIAL_TEXT_MODEL (or OPENAI_MODEL) is not configured.");
 
-  const result = await callOpenAiJson({
+  const reservationId = await reserveEditorialUsage({
+    actorId,
+    requestType: EDITORIAL_REQUEST_TYPES.edit,
+    limit: EDITORIAL_AI_CONFIG.maxArticleGenerationsPerDay * 3,
     model,
-    system: editSystemPrompt(validated.data.action, validated.data.language),
-    user: `Focus keyword: ${validated.data.focusKeyword || "(none)"}
+  });
+
+  try {
+    const result = await callOpenAiJson({
+      model,
+      system: editSystemPrompt(validated.data.action, validated.data.language),
+      user: `Focus keyword: ${validated.data.focusKeyword || "(none)"}
 Context: ${validated.data.context || "(none)"}
 
 Content to edit:
@@ -316,27 +346,32 @@ ${validated.data.content.slice(0, EDITORIAL_AI_CONFIG.maxInputChars)}
 CONTENT>>>
 
 Return JSON only.`,
-    schema: editorialEditResultSchema,
-    timeoutMs: EDITORIAL_AI_CONFIG.timeoutMs,
-    maxTokens: 4096,
-  });
+      schema: editorialEditResultSchema,
+      timeoutMs: EDITORIAL_AI_CONFIG.timeoutMs,
+      maxTokens: 4096,
+    });
 
-  const sanitized = {
-    result: looksLikeHtml(validated.data.content)
-      ? normalizeArticleHtml(result.data.result)
-      : result.data.result,
-    notes: result.data.notes,
-  };
+    const sanitized = {
+      result: looksLikeHtml(validated.data.content)
+        ? normalizeArticleHtml(result.data.result)
+        : result.data.result,
+      notes: result.data.notes,
+    };
 
-  await recordEditorialUsage({
-    actorId,
-    model,
-    requestType: EDITORIAL_REQUEST_TYPES.edit,
-    inputTokens: result.inputTokens,
-    outputTokens: result.outputTokens,
-  });
+    const estimatedCost = estimateEditorialTextCost(model, result.inputTokens, result.outputTokens);
+    await finalizeEditorialUsage(reservationId, {
+      model,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      estimatedCost,
+      costAvailable: estimatedCost !== null,
+    });
 
-  return { ...sanitized, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
+    return { ...sanitized, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
+  } catch (error) {
+    await failEditorialUsage(reservationId);
+    throw error;
+  }
 }
 
 function looksLikeHtml(value: string) {
@@ -354,46 +389,59 @@ export async function translateEditorialContent(input: z.infer<typeof editorialT
   const validated = editorialTranslateInputSchema.safeParse(input);
   if (!validated.success) throw new EditorialAiError("invalid_input", "Invalid translation request.");
   const model = getEditorialTextModel();
-  await checkEditorialUsage(actorId, EDITORIAL_REQUEST_TYPES.translate, EDITORIAL_AI_CONFIG.maxArticleGenerationsPerDay * 3);
+  if (!model) throw new EditorialAiError("not_configured", "OPENAI_EDITORIAL_TEXT_MODEL (or OPENAI_MODEL) is not configured.");
 
   const direction = validated.data.direction;
   const source = direction === "en_to_fr" ? "English" : direction === "fr_to_en" ? "French" : validated.data.sourceLanguage === "fr" ? "French" : "English";
   const target = direction === "en_to_fr" ? "French" : direction === "fr_to_en" ? "English" : validated.data.targetLanguage === "fr" ? "French" : "English";
 
-  const result = await callOpenAiJson({
+  const reservationId = await reserveEditorialUsage({
+    actorId,
+    requestType: EDITORIAL_REQUEST_TYPES.translate,
+    limit: EDITORIAL_AI_CONFIG.maxArticleGenerationsPerDay * 3,
     model,
-    system: `${SYSTEM_BRAND}
+  });
+
+  try {
+    const result = await callOpenAiJson({
+      model,
+      system: `${SYSTEM_BRAND}
 
 You are translating editorial content. Source language: ${source}. Target language: ${target}.
 Preserve meaning, tone, technical terminology and structure. Do not translate literally where unnatural.
 Return JSON only: {"translatedContent": "...", "notes": ["..."]}.`,
-    user: `Context: ${validated.data.context || "(none)"}
+      user: `Context: ${validated.data.context || "(none)"}
 
 Content:
 <<<CONTENT
 ${validated.data.content.slice(0, EDITORIAL_AI_CONFIG.maxInputChars)}
 CONTENT>>>`,
-    schema: editorialTranslateResultSchema,
-    timeoutMs: EDITORIAL_AI_CONFIG.timeoutMs,
-    maxTokens: 4096,
-  });
+      schema: editorialTranslateResultSchema,
+      timeoutMs: EDITORIAL_AI_CONFIG.timeoutMs,
+      maxTokens: 4096,
+    });
 
-  const sanitized = {
-    translatedContent: looksLikeHtml(validated.data.content)
-      ? normalizeArticleHtml(result.data.translatedContent)
-      : result.data.translatedContent,
-    notes: result.data.notes,
-  };
+    const sanitized = {
+      translatedContent: looksLikeHtml(validated.data.content)
+        ? normalizeArticleHtml(result.data.translatedContent)
+        : result.data.translatedContent,
+      notes: result.data.notes,
+    };
 
-  await recordEditorialUsage({
-    actorId,
-    model,
-    requestType: EDITORIAL_REQUEST_TYPES.translate,
-    inputTokens: result.inputTokens,
-    outputTokens: result.outputTokens,
-  });
+    const estimatedCost = estimateEditorialTextCost(model, result.inputTokens, result.outputTokens);
+    await finalizeEditorialUsage(reservationId, {
+      model,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      estimatedCost,
+      costAvailable: estimatedCost !== null,
+    });
 
-  return { ...sanitized, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
+    return { ...sanitized, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
+  } catch (error) {
+    await failEditorialUsage(reservationId);
+    throw error;
+  }
 }
 
 export async function runEditorialReview(input: z.infer<typeof editorialReviewInputSchema>, actorId: string): Promise<{
@@ -408,33 +456,46 @@ export async function runEditorialReview(input: z.infer<typeof editorialReviewIn
   const validated = editorialReviewInputSchema.safeParse(input);
   if (!validated.success) throw new EditorialAiError("invalid_input", "Invalid review request.");
   const model = getEditorialTextModel();
-  await checkEditorialUsage(actorId, EDITORIAL_REQUEST_TYPES.review, EDITORIAL_AI_CONFIG.maxArticleGenerationsPerDay * 3);
+  if (!model) throw new EditorialAiError("not_configured", "OPENAI_EDITORIAL_TEXT_MODEL (or OPENAI_MODEL) is not configured.");
 
-  const result = await callOpenAiJson({
+  const reservationId = await reserveEditorialUsage({
+    actorId,
+    requestType: EDITORIAL_REQUEST_TYPES.review,
+    limit: EDITORIAL_AI_CONFIG.maxArticleGenerationsPerDay * 3,
     model,
-    system: `${SYSTEM_BRAND}
+  });
+
+  try {
+    const result = await callOpenAiJson({
+      model,
+      system: `${SYSTEM_BRAND}
 
 You are an editorial reviewer. Language: ${validated.data.language === "fr" ? "French" : "English"}.
 Identify grammar, spelling, awkward phrasing, repeated ideas, weak or unsupported claims, missing explanations, poor heading structure, unclear transitions, inconsistent terminology, potentially misleading statements.
 Do not silently rewrite the article. Return JSON only: {"summary": "...", "issues": [{"category":"","severity":"info|warning|error","message":"","suggestion":""}], "checklist": ["..."]}.`,
-    user: `Focus keyword: ${validated.data.focusKeyword || "(none)"}
+      user: `Focus keyword: ${validated.data.focusKeyword || "(none)"}
 
 Content:
 <<<CONTENT
 ${validated.data.content.slice(0, EDITORIAL_AI_CONFIG.maxInputChars)}
 CONTENT>>>`,
-    schema: editorialReviewResultSchema,
-    timeoutMs: EDITORIAL_AI_CONFIG.timeoutMs,
-    maxTokens: 3000,
-  });
+      schema: editorialReviewResultSchema,
+      timeoutMs: EDITORIAL_AI_CONFIG.timeoutMs,
+      maxTokens: 3000,
+    });
 
-  await recordEditorialUsage({
-    actorId,
-    model,
-    requestType: EDITORIAL_REQUEST_TYPES.review,
-    inputTokens: result.inputTokens,
-    outputTokens: result.outputTokens,
-  });
+    const estimatedCost = estimateEditorialTextCost(model, result.inputTokens, result.outputTokens);
+    await finalizeEditorialUsage(reservationId, {
+      model,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      estimatedCost,
+      costAvailable: estimatedCost !== null,
+    });
 
-  return { summary: result.data.summary, issues: result.data.issues, checklist: result.data.checklist, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
+    return { summary: result.data.summary, issues: result.data.issues, checklist: result.data.checklist, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
+  } catch (error) {
+    await failEditorialUsage(reservationId);
+    throw error;
+  }
 }
