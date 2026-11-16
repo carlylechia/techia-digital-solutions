@@ -7,7 +7,7 @@ import { uploadToCloudinary, deleteFromCloudinary } from "@/lib/cloudinary";
 import { detectImageMime, isAllowedBlogImageMime } from "@/lib/blog/media-validation";
 import { isEditorialImageEnabled, getEditorialImageModel, EDITORIAL_AI_CONFIG } from "./editorial-config";
 import { EditorialAiError } from "./editorial-service";
-import { reserveEditorialUsage, finalizeEditorialUsage, failEditorialUsage } from "./editorial-usage";
+import { reserveEditorialUsage, finalizeEditorialUsage, failEditorialUsage, checkEditorialBurstLimit } from "./editorial-usage";
 import { estimateEditorialImageCost } from "./editorial-pricing";
 import { editorialImageInputSchema } from "./editorial-types";
 export { EditorialAiError } from "./editorial-service";
@@ -34,82 +34,89 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
   const model = getEditorialImageModel();
   if (!model) throw new EditorialAiError("not_configured", "OPENAI_EDITORIAL_IMAGE_MODEL is not configured.");
 
+  await checkEditorialBurstLimit(actorId, 10);
+
   const reservationId = await reserveEditorialUsage({
     actorId,
     requestType: "EDITORIAL_IMAGE",
     limit: EDITORIAL_AI_CONFIG.maxImageGenerationsPerDay,
     model,
     imageCount: 1,
+    burstLimit: 10,
   });
 
   let providerSucceeded = false;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), EDITORIAL_AI_CONFIG.imageTimeoutMs);
-  let response: Response;
-  try {
-    response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      signal: controller.signal,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model,
-        prompt: `${validated.data.imagePrompt}\n\nStyle: professional, clean, premium digital solutions brand, text-free, logo-free, no watermarks, no embedded typography, landscape 16:9 editorial artwork.`,
-        n: 1,
-        size: "1536x1024",
-        quality: "high",
-        output_format: "png",
-      }),
-    });
-  } catch (error) {
-    if (controller.signal.aborted) throw new EditorialAiError("timeout", "Image generation timed out.");
-    throw new EditorialAiError("api", `Image generation failed: ${getErrorMessage(error)}`);
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (!response.ok) {
-    if (response.status === 404) throw new EditorialAiError("model_unavailable", `Image model (${model}) is not available.`);
-    if (response.status === 429) throw new EditorialAiError("quota", "Image generation quota or rate limit reached.");
-    if (response.status === 401 || response.status === 403) throw new EditorialAiError("auth", "Image generation credentials were rejected.");
-    throw new EditorialAiError("api", `Image generation returned HTTP ${response.status}.`);
-  }
-
-  const payload = (await response.json()) as { data?: Array<{ b64_json?: string; url?: string }> };
-  const b64 = payload.data?.[0]?.b64_json;
-  if (!b64) throw new EditorialAiError("malformed_output", "The image model did not return image data.");
-
-  let buffer: Buffer;
-  try {
-    buffer = Buffer.from(b64, "base64");
-  } catch {
-    throw new EditorialAiError("malformed_output", "The image data could not be decoded.");
-  }
-  if (buffer.byteLength <= 0 || buffer.byteLength > 15 * 1024 * 1024) {
-    throw new EditorialAiError("too_large", "The generated image is too large to upload.");
-  }
-
-  const detected = detectImageMime(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer);
-  if (!isAllowedBlogImageMime(detected)) {
-    throw new EditorialAiError("malformed_output", "The generated image format is not supported.");
-  }
-  providerSucceeded = true;
-
-  const filename = `editorial-ai-${Date.now()}.png`;
-  const file = new File([new Uint8Array(buffer)], filename, { type: detected || "image/png" });
-
   let uploadedPublicId: string | null = null;
+
   try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), EDITORIAL_AI_CONFIG.imageTimeoutMs);
+    let response: Response;
+    try {
+      response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model,
+          prompt: `${validated.data.imagePrompt}\n\nStyle: professional, clean, premium digital solutions brand, text-free, logo-free, no watermarks, no embedded typography, landscape 16:9 editorial artwork.`,
+          n: 1,
+          size: "1536x1024",
+          quality: "high",
+          output_format: "png",
+        }),
+      });
+    } catch (error) {
+      if (controller.signal.aborted) throw new EditorialAiError("timeout", "Image generation timed out.");
+      throw new EditorialAiError("api", `Image generation failed: ${getErrorMessage(error)}`);
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (!response.ok) {
+      if (response.status === 404) throw new EditorialAiError("model_unavailable", `Image model (${model}) is not available.`);
+      if (response.status === 429) throw new EditorialAiError("quota", "Image generation quota or rate limit reached.");
+      if (response.status === 401 || response.status === 403) throw new EditorialAiError("auth", "Image generation credentials were rejected.");
+      throw new EditorialAiError("api", `Image generation returned HTTP ${response.status}.`);
+    }
+
+    const payload = (await response.json()) as { data?: Array<{ b64_json?: string; url?: string }> };
+    const b64 = payload.data?.[0]?.b64_json;
+    if (!b64) throw new EditorialAiError("malformed_output", "The image model did not return image data.");
+
+    let buffer: Buffer;
+    try {
+      buffer = Buffer.from(b64, "base64");
+    } catch {
+      throw new EditorialAiError("malformed_output", "The image data could not be decoded.");
+    }
+    if (buffer.byteLength <= 0 || buffer.byteLength > 15 * 1024 * 1024) {
+      throw new EditorialAiError("too_large", "The generated image is too large to upload.");
+    }
+
+    const detected = detectImageMime(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer);
+    if (!isAllowedBlogImageMime(detected)) {
+      throw new EditorialAiError("malformed_output", "The generated image format is not supported.");
+    }
+
+    providerSucceeded = true;
+
+    const filename = `editorial-ai-${Date.now()}.png`;
+    const file = new File([new Uint8Array(buffer)], filename, { type: detected || "image/png" });
+
     const result = await uploadToCloudinary(file, "techia/blog", { forceSigned: true });
     uploadedPublicId = result.public_id;
     if (result.resource_type !== "image" || !result.width || !result.height) {
       await deleteFromCloudinary(result.public_id).catch(() => undefined);
+      uploadedPublicId = null;
       throw new EditorialAiError("malformed_output", "The uploaded image could not be verified.");
     }
 
     const prisma = getPrisma();
     if (!prisma) {
       await deleteFromCloudinary(result.public_id).catch(() => undefined);
-      throw new EditorialAiError("api", "Media storage is unavailable.");
+      uploadedPublicId = null;
+      throw new EditorialAiError("not_configured", "Media storage is unavailable.");
     }
 
     const altText = (validated.data.altText && validated.data.altText.trim()) || validated.data.articleTitle || "Editorial illustration";
@@ -140,7 +147,7 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
       return created;
     });
 
-    const estimatedCost = estimateEditorialImageCost(model, "1536x1024");
+    const estimatedCost = estimateEditorialImageCost(model, "1536x1024", "high");
     await finalizeEditorialUsage(reservationId, {
       model,
       inputTokens: 0,
@@ -164,7 +171,7 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
   } catch (error) {
     if (uploadedPublicId) await deleteFromCloudinary(uploadedPublicId).catch(() => undefined);
     if (providerSucceeded) {
-      const estimatedCost = estimateEditorialImageCost(model, "1536x1024");
+      const estimatedCost = estimateEditorialImageCost(model, "1536x1024", "high");
       await finalizeEditorialUsage(reservationId, {
         model,
         inputTokens: 0,
@@ -177,6 +184,12 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
     } else {
       await failEditorialUsage(reservationId);
     }
+    console.warn("[editorial-ai] image_generation_failed", {
+      reservationId,
+      model,
+      providerSucceeded,
+      reconciliation: providerSucceeded ? "required" : "none",
+    });
     if (error instanceof EditorialAiError) throw error;
     throw new EditorialAiError("api", `Image upload failed: ${getErrorMessage(error)}`);
   }
