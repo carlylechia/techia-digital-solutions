@@ -81,8 +81,11 @@ export async function finalizeEditorialUsage(id: string | null, data: {
   const prisma = getPrisma();
   if (!prisma) return;
   try {
-    await prisma.aIUsage.update({
-      where: { id },
+    const result = await prisma.aIUsage.updateMany({
+      where: {
+        id,
+        status: { in: ["RESERVED", "PROVIDER_OUTCOME_UNKNOWN", "PROVIDER_SUCCEEDED_UPLOAD_FAILED"] },
+      },
       data: {
         model: data.model,
         inputTokens: data.inputTokens,
@@ -96,6 +99,9 @@ export async function finalizeEditorialUsage(id: string | null, data: {
         reconciliationRequired: data.reconciliationRequired ?? false,
       },
     });
+    if (result.count === 0) {
+      console.info("[editorial-ai] usage_finalize_skipped", { reservationId: id, reason: "already_finalized_or_missing" });
+    }
   } catch (error) {
     console.error("[editorial-ai] usage_finalize_failed", { reservationId: id, error: getErrorMessage(error), reconciliationRequired: true });
   }
@@ -137,4 +143,8 @@ export async function checkEditorialBurstLimit(actorId: string, limit: number, w
   if (count >= limit) {
     throw new EditorialAiError("quota", "Too many editorial AI requests. Try again shortly.");
   }
+}
+
+export async function reconcileEditorialUsage(id: string, data: Parameters<typeof finalizeEditorialUsage>[1]) {
+  await finalizeEditorialUsage(id, data);
 }

@@ -48,6 +48,7 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
   let providerRequestStarted = false;
   let providerResponded = false;
   let providerHttpOk = false;
+  let providerHttpStatus: number | null = null;
   let providerGenerated = false;
   let uploadedPublicId: string | null = null;
 
@@ -78,6 +79,7 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
     }
 
     providerResponded = true;
+    providerHttpStatus = response.status;
     if (!response.ok) {
       if (response.status === 404) throw new EditorialAiError("model_unavailable", `Image model (${model}) is not available.`);
       if (response.status === 429) throw new EditorialAiError("quota", "Image generation quota or rate limit reached.");
@@ -178,7 +180,13 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
     };
   } catch (error) {
     if (uploadedPublicId) await deleteFromCloudinary(uploadedPublicId).catch(() => undefined);
-    const ambiguous = providerRequestStarted && !(providerResponded && !providerHttpOk);
+    const ambiguous = providerRequestStarted && (
+      !providerResponded ||
+      providerHttpStatus === null ||
+      providerHttpStatus >= 500 ||
+      providerHttpStatus === 408 ||
+      providerHttpOk
+    );
     if (providerGenerated) {
       const estimatedCost = estimateEditorialImageCost(model, "1536x1024", "high");
       await finalizeEditorialUsage(reservationId, {
