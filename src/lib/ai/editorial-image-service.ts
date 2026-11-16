@@ -45,13 +45,17 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
     burstLimit: 10,
   });
 
-  let providerSucceeded = false;
+  let providerRequestStarted = false;
+  let providerResponded = false;
+  let providerHttpOk = false;
+  let providerGenerated = false;
   let uploadedPublicId: string | null = null;
 
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), EDITORIAL_AI_CONFIG.imageTimeoutMs);
     let response: Response;
+    providerRequestStarted = true;
     try {
       response = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
@@ -70,6 +74,7 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
       if (controller.signal.aborted) throw new EditorialAiError("timeout", "Image generation timed out.");
       throw new EditorialAiError("api", `Image generation failed: ${getErrorMessage(error)}`);
     } finally {
+      providerResponded = true;
       clearTimeout(timer);
     }
 
@@ -80,6 +85,7 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
       throw new EditorialAiError("api", `Image generation returned HTTP ${response.status}.`);
     }
 
+    providerHttpOk = true;
     const payload = (await response.json()) as { data?: Array<{ b64_json?: string; url?: string }> };
     const b64 = payload.data?.[0]?.b64_json;
     if (!b64) throw new EditorialAiError("malformed_output", "The image model did not return image data.");
@@ -99,7 +105,7 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
       throw new EditorialAiError("malformed_output", "The generated image format is not supported.");
     }
 
-    providerSucceeded = true;
+    providerGenerated = true;
 
     const filename = `editorial-ai-${Date.now()}.png`;
     const file = new File([new Uint8Array(buffer)], filename, { type: detected || "image/png" });
@@ -170,7 +176,8 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
     };
   } catch (error) {
     if (uploadedPublicId) await deleteFromCloudinary(uploadedPublicId).catch(() => undefined);
-    if (providerSucceeded) {
+    const ambiguous = providerRequestStarted && !(providerResponded && !providerHttpOk);
+    if (providerGenerated) {
       const estimatedCost = estimateEditorialImageCost(model, "1536x1024", "high");
       await finalizeEditorialUsage(reservationId, {
         model,
@@ -181,14 +188,29 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
         imageCount: 1,
         status: "PROVIDER_SUCCEEDED_UPLOAD_FAILED",
       });
+    } else if (ambiguous) {
+      await finalizeEditorialUsage(reservationId, {
+        model,
+        inputTokens: 0,
+        outputTokens: 0,
+        estimatedCost: null,
+        costAvailable: false,
+        imageCount: 0,
+        status: "PROVIDER_OUTCOME_UNKNOWN",
+      });
     } else {
       await failEditorialUsage(reservationId);
     }
-    console.warn("[editorial-ai] image_generation_failed", {
+    console.error("[editorial-ai] image_generation_failed", {
       reservationId,
+      actorId,
       model,
-      providerSucceeded,
-      reconciliation: providerSucceeded ? "required" : "none",
+      requestType: "EDITORIAL_IMAGE",
+      providerRequestStarted,
+      providerResponded,
+      providerHttpOk,
+      providerGenerated,
+      reconciliationRequired: providerGenerated || ambiguous,
     });
     if (error instanceof EditorialAiError) throw error;
     throw new EditorialAiError("api", `Image upload failed: ${getErrorMessage(error)}`);

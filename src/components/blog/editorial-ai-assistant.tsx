@@ -102,6 +102,7 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
   const [translateCapturedScope, setTranslateCapturedScope] = useState<"suggestion" | "selected" | "full">("suggestion");
   const [translateCapturedTarget, setTranslateCapturedTarget] = useState("");
   const [translateCapturedBase, setTranslateCapturedBase] = useState<string | null>(null);
+  const [translateCapturedContext, setTranslateCapturedContext] = useState("");
   const [translateCapturedDirection, setTranslateCapturedDirection] = useState<"en_to_fr" | "fr_to_en" | "improve_translation">("en_to_fr");
   const [translateCapturedSourceLanguage, setTranslateCapturedSourceLanguage] = useState<"en" | "fr">("en");
   const [translateCapturedTargetLanguage, setTranslateCapturedTargetLanguage] = useState<"en" | "fr">("fr");
@@ -258,6 +259,7 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
     setTranslateCapturedScope(translateScope);
     setTranslateCapturedTarget(translateTarget);
     setTranslateCapturedBase(article?.articleContent || null);
+    setTranslateCapturedContext(additionalInstructions);
     setTranslateCapturedDirection(translateDirection);
     setTranslateCapturedSourceLanguage(translateSourceLanguage);
     setTranslateCapturedTargetLanguage(translateTargetLanguage);
@@ -380,6 +382,10 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
     }
     if (translateCapturedTargetLanguage !== translateTargetLanguage) {
       setError("The target language changed. Run translation again.");
+      return;
+    }
+    if (translateCapturedContext !== additionalInstructions) {
+      setError("The translation context changed. Run translation again.");
       return;
     }
     if (translateCapturedBase === null) {

@@ -102,8 +102,8 @@ export async function failEditorialUsage(id: string | null) {
   const prisma = getPrisma();
   if (!prisma) return;
   try {
-    await prisma.aIUsage.update({
-      where: { id },
+    await prisma.aIUsage.updateMany({
+      where: { id, status: "RESERVED" },
       data: { status: "FAILED" },
     });
   } catch (error) {

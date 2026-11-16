@@ -113,8 +113,10 @@ export default async function AIUsagePage({
           _count: { id: true },
           where: { requestType: { in: editorialTypes }, createdAt: { gte: startOfMonth } },
         }),
-        prisma.aIUsage.count({ where: { costAvailable: false, createdAt: { gte: startOfDay } } }),
-        prisma.aIUsage.count({ where: { costAvailable: false, createdAt: { gte: startOfMonth } } }),
+        prisma.aIUsage.count({ where: { costAvailable: false, requestType: "PUBLIC_AGENT", createdAt: { gte: startOfDay } } }),
+        prisma.aIUsage.count({ where: { costAvailable: false, requestType: { in: editorialTypes }, createdAt: { gte: startOfDay } } }),
+        prisma.aIUsage.count({ where: { costAvailable: false, requestType: "PUBLIC_AGENT", createdAt: { gte: startOfMonth } } }),
+        prisma.aIUsage.count({ where: { costAvailable: false, requestType: { in: editorialTypes }, createdAt: { gte: startOfMonth } } }),
         prisma.aIUsage.findMany({
           orderBy: { createdAt: "desc" },
           skip: (page - 1) * pageSize,
@@ -161,7 +163,7 @@ export default async function AIUsagePage({
     );
   }
 
-  const [todayStats, editorialTodayStats, monthStats, editorialMonthStats, unknownTodayCount, unknownMonthCount, recentRecords, total] = result.data;
+  const [todayStats, editorialTodayStats, monthStats, editorialMonthStats, publicUnknownToday, editorialUnknownToday, publicUnknownMonth, editorialUnknownMonth, recentRecords, total] = result.data;
 
   const totalPages = Math.ceil(total / pageSize);
   const baseHref = "/admin/ai-usage";
@@ -210,7 +212,10 @@ export default async function AIUsagePage({
               Est. month cost
             </p>
             <p className="mt-2 text-3xl font-bold text-primary">
-              {monthStats._sum.estimatedCost === null ? "Unknown" : `$${monthStats._sum.estimatedCost.toFixed(4)}`}
+              {`$${(monthStats._sum.estimatedCost ?? 0).toFixed(4)}`}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Known subtotal; {publicUnknownMonth} public-agent request(s) have unknown cost.
             </p>
           </div>
           <div className="rounded-2xl border border-border bg-surface p-5">
@@ -226,7 +231,10 @@ export default async function AIUsagePage({
               Editorial month cost
             </p>
             <p className="mt-2 text-3xl font-bold text-primary">
-              {editorialMonthStats._sum.estimatedCost === null ? "Unknown" : `$${editorialMonthStats._sum.estimatedCost.toFixed(4)}`}
+              {`$${(editorialMonthStats._sum.estimatedCost ?? 0).toFixed(4)}`}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Known subtotal; {editorialUnknownMonth} editorial request(s) have unknown cost.
             </p>
           </div>
           <div className="rounded-2xl border border-border bg-surface p-5">
@@ -234,7 +242,7 @@ export default async function AIUsagePage({
               Unknown-cost requests (month)
             </p>
             <p className="mt-2 text-3xl font-bold text-primary">
-              {unknownMonthCount.toLocaleString()}
+              {(publicUnknownMonth + editorialUnknownMonth).toLocaleString()}
             </p>
           </div>
         </div>
