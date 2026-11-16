@@ -1239,6 +1239,7 @@ model EditorialUsageReconciliation {
   nextAttemptAt    DateTime  @default(now())
   lastError        String?
   payload          Json?
+  claimToken       String
   lockedAt         DateTime?
   lockedBy         String?
   createdAt        DateTime  @default(now())

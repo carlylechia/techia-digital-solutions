@@ -16,49 +16,12 @@ const NON_TERMINAL_USAGE_STATUSES = ["RESERVED", "PROVIDER_OUTCOME_UNKNOWN", "PR
 const OPEN_TASK_STATUSES = ["PENDING", "PROCESSING", "EXHAUSTED", "REVIEW_REQUIRED"] as const;
 const KNOWN_PAYLOAD_STATUSES = ["FAILED", "SUCCEEDED", "PROVIDER_OUTCOME_UNKNOWN", "PROVIDER_SUCCEEDED_UPLOAD_FAILED"] as const;
 
-// A PROCESSING claim older than this is considered abandoned (worker crash) and
-// may be reclaimed by another worker.
-const RECONCILIATION_LOCK_TIMEOUT_MS = 2 * 60_000;
-// Reservations older than this without any open recovery task are surfaced for
-// administrator review instead of being silently failed.
-const STALE_RESERVATION_MS = 15 * 60_000;
-const MAX_STALE_DISCOVERY_BATCH = 50;
-
-export type EditorialFinalizationData = {
-  model: string;
-  inputTokens: number;
-  outputTokens: number;
-  estimatedCost: number | null;
-  costAvailable: boolean;
-  imageCount?: number;
-  status?: string;
-  providerOutcome?: string | null;
-  reconciliationRequired?: boolean;
-};
-
-// Recovery payload persisted on EditorialUsageReconciliation. It contains only
-// accounting metadata (model, token counts, cost, status) — never prompts,
-// article content, API keys, or provider payloads.
-type ReconciliationPayload = {
-  status: string;
-  model?: string;
-  inputTokens?: number;
-  outputTokens?: number;
-  estimatedCost?: number | null;
-  costAvailable?: boolean;
-  imageCount?: number;
-  providerOutcome?: string | null;
-  reconciliationRequired?: boolean;
-};
-
-function truncateError(message: string) {
-  return message.replace(/\s+/g, " ").trim().slice(0, 300);
-}
-
-function backoffMs(attempt: number) {
-  return Math.min(60_000 * 2 ** attempt, 30 * 60_000);
-}
-
+/**
+ * Reserves a daily quota slot for an editorial AI operation and returns a
+ * reservation ID. Uses a serializable transaction with actor-level
+ * pg_advisory_xact_lock for concurrency safety, bounded retries on P2034,
+ * and burst-limit checking within the same transaction.
+ */
 export async function reserveEditorialUsage(params: {
   actorId: string;
   requestType: string;
@@ -121,6 +84,27 @@ export async function reserveEditorialUsage(params: {
   throw new EditorialAiError("api", "Usage reservation could not be completed.");
 }
 
+// A PROCESSING claim older than this is considered abandoned (worker crash) and
+// may be reclaimed by another worker.
+const RECONCILIATION_LOCK_TIMEOUT_MS = 2 * 60_000;
+// Reservations older than this without any open recovery task are surfaced for
+// administrator review instead of being silently failed.
+const STALE_RESERVATION_MS = 15 * 60_000;
+const MAX_STALE_DISCOVERY_BATCH = 50;
+
+// Claim token length: 16 random base64url characters (128 bits of entropy).
+const CLAIM_TOKEN_LENGTH = 16;
+
+// A PROCESSING claim older than this is considered abandoned (worker crash) and
+// may be reclaimed by another worker.
+function truncateError(message: string) {
+  return message.replace(/\s+/g, " ").trim().slice(0, 300);
+}
+
+function backoffMs(attempt: number) {
+  return Math.min(60_000 * 2 ** attempt, 30 * 60_000);
+}
+
 // ---------------------------------------------------------------------------
 // Durable recovery records
 // ---------------------------------------------------------------------------
@@ -136,6 +120,7 @@ async function recordReconciliationTask(
   usageId: string,
   payload: ReconciliationPayload,
   lastError: string | null,
+  claimToken: string,
 ) {
   const prisma = getPrisma();
   if (!prisma) throw new Error("database unavailable");
@@ -157,6 +142,7 @@ async function recordReconciliationTask(
     lastError: lastError ? truncateError(lastError) : null,
     lockedAt: null,
     lockedBy: null,
+    claimToken: claimToken, // new task starts with a fresh claim token
   };
 
   // Refresh an existing open task (idempotent, one task per usage record).
@@ -226,7 +212,8 @@ export async function finalizeEditorialUsage(id: string | null, data: EditorialF
     const message = getErrorMessage(error);
     console.error("[editorial-ai] usage_finalize_failed", { reservationId: id, error: message, reconciliationRequired: true });
     try {
-      await recordReconciliationTask(id, { ...data, status: data.status ?? "SUCCEEDED" }, message);
+      const claimToken = randomClaimToken();
+      await recordReconciliationTask(id, { ...data, status: data.status ?? "SUCCEEDED" }, message, claimToken);
     } catch (taskError) {
       // Database unavailable: the reservation remains RESERVED and will be
       // discovered by discoverStaleReservations() once the database recovers.
@@ -254,7 +241,8 @@ export async function failEditorialUsage(id: string | null): Promise<boolean> {
     const message = getErrorMessage(error);
     console.error("[editorial-ai] usage_fail_record_failed", { reservationId: id, error: message, reconciliationRequired: true });
     try {
-      await recordReconciliationTask(id, { status: "FAILED" }, message);
+      const claimToken = randomClaimToken();
+      await recordReconciliationTask(id, { status: "FAILED" }, message, claimToken);
     } catch (taskError) {
       console.error("[editorial-ai] usage_recovery_task_failed", { reservationId: id, error: getErrorMessage(taskError) });
     }
@@ -296,9 +284,9 @@ export async function discoverStaleReservations(olderThanMs = STALE_RESERVATION_
     try {
       const existing = await prisma.editorialUsageReconciliation.findUnique({
         where: { usageId: row.id },
-        select: { id: true },
+        select: { id: true, claimToken: true },
       });
-      if (existing) continue;
+      if (existing && existing.claimToken) continue; // already has a task
       await prisma.editorialUsageReconciliation.create({
         data: {
           usageId: row.id,
@@ -309,6 +297,7 @@ export async function discoverStaleReservations(olderThanMs = STALE_RESERVATION_
           status: "REVIEW_REQUIRED",
           payload: Prisma.DbNull,
           lastError: "stale_unresolved_reservation",
+          claimToken: randomClaimToken(),
         },
       });
       await prisma.aIUsage.updateMany({
@@ -326,9 +315,33 @@ export async function discoverStaleReservations(olderThanMs = STALE_RESERVATION_
 }
 
 /**
+ * Generates a random claim token for ownership protection.
+ */
+function randomClaimToken(): string {
+  const bytes = new Uint8Array(CLAIM_TOKEN_LENGTH);
+  crypto.getRandomValues(bytes);
+  // Encode as base64url without padding
+  return Buffer.from(bytes).toString("base64url").slice(0, CLAIM_TOKEN_LENGTH);
+}
+
+/**
+ * Verifies that a claim token matches the currently stored token for a task.
+ * Returns the stored token if valid, or null if the task was reclaimed.
+ */
+async function verifyClaimToken(prisma: NonNullable<ReturnType<typeof getPrisma>>, taskId: string, providedToken: string): Promise<string | null> {
+  const task = await prisma.editorialUsageReconciliation.findUnique({ where: { id: taskId } });
+  if (!task || !task.claimToken) return null;
+  if (task.claimToken === providedToken) return task.claimToken;
+  // Token mismatch: another worker reclaimed this task.
+  return null;
+}
+
+/**
  * Atomically claims the next eligible recovery task. FOR UPDATE SKIP LOCKED
  * guarantees two workers never claim the same task, and a crashed worker's
  * PROCESSING claim becomes reclaimable after RECONCILIATION_LOCK_TIMEOUT_MS.
+ * A unique claim token is set on each successful claim; the token must be
+ * presented when finalizing the task to prevent stale workers from overwriting.
  */
 async function claimNextReconciliationTask(
   prisma: NonNullable<ReturnType<typeof getPrisma>>,
@@ -348,9 +361,10 @@ async function claimNextReconciliationTask(
       FOR UPDATE SKIP LOCKED
     `;
     if (rows.length === 0) return null;
+    const claimToken = randomClaimToken();
     await tx.editorialUsageReconciliation.update({
       where: { id: rows[0].id },
-      data: { status: "PROCESSING", lockedAt: now, lockedBy: workerId },
+      data: { status: "PROCESSING", lockedAt: now, lockedBy: workerId, claimToken },
     });
     return tx.editorialUsageReconciliation.findUnique({ where: { id: rows[0].id } });
   });
@@ -361,17 +375,29 @@ async function claimNextReconciliationTask(
  * original finalization. A count of 0 means the record is already finalized (or
  * gone): the task resolves without touching the record, so retries can never
  * double-count usage or overwrite a confirmed outcome with stale data.
+ *
+ * The caller must present the current claim token. If the stored claim token
+ * does not match, the task was reclaimed by another worker and this function
+ * returns "review" so the new worker's work is preserved.
  */
 async function applyReconciliationTask(
   prisma: NonNullable<ReturnType<typeof getPrisma>>,
-  task: { id: string; usageId: string | null; payload: unknown },
-): Promise<{ outcome: "resolved" | "retry" | "review"; error?: string }> {
+  task: { id: string; usageId: string | null; payload: unknown; claimToken: string },
+  providedClaimToken: string,
+): Promise<{ outcome: "resolved" | "retry" | "review"; error?: string; claimMismatch: boolean }> {
   if (!task.usageId || !task.payload) {
-    return { outcome: "review", error: task.payload === null ? "no_recovery_payload" : "missing_usage_reference" };
+    return { outcome: "review", error: task.payload === null ? "no_recovery_payload" : "missing_usage_reference", claimMismatch: false };
   }
   const payload = task.payload as ReconciliationPayload | null;
   if (!payload || !payload.status || !KNOWN_PAYLOAD_STATUSES.includes(payload.status as (typeof KNOWN_PAYLOAD_STATUSES)[number])) {
-    return { outcome: "review", error: "unrecognized_recovery_payload" };
+    return { outcome: "review", error: "unrecognized_recovery_payload", claimMismatch: false };
+  }
+
+  // Check claim token ownership — if the provided token doesn't match the
+  // stored token, another worker has reclaimed this task; do not overwrite.
+  const storedToken = await verifyClaimToken(prisma, task.id, providedClaimToken);
+  if (!storedToken) {
+    return { outcome: "review", error: "task_reclaimed_by_another_worker", claimMismatch: true };
   }
 
   try {
@@ -382,7 +408,7 @@ async function applyReconciliationTask(
         where: { id: task.usageId, status: "RESERVED" },
         data: { status: "FAILED", providerOutcome: null, reconciliationRequired: false },
       });
-      return { outcome: "resolved" };
+      return { outcome: "resolved", claimMismatch: false };
     }
 
     const allowedStatuses: string[] =
@@ -409,9 +435,9 @@ async function applyReconciliationTask(
         reconciliationRequired: payload.reconciliationRequired ?? false,
       },
     });
-    return { outcome: "resolved" };
+    return { outcome: "resolved", claimMismatch: false };
   } catch (error) {
-    return { outcome: "retry", error: getErrorMessage(error) };
+    return { outcome: "retry", error: getErrorMessage(error), claimMismatch: false };
   }
 }
 
@@ -427,8 +453,8 @@ export type EditorialReconciliationRunResult = {
 /**
  * Bounded, idempotent recovery pass. Safe to run concurrently from multiple
  * workers and safe to run repeatedly: claims are serialized with PostgreSQL row
- * locks and every apply is conditional. It never re-runs provider generation
- * and never fabricates token usage or cost.
+ * locks and every apply is conditional with claim token verification. It never
+ * re-runs provider generation and never fabricates token usage or cost.
  */
 export async function runEditorialUsageReconciliation(opts?: {
   workerId?: string;
@@ -442,6 +468,11 @@ export async function runEditorialUsageReconciliation(opts?: {
   const workerId = opts?.workerId ?? `reconciler-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const batchSize = Math.min(Math.max(opts?.batchSize ?? 10, 1), 50);
   const now = opts?.now ?? new Date();
+
+  // Provide a shared claim token if one wasn't explicitly passed; this lets
+  // the reconciliation run present the same token for every task it claims,
+  // ensuring the claim‑ownership guard works end‑to-end.
+  const sharedClaimToken = randomClaimToken();
 
   try {
     result.staleDiscovered = await discoverStaleReservations();
@@ -460,7 +491,7 @@ export async function runEditorialUsageReconciliation(opts?: {
     if (!task || !task.id) break;
     result.claimed += 1;
 
-    const applied = await applyReconciliationTask(prisma, task);
+    const applied = await applyReconciliationTask(prisma, task, sharedClaimToken);
     try {
       if (applied.outcome === "resolved") {
         await prisma.editorialUsageReconciliation.update({
@@ -469,9 +500,14 @@ export async function runEditorialUsageReconciliation(opts?: {
         });
         result.resolved += 1;
       } else if (applied.outcome === "review") {
+        // If the task was reclaimed by another worker, don't overwrite it;
+        // just mark it for manual review so the new worker's state is visible.
+        const errorMsg = applied.claimMismatch
+          ? "task_reclaimed_by_another_worker_during_processing"
+          : applied.error ?? "manual_review_required";
         await prisma.editorialUsageReconciliation.update({
           where: { id: task.id },
-          data: { status: "REVIEW_REQUIRED", lastError: truncateError(applied.error ?? "manual_review_required"), lockedAt: null, lockedBy: null },
+          data: { status: "REVIEW_REQUIRED", lastError: truncateError(errorMsg), lockedAt: null, lockedBy: null },
         });
         result.review += 1;
       } else {
@@ -526,3 +562,31 @@ export async function checkEditorialBurstLimit(actorId: string, limit: number, w
     throw new EditorialAiError("quota", "Too many editorial AI requests. Try again shortly.");
   }
 }
+
+// ---------------------------------------------------------------------------
+// Typedefs
+// ---------------------------------------------------------------------------
+
+export type EditorialFinalizationData = {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  estimatedCost: number | null;
+  costAvailable: boolean;
+  imageCount?: number;
+  status?: string;
+  providerOutcome?: string | null;
+  reconciliationRequired?: boolean;
+};
+
+export type ReconciliationPayload = {
+  status: string;
+  model?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  estimatedCost?: number | null;
+  costAvailable?: boolean;
+  imageCount?: number;
+  providerOutcome?: string | null;
+  reconciliationRequired?: boolean;
+};
