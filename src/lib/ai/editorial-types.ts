@@ -117,12 +117,12 @@ export const editorialImageInputSchema = z.object({
 
 export const editorialEditResultSchema = z.object({
   result: z.string().trim().min(1).max(70000),
-  notes: z.array(z.string().trim().min(1).max(300)).max(12).optional().default([]),
+  notes: z.array(z.string().trim().min(1).max(300)).max(12).default([]),
 });
 
 export const editorialTranslateResultSchema = z.object({
   translatedContent: z.string().trim().min(1).max(70000),
-  notes: z.array(z.string().trim().min(1).max(300)).max(12).optional().default([]),
+  notes: z.array(z.string().trim().min(1).max(300)).max(12).default([]),
 });
 
 export const editorialReviewResultSchema = z.object({
@@ -131,7 +131,7 @@ export const editorialReviewResultSchema = z.object({
     category: z.string().trim().min(1).max(80),
     severity: z.enum(["info", "warning", "error"]),
     message: z.string().trim().min(1).max(400),
-    suggestion: z.string().trim().min(1).max(500).optional(),
+    suggestion: z.string().trim().min(1).max(500).nullable(),
   })).max(30),
-  checklist: z.array(z.string().trim().min(1).max(300)).max(20).optional().default([]),
+  checklist: z.array(z.string().trim().min(1).max(300)).max(20).default([]),
 });
