@@ -48,6 +48,7 @@ export function OutreachProspectActions({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [feedbackTone, setFeedbackTone] = useState<"success" | "error">("success");
   const [note, setNote] = useState("");
+  const [sendingMessageId, setSendingMessageId] = useState<string | null>(null);
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyBody, setReplyBody] = useState("");
   const [replySubject, setReplySubject] = useState("");
@@ -56,6 +57,18 @@ export function OutreachProspectActions({
     setFeedback(null);
     startTransition(async () => {
       const result = await action();
+      setFeedbackTone(result.ok ? "success" : "error");
+      setFeedback(result.ok ? result.message : result.error);
+      if (result.ok) router.refresh();
+    });
+  }
+
+  function sendNow(messageId: string) {
+    setFeedback(null);
+    setSendingMessageId(messageId);
+    startTransition(async () => {
+      const result = await instantSendOutreachMessage({ prospectId, messageId });
+      setSendingMessageId(null);
       setFeedbackTone(result.ok ? "success" : "error");
       setFeedback(result.ok ? result.message : result.error);
       if (result.ok) router.refresh();

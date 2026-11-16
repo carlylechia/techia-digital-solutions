@@ -768,20 +768,31 @@ export async function instantGenerateOutreachMessage(input: { prospectId: string
  * Instant Send — sends a generated email immediately, bypassing the queue.
  * The message must be in APPROVED or PENDING_APPROVAL status.
  */
-export async function instantSendOutreachMessage(input: { prospectId: string }): Promise<OutreachActionResult> {
+export async function instantSendOutreachMessage(input: { prospectId: string; messageId?: string }): Promise<OutreachActionResult> {
   try {
     const actor = await requireOutreachActor("outreach.send");
     const db = await requireOutreachDatabase();
     const prospectId = String(input.prospectId ?? "").slice(0, 64);
     if (!prospectId) return { ok: false, error: "Invalid request." };
 
-    const prospect = await db.outreachProspect.findUnique({
-      where: { id: prospectId },
-      include: { messages: { where: { type: "INITIAL" }, orderBy: { createdAt: "desc" }, take: 1 } },
-    });
-    if (!prospect) return { ok: false, error: "Prospect not found." };
+    let message;
+    if (input.messageId) {
+      message = await db.outreachMessage.findUnique({
+        where: { id: String(input.messageId).slice(0, 64) },
+      });
+      if (!message || message.prospectId !== prospectId) {
+        return { ok: false, error: "Message not found for this prospect." };
+      }
+    } else {
+      const prospect = await db.outreachProspect.findUnique({
+        where: { id: prospectId },
+        include: { messages: { where: { type: "INITIAL" }, orderBy: { createdAt: "desc" }, take: 1 } },
+      });
+      if (!prospect) return { ok: false, error: "Prospect not found." };
+      message = prospect.messages[0];
+      if (!message) return { ok: false, error: "No message found for this prospect. Generate one first." };
+    }
 
-    const message = prospect.messages[0];
     if (!message) return { ok: false, error: "No message found for this prospect. Generate one first." };
 
     // Check if message is in a sendable state
@@ -804,7 +815,7 @@ export async function instantSendOutreachMessage(input: { prospectId: string }):
     revalidateOutreach(`/admin/outreach/prospects/${prospectId}`);
 
     if (result.sent) {
-      return { ok: true, message: `Email sent successfully to ${prospect.publicEmail}` };
+      return { ok: true, message: `Email sent successfully` };
     } else {
       return { ok: false, error: `Send blocked: ${result.reason}` };
     }

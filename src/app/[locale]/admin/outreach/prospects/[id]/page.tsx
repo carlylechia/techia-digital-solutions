@@ -11,6 +11,7 @@ import { createMetadata } from "@/lib/seo";
 import { OutreachProspectActions } from "@/components/admin/outreach/outreach-prospect-actions";
 import { ImportProspectToCrmButton } from "@/components/admin/outreach/import-prospect-to-crm-button";
 import { OutreachProspectContactEditor } from "@/components/admin/outreach/outreach-prospect-contact-editor";
+import { OutreachMessageSendActions } from "@/components/admin/outreach/outreach-message-send-actions";
 import {
   OutreachBar,
   OutreachEmptyState,
@@ -419,6 +420,7 @@ export default async function OutreachProspectDetailPage({ params }: { params: P
                     {message.sentAt ? `sent ${formatDateTime(message.sentAt)}` : "not sent"}
                   </p>
                   {message.failureReason ? <p className="mt-1 text-xs text-red-300">{message.failureReason}</p> : null}
+                  <OutreachMessageSendActions prospectId={prospect.id} messageId={message.id} status={message.status} phone={prospect.publicPhone} body={message.bodyText} canSend={actor.canSend} />
                 </li>
               ))}
             </ul>
