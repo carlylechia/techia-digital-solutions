@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { isEditorialAiEnabled, getEditorialTextModel, getEditorialImageModel } from "@/lib/ai/editorial-config";
 import { estimateEditorialTextCost, estimateEditorialImageCost } from "@/lib/ai/editorial-pricing";
-import { editorialArticleSchema } from "@/lib/ai/editorial-types";
+import { editorialArticleSchema, editorialEditResultSchema, editorialTranslateResultSchema, editorialReviewResultSchema } from "@/lib/ai/editorial-types";
+import { z } from "zod";
 
 describe("editorial AI configuration", () => {
   it("is disabled unless explicitly enabled", () => {
@@ -39,5 +40,14 @@ describe("editorial AI configuration", () => {
         claimsToVerify: ["No statistics were supplied."],
       }),
     ).not.toThrow();
+  });
+
+  it("generates strict JSON schemas for structured outputs", () => {
+    for (const schema of [editorialArticleSchema, editorialEditResultSchema, editorialTranslateResultSchema, editorialReviewResultSchema]) {
+      const jsonSchema = z.toJSONSchema(schema) as { required?: string[]; additionalProperties?: boolean; properties?: Record<string, unknown> };
+      expect(jsonSchema.additionalProperties).toBe(false);
+      expect(Array.isArray(jsonSchema.required)).toBe(true);
+      expect(jsonSchema.required?.length).toBe(Object.keys(jsonSchema.properties || {}).length);
+    }
   });
 });
