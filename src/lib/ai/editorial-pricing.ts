@@ -9,8 +9,8 @@ const TEXT_PRICING_USD_PER_MILLION: Record<string, { input: number; output: numb
   "gpt-4o": { input: 2.5, output: 10 },
   "gpt-4.1": { input: 2, output: 8 },
   "gpt-4.1-mini": { input: 0.4, output: 1.6 },
-  "gpt-5.4": { input: 2.5, output: 10 },
-  "gpt-5.4-mini": { input: 0.4, output: 1.6 },
+  "gpt-5.4": { input: 2.5, output: 15 },
+  "gpt-5.4-mini": { input: 0.75, output: 4.5 },
   "gpt-6-luna": { input: 0.1, output: 0.5 },
 };
 
@@ -29,8 +29,9 @@ const IMAGE_PRICING_USD: Record<string, Record<string, number>> = {
   "gpt-image-2": { "1536x1024:high": 0.165 },
 };
 
-export function estimateEditorialImageCost(model: string, size: string, quality = "high"): number | null {
-  const pricing = IMAGE_PRICING_USD[model];
-  if (!pricing) return null;
-  return pricing[`${size}:${quality}`] ?? null;
+export function estimateEditorialImageCost(_model: string, _size: string, _quality = "high"): number | null {
+  // Complete image request cost requires provider-reported usage for input and
+  // output tokens. Fixed image-output-only estimates are intentionally not
+  // treated as complete request costs.
+  return null;
 }
