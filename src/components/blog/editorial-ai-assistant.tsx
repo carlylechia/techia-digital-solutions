@@ -20,6 +20,8 @@ type Props = {
   disabled?: boolean;
   onInsert: (article: EditorialArticlePackage, image?: { url: string; publicId: string; altText: string }) => void;
   hasExistingContent?: boolean;
+  allowInsert?: boolean;
+  blockedInsertReason?: string;
 };
 
 type ImageResult = { url: string; publicId: string; altText: string; width: number; height: number; model: string };
@@ -44,7 +46,7 @@ const editActionLabels: Record<EditorialEditAction, string> = {
   seo_checklist: "SEO checklist",
 };
 
-export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingContent }: Props) {
+export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingContent, allowInsert = true, blockedInsertReason }: Props) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,12 +78,18 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
   const [refinePending, setRefinePending] = useState(false);
   const [refineResult, setRefineResult] = useState<string | null>(null);
   const [refineNotes, setRefineNotes] = useState<string[]>([]);
+  const [refineScope, setRefineScope] = useState<"suggestion" | "selected" | "full">("suggestion");
+  const [refineTarget, setRefineTarget] = useState("");
+  const [refineBaseContent, setRefineBaseContent] = useState<string | null>(null);
 
   const [translateDirection, setTranslateDirection] = useState<"en_to_fr" | "fr_to_en" | "improve_translation">("en_to_fr");
   const [translateContent, setTranslateContent] = useState("");
   const [translatePending, setTranslatePending] = useState(false);
   const [translateResult, setTranslateResult] = useState<string | null>(null);
   const [translateNotes, setTranslateNotes] = useState<string[]>([]);
+  const [translateScope, setTranslateScope] = useState<"suggestion" | "selected" | "full">("suggestion");
+  const [translateTarget, setTranslateTarget] = useState("");
+  const [translateBaseContent, setTranslateBaseContent] = useState<string | null>(null);
 
   const [reviewContent, setReviewContent] = useState("");
   const [reviewPending, setReviewPending] = useState(false);
@@ -172,19 +180,30 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
   }
 
   async function runRefine() {
-    if (!refineContent.trim()) {
+    const contentToSend =
+      refineScope === "selected"
+        ? refineTarget
+        : refineScope === "full"
+          ? article?.articleContent || ""
+          : refineContent;
+    if (!contentToSend.trim()) {
       setError("Content to refine is required.");
+      return;
+    }
+    if (refineScope === "selected" && !refineTarget.trim()) {
+      setError("Select or paste the exact passage to refine.");
       return;
     }
     setRefinePending(true);
     setError(null);
+    setRefineBaseContent(article?.articleContent || null);
     try {
       const result = await postJson<{ ok: true; result: string; notes: string[] }>(
         "/api/editorial/ai/edit",
         {
           action: refineAction,
           language,
-          content: refineContent,
+          content: contentToSend,
           focusKeyword: focusKeyword || undefined,
         },
       );
@@ -198,18 +217,29 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
   }
 
   async function runTranslate() {
-    if (!translateContent.trim()) {
+    const contentToSend =
+      translateScope === "selected"
+        ? translateTarget
+        : translateScope === "full"
+          ? article?.articleContent || ""
+          : translateContent;
+    if (!contentToSend.trim()) {
       setError("Content to translate is required.");
+      return;
+    }
+    if (translateScope === "selected" && !translateTarget.trim()) {
+      setError("Select or paste the exact passage to translate.");
       return;
     }
     setTranslatePending(true);
     setError(null);
+    setTranslateBaseContent(article?.articleContent || null);
     try {
       const result = await postJson<{ ok: true; translatedContent: string; notes: string[] }>(
         "/api/editorial/ai/translate",
         {
           direction: translateDirection,
-          content: translateContent,
+          content: contentToSend,
           context: additionalInstructions || undefined,
         },
       );
@@ -252,18 +282,60 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
 
   function applyRefineToArticle() {
     if (!refineResult || !article) return;
-    setArticle({ ...article, articleContent: refineResult });
-    setRefineResult(null);
+    if (refineBaseContent !== null && article.articleContent !== refineBaseContent) {
+      setError("The article changed after refinement started. Review and retry.");
+      return;
+    }
+    if (refineScope === "full") {
+      if (!window.confirm("Replace the entire article content with the refined version?")) return;
+      setArticle({ ...article, articleContent: refineResult });
+      setRefineResult(null);
+      return;
+    }
+    if (refineScope === "selected") {
+      const occurrences = article.articleContent.split(refineTarget).length - 1;
+      if (occurrences !== 1) {
+        setError("The selected passage must occur exactly once. Update the selection and retry.");
+        return;
+      }
+      setArticle({ ...article, articleContent: article.articleContent.replace(refineTarget, refineResult) });
+      setRefineResult(null);
+      return;
+    }
+    setError("Suggestion-only mode does not change the article. Switch scope to apply changes.");
   }
 
   function applyTranslateToArticle() {
     if (!translateResult || !article) return;
-    setArticle({ ...article, articleContent: translateResult });
-    setTranslateResult(null);
+    if (translateBaseContent !== null && article.articleContent !== translateBaseContent) {
+      setError("The article changed after translation started. Review and retry.");
+      return;
+    }
+    if (translateScope === "full") {
+      if (!window.confirm("Replace the entire article content with the translated version?")) return;
+      setArticle({ ...article, articleContent: translateResult });
+      setTranslateResult(null);
+      return;
+    }
+    if (translateScope === "selected") {
+      const occurrences = article.articleContent.split(translateTarget).length - 1;
+      if (occurrences !== 1) {
+        setError("The selected passage must occur exactly once. Update the selection and retry.");
+        return;
+      }
+      setArticle({ ...article, articleContent: article.articleContent.replace(translateTarget, translateResult) });
+      setTranslateResult(null);
+      return;
+    }
+    setError("Suggestion-only mode does not change the article. Switch scope to apply changes.");
   }
 
   function handleInsert() {
     if (!article) return;
+    if (!allowInsert) {
+      setError(blockedInsertReason || "AI content cannot be inserted into this article. Create a draft copy first.");
+      return;
+    }
     if (hasExistingContent && !window.confirm("The editor already contains content. Replace it with the generated article?")) return;
     onInsert(article, imageResult ? { url: imageResult.url, publicId: imageResult.publicId, altText: imageResult.altText } : undefined);
     setInserted(true);
@@ -383,6 +455,10 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
             <label className="form-label text-xs">Article content
               <textarea className={`${inputClass} min-h-48`} value={article.articleContent} onChange={(e) => setArticle({ ...article, articleContent: e.target.value })} />
             </label>
+            <div className="rounded-lg border border-border bg-surface-strong/40 p-4">
+              <p className="mb-2 text-xs font-semibold text-primary">Rendered preview</p>
+              <div className="blog-prose max-w-none text-sm leading-7 text-muted" dangerouslySetInnerHTML={{ __html: article.articleContent }} />
+            </div>
             <div className="grid gap-3 md:grid-cols-2">
               <label className="form-label text-xs">SEO title
                 <input className={inputClass} value={article.seoTitle} onChange={(e) => setArticle({ ...article, seoTitle: e.target.value })} />
@@ -453,11 +529,23 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
 
           <div className="grid gap-3 border-t border-border pt-4">
             <h3 className="text-sm font-semibold text-primary">Refine content</h3>
+            <label className="form-label text-xs">Scope
+              <select className={inputClass} value={refineScope} onChange={(e) => setRefineScope(e.target.value as typeof refineScope)}>
+                <option value="suggestion">Suggestion only</option>
+                <option value="selected">Replace selected passage</option>
+                <option value="full">Replace entire article</option>
+              </select>
+            </label>
             <label className="form-label text-xs">Action
               <select className={inputClass} value={refineAction} onChange={(e) => setRefineAction(e.target.value as EditorialEditAction)}>
                 {editorialEditActionSchema.options.map((a) => <option key={a} value={a}>{editActionLabels[a as EditorialEditAction]}</option>)}
               </select>
             </label>
+            {refineScope === "selected" ? (
+              <label className="form-label text-xs">Exact passage to replace
+                <textarea className={`${inputClass} min-h-24`} value={refineTarget} onChange={(e) => setRefineTarget(e.target.value)} placeholder="Paste the exact passage from the article" />
+              </label>
+            ) : null}
             <label className="form-label text-xs">Content to refine
               <textarea className={`${inputClass} min-h-24`} value={refineContent} onChange={(e) => setRefineContent(e.target.value)} placeholder="Paste a section or the full article" />
             </label>
@@ -469,9 +557,13 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
               <div className="grid gap-2">
                 <textarea className={`${inputClass} min-h-32`} value={refineResult} onChange={(e) => setRefineResult(e.target.value)} />
                 {refineNotes.length ? <ul className="list-disc pl-4 text-xs text-muted">{refineNotes.map((n, i) => <li key={i}>{n}</li>)}</ul> : null}
-                <button type="button" onClick={applyRefineToArticle} className="inline-flex w-fit items-center gap-2 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-[#001018]">
-                  <Check className="size-3.5" /> Apply to article
-                </button>
+                {refineScope === "suggestion" ? (
+                  <p className="text-[11px] text-muted">Suggestion only: review the proposed text. Switch scope to apply it.</p>
+                ) : (
+                  <button type="button" onClick={applyRefineToArticle} className="inline-flex w-fit items-center gap-2 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-[#001018]">
+                    <Check className="size-3.5" /> Apply to article
+                  </button>
+                )}
               </div>
             ) : null}
           </div>
@@ -481,6 +573,13 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
               <Languages className="size-4 text-accent" />
               Translate
             </h3>
+            <label className="form-label text-xs">Scope
+              <select className={inputClass} value={translateScope} onChange={(e) => setTranslateScope(e.target.value as typeof translateScope)}>
+                <option value="suggestion">Suggestion only</option>
+                <option value="selected">Replace selected passage</option>
+                <option value="full">Replace entire article</option>
+              </select>
+            </label>
             <label className="form-label text-xs">Direction
               <select className={inputClass} value={translateDirection} onChange={(e) => setTranslateDirection(e.target.value as typeof translateDirection)}>
                 <option value="en_to_fr">English to French</option>
@@ -488,6 +587,11 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
                 <option value="improve_translation">Improve translation</option>
               </select>
             </label>
+            {translateScope === "selected" ? (
+              <label className="form-label text-xs">Exact passage to translate
+                <textarea className={`${inputClass} min-h-24`} value={translateTarget} onChange={(e) => setTranslateTarget(e.target.value)} placeholder="Paste the exact passage from the article" />
+              </label>
+            ) : null}
             <label className="form-label text-xs">Content to translate
               <textarea className={`${inputClass} min-h-24`} value={translateContent} onChange={(e) => setTranslateContent(e.target.value)} />
             </label>
@@ -499,9 +603,13 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
               <div className="grid gap-2">
                 <textarea className={`${inputClass} min-h-32`} value={translateResult} onChange={(e) => setTranslateResult(e.target.value)} />
                 {translateNotes.length ? <ul className="list-disc pl-4 text-xs text-muted">{translateNotes.map((n, i) => <li key={i}>{n}</li>)}</ul> : null}
-                <button type="button" onClick={applyTranslateToArticle} className="inline-flex w-fit items-center gap-2 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-[#001018]">
-                  <Check className="size-3.5" /> Apply to article
-                </button>
+                {translateScope === "suggestion" ? (
+                  <p className="text-[11px] text-muted">Suggestion only: review the proposed translation. Switch scope to apply it.</p>
+                ) : (
+                  <button type="button" onClick={applyTranslateToArticle} className="inline-flex w-fit items-center gap-2 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-[#001018]">
+                    <Check className="size-3.5" /> Apply to article
+                  </button>
+                )}
               </div>
             ) : null}
           </div>
@@ -539,11 +647,13 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
             <button
               type="button"
               onClick={handleInsert}
-              className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-[#001018] transition hover:opacity-90"
+              disabled={!allowInsert}
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-[#001018] transition hover:opacity-90 disabled:opacity-50"
             >
               <Check className="size-3.5" />
               Insert into editor
             </button>
+            {!allowInsert && blockedInsertReason ? <p className="text-[11px] text-amber-300">{blockedInsertReason}</p> : null}
             {inserted ? <span className="text-[11px] text-emerald-400">Inserted into editor. Review before publishing.</span> : null}
             <button
               type="button"

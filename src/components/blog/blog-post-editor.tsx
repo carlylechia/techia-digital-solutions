@@ -323,7 +323,7 @@ export function BlogPostEditor({
         {canUseEditorialAi ? (
           <section className="premium-card grid gap-4 p-5 sm:p-7" aria-labelledby="editor-ai-title">
             <div><p className="eyebrow">AI assistant</p><h2 id="editor-ai-title" className="mt-2 text-2xl font-semibold text-primary">Generate with AI</h2><p className="mt-2 text-sm text-muted">SuperAdmin-only editorial assistant. Generated content is previewed before insertion.</p></div>
-            <EditorialAiAssistant locale={locale} disabled={!editable} hasExistingContent={normalizeRichTextSource(form.content).replace(/<[^>]+>/g, "").trim().length > 0} onInsert={handleAiInsert} />
+            <EditorialAiAssistant locale={locale} disabled={!editable} hasExistingContent={normalizeRichTextSource(form.content).replace(/<[^>]+>/g, "").trim().length > 0} allowInsert={canUseEditorialAi && (form.status === "DRAFT" || form.status === "CHANGES_REQUESTED")} blockedInsertReason={canUseEditorialAi && form.status !== "DRAFT" && form.status !== "CHANGES_REQUESTED" ? "To use AI-generated content on this article, first create a draft copy. Your published article will remain unchanged." : undefined} onInsert={handleAiInsert} />
           </section>
         ) : null}
         <section className="premium-card grid gap-5 p-5 sm:p-7" aria-labelledby="editor-basics-title">
