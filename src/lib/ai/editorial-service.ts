@@ -262,6 +262,7 @@ export async function generateEditorialArticle(input: EditorialGenerateInput, ac
     requestType: EDITORIAL_REQUEST_TYPES.article,
     limit: EDITORIAL_AI_CONFIG.maxArticleGenerationsPerDay,
     model,
+    burstLimit: 20,
   });
 
   try {
@@ -331,6 +332,7 @@ export async function runEditorialEdit(input: z.infer<typeof editorialEditInputS
     requestType: EDITORIAL_REQUEST_TYPES.edit,
     limit: EDITORIAL_AI_CONFIG.maxArticleGenerationsPerDay * 3,
     model,
+    burstLimit: 40,
   });
 
   try {
@@ -400,6 +402,7 @@ export async function translateEditorialContent(input: z.infer<typeof editorialT
     requestType: EDITORIAL_REQUEST_TYPES.translate,
     limit: EDITORIAL_AI_CONFIG.maxArticleGenerationsPerDay * 3,
     model,
+    burstLimit: 40,
   });
 
   try {
@@ -463,6 +466,7 @@ export async function runEditorialReview(input: z.infer<typeof editorialReviewIn
     requestType: EDITORIAL_REQUEST_TYPES.review,
     limit: EDITORIAL_AI_CONFIG.maxArticleGenerationsPerDay * 3,
     model,
+    burstLimit: 40,
   });
 
   try {
