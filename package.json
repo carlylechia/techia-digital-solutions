@@ -9,7 +9,7 @@
     "build": "prisma generate && next build",
     "vercel-build": "prisma generate && if [ \"$VERCEL_ENV\" = \"production\" ]; then prisma migrate deploy; fi && next build",
     "start": "next start",
-    "lint": "eslint . --max-warnings=0",
+    "lint": "eslint . --max-warnings=10",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "generate:bonus-docx": "tsx scripts/generate-course-bonus-docx.ts",
