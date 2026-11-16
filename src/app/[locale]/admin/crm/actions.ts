@@ -118,6 +118,16 @@ export async function createCrmContactAction(_prevState: CrmFormState, formData:
       notes: value(formData, "notes"),
     });
 
+    // An outreach prospect chosen from the "sources" dropdown is imported into the
+    // CRM on demand rather than being treated as an existing client row.
+    if (data.clientId?.startsWith("outreach:")) {
+      const prospectId = data.clientId.slice("outreach:".length);
+      const imported = await importOutreachProspectToCrmAction({ prospectId, locale: data.locale });
+      if (!imported?.success) throw new Error(imported?.error || "Failed to import the outreach prospect.");
+      revalidateCrm(data.locale);
+      return { success: true, contactId: imported.contactId, clientId: imported.clientId };
+    }
+
     const headlineSelect = { id: true, name: true, contactName: true, contactRole: true, email: true, phone: true } as const;
     let client = data.clientId
       ? await prisma.client.findUnique({ where: { id: data.clientId }, select: headlineSelect })

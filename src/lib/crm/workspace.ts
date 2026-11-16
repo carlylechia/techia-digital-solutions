@@ -11,7 +11,7 @@ import type { CrmClient, CrmContact, CrmMessage, CrmWorkspaceData } from "./type
  * the single source of truth for message history and avoids a parallel schema.
  */
 export async function loadCrmWorkspace(prisma: PrismaClient): Promise<CrmWorkspaceData> {
-  const [clients, conversations] = await Promise.all([
+  const [clients, conversations, outreachProspects] = await Promise.all([
     prisma.client.findMany({
       orderBy: [{ updatedAt: "desc" }, { name: "asc" }],
       take: 250,
@@ -31,6 +31,18 @@ export async function loadCrmWorkspace(prisma: PrismaClient): Promise<CrmWorkspa
           orderBy: { sentAt: "desc" },
           take: 60,
         },
+      },
+    }),
+    prisma.outreachProspect.findMany({
+      orderBy: [{ updatedAt: "desc" }],
+      take: 250,
+      select: {
+        id: true,
+        businessName: true,
+        publicEmail: true,
+        publicPhone: true,
+        contactName: true,
+        contactRole: true,
       },
     }),
   ]);
@@ -105,6 +117,14 @@ export async function loadCrmWorkspace(prisma: PrismaClient): Promise<CrmWorkspa
   return {
     contacts,
     clients: clientRows,
+    outreachProspects: outreachProspects.map((prospect) => ({
+      id: prospect.id,
+      businessName: prospect.businessName,
+      publicEmail: prospect.publicEmail,
+      publicPhone: prospect.publicPhone,
+      contactName: prospect.contactName,
+      contactRole: prospect.contactRole,
+    })),
     stats: {
       totalContacts: contacts.length,
       contactsWithEmail: contacts.filter((contact) => Boolean(contact.email)).length,

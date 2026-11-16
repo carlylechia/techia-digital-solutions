@@ -67,6 +67,9 @@ export default async function AdminOutreachProspectsPage({
   const contactFilter = sp.contact ?? "";
   const missingContact = sp.missingContact === "1" || contactFilter === "without";
   const hasContact = sp.hasContact === "1" || sp.contactAvailable === "1" || contactFilter === "with";
+  const websiteFilter = sp.website ?? "";
+  const missingWebsite = sp.missingWebsite === "1" || websiteFilter === "without";
+  const hasWebsite = sp.hasWebsite === "1" || sp.websiteAvailable === "1" || websiteFilter === "with";
   const discoveredFrom = (sp.discoveredFrom ?? sp.discoveredAfter ?? sp.discoveredSince ?? "").slice(0, 40);
   const discoveredTo = (sp.discoveredTo ?? sp.discoveredBefore ?? sp.discoveredUntil ?? "").slice(0, 40);
 
@@ -81,6 +84,8 @@ export default async function AdminOutreachProspectsPage({
       minReadinessScore: minReadiness,
       missingContact: missingContact || undefined,
       hasContact: hasContact || undefined,
+      hasWebsite: hasWebsite || undefined,
+      missingWebsite: missingWebsite || undefined,
       discoveredAfter: discoveredFrom || undefined,
       discoveredBefore: discoveredTo || undefined,
     }),
@@ -97,6 +102,8 @@ export default async function AdminOutreachProspectsPage({
     if (minReadiness !== undefined) params2.set("minReadiness", String(minReadiness));
     if (missingContact) params2.set("missingContact", "1");
     if (hasContact) params2.set("hasContact", "1");
+    if (missingWebsite) params2.set("missingWebsite", "1");
+    if (hasWebsite) params2.set("hasWebsite", "1");
     if (discoveredFrom) params2.set("discoveredFrom", discoveredFrom);
     if (discoveredTo) params2.set("discoveredTo", discoveredTo);
     params2.set("page", String(nextPage));
@@ -166,6 +173,14 @@ export default async function AdminOutreachProspectsPage({
               <option value="60">60+</option>
               <option value="50">50+</option>
               <option value="40">40+</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs">
+            <span className="font-semibold text-muted">Website</span>
+            <select name="website" defaultValue={hasWebsite ? "with" : missingWebsite ? "without" : ""} className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm">
+              <option value="">All</option>
+              <option value="with">With website</option>
+              <option value="without">Without website</option>
             </select>
           </label>
           <label className="grid gap-1 text-xs">

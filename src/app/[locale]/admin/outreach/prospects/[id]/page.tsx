@@ -10,6 +10,7 @@ import { OUTREACH_DISCOVERY_PROVIDER_LABELS, OUTREACH_QUALIFICATION_LABELS, OUTR
 import { createMetadata } from "@/lib/seo";
 import { OutreachProspectActions } from "@/components/admin/outreach/outreach-prospect-actions";
 import { ImportProspectToCrmButton } from "@/components/admin/outreach/import-prospect-to-crm-button";
+import { OutreachProspectContactEditor } from "@/components/admin/outreach/outreach-prospect-contact-editor";
 import {
   OutreachBar,
   OutreachEmptyState,
@@ -375,6 +376,14 @@ export default async function OutreachProspectDetailPage({ params }: { params: P
             canManage={actor.canManage}
             canSend={actor.canSend}
           />
+        </div>
+      </OutreachPanel>
+
+      <OutreachPanel>
+        <h3 className="text-lg font-semibold">Contact information</h3>
+        <p className="mt-1 text-sm text-muted">Add or correct contact details found on the website, contact page, Google listing, or social profiles.</p>
+        <div className="mt-4">
+          <OutreachProspectContactEditor prospectId={prospect.id} initial={{ publicEmail: prospect.publicEmail, publicPhone: prospect.publicPhone, contactName: prospect.contactName, contactRole: prospect.contactRole, websiteUrl: prospect.websiteUrl }} />
         </div>
       </OutreachPanel>
 

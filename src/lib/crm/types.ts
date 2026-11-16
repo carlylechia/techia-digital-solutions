@@ -49,6 +49,14 @@ export type CrmClient = {
 export type CrmWorkspaceData = {
   contacts: CrmContact[];
   clients: CrmClient[];
+  outreachProspects: Array<{
+    id: string;
+    businessName: string;
+    publicEmail: string | null;
+    publicPhone: string | null;
+    contactName: string | null;
+    contactRole: string | null;
+  }>;
   stats: {
     totalContacts: number;
     contactsWithEmail: number;

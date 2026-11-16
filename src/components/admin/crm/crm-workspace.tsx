@@ -229,6 +229,11 @@ export function CrmWorkspace({ locale, data }: { locale: Locale; data: CrmWorksp
                       {client.name} ({client.contactCount} contact{client.contactCount === 1 ? "" : "s"})
                     </option>
                   ))}
+                  {data.outreachProspects?.map((prospect) => (
+                    <option key={`outreach:${prospect.id}`} value={`outreach:${prospect.id}`}>
+                      {prospect.businessName} (outreach prospect)
+                    </option>
+                  ))}
                 </select>
               </Field>
               {!addClientChoice ? (

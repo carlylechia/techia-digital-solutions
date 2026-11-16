@@ -303,6 +303,9 @@ export type ProspectListFilters = {
   minReadinessScore?: number;
   missingContact?: boolean;
   hasContact?: boolean;
+  hasWebsite?: boolean;
+  missingWebsite?: boolean;
+  websiteAvailable?: boolean;
   hasContactInfo?: boolean;
   contactAvailable?: boolean;
   discoveredAfter?: Date | string;
@@ -349,6 +352,17 @@ export async function loadOutreachProspects(db: Db, filters: ProspectListFilters
       ],
     };
     andConditions.push(wantsMissingContact ? { NOT: hasContactCondition } : hasContactCondition);
+  }
+
+  const wantsMissingWebsite = filters.missingWebsite === true;
+  const wantsHasWebsite =
+    filters.hasWebsite === true || filters.websiteAvailable === true;
+  if (wantsMissingWebsite || wantsHasWebsite) {
+    andConditions.push(
+      wantsMissingWebsite
+        ? { OR: [{ websiteUrl: null }, { websiteUrl: "" }] }
+        : { AND: [{ websiteUrl: { not: null } }, { NOT: { websiteUrl: "" } }] }
+    );
   }
 
   if (filters.search) {

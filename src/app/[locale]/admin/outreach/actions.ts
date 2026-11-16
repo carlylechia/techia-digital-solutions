@@ -334,24 +334,32 @@ export async function updateOutreachProspect(input: unknown): Promise<OutreachAc
     const db = await requireOutreachDatabase();
     const parsed = outreachProspectPatchSchema.parse(input);
 
-    const existing = await db.outreachProspect.findUnique({ where: { id: parsed.id }, select: { id: true, status: true, campaignId: true, businessName: true } });
+    const existing = await db.outreachProspect.findUnique({
+      where: { id: parsed.id },
+      select: { id: true, status: true, campaignId: true, businessName: true, publicEmail: true, publicPhone: true, websiteSnapshot: true },
+    });
     if (!existing) return { ok: false, error: "Prospect not found." };
 
     const email = parsed.publicEmail === undefined ? undefined : normalizeEmail(parsed.publicEmail);
+    const nextEmail = email === undefined ? existing.publicEmail : email || null;
+    const nextPhone = parsed.publicPhone === undefined ? existing.publicPhone : parsed.publicPhone || null;
+    const snapshot = (existing.websiteSnapshot ?? null) as { socialUrls?: string[]; socialPlatforms?: string[] } | null;
 
     await db.outreachProspect.update({
       where: { id: parsed.id },
       data: {
         businessName: parsed.businessName || undefined,
-        websiteUrl: parsed.websiteUrl || null,
+        websiteUrl: parsed.websiteUrl === undefined ? undefined : parsed.websiteUrl || null,
         publicEmail: email,
-        publicPhone: parsed.publicPhone || null,
-        contactName: parsed.contactName || null,
-        contactRole: parsed.contactRole || null,
-        industry: parsed.industry || null,
-        city: parsed.city || null,
+        publicPhone: parsed.publicPhone === undefined ? undefined : parsed.publicPhone || null,
+        contactName: parsed.contactName === undefined ? undefined : parsed.contactName || null,
+        contactRole: parsed.contactRole === undefined ? undefined : parsed.contactRole || null,
+        industry: parsed.industry === undefined ? undefined : parsed.industry || null,
+        city: parsed.city === undefined ? undefined : parsed.city || null,
         status: parsed.status ?? undefined,
         automationStoppedReason: parsed.status && parsed.status !== "PAUSED" ? null : undefined,
+        hasContactInfo:
+          Boolean(nextEmail || nextPhone || (snapshot?.socialUrls?.length ?? 0) > 0 || (snapshot?.socialPlatforms?.length ?? 0) > 0),
       },
     });
 
