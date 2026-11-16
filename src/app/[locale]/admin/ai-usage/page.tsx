@@ -117,6 +117,9 @@ export default async function AIUsagePage({
         prisma.aIUsage.count({ where: { costAvailable: false, requestType: { in: editorialTypes }, createdAt: { gte: startOfDay } } }),
         prisma.aIUsage.count({ where: { costAvailable: false, requestType: "PUBLIC_AGENT", createdAt: { gte: startOfMonth } } }),
         prisma.aIUsage.count({ where: { costAvailable: false, requestType: { in: editorialTypes }, createdAt: { gte: startOfMonth } } }),
+        prisma.aIUsage.count({ where: { status: "RESERVED" } }),
+        prisma.aIUsage.count({ where: { status: "PROVIDER_OUTCOME_UNKNOWN" } }),
+        prisma.aIUsage.count({ where: { status: "PROVIDER_SUCCEEDED_UPLOAD_FAILED" } }),
         prisma.aIUsage.findMany({
           orderBy: { createdAt: "desc" },
           skip: (page - 1) * pageSize,
@@ -163,7 +166,7 @@ export default async function AIUsagePage({
     );
   }
 
-  const [todayStats, editorialTodayStats, monthStats, editorialMonthStats, publicUnknownToday, editorialUnknownToday, publicUnknownMonth, editorialUnknownMonth, recentRecords, total] = result.data;
+  const [todayStats, editorialTodayStats, monthStats, editorialMonthStats, publicUnknownToday, editorialUnknownToday, publicUnknownMonth, editorialUnknownMonth, reservedCount, unknownOutcomeCount, uploadFailedCount, recentRecords, total] = result.data;
 
   const totalPages = Math.ceil(total / pageSize);
   const baseHref = "/admin/ai-usage";
@@ -243,6 +246,30 @@ export default async function AIUsagePage({
             </p>
             <p className="mt-2 text-3xl font-bold text-primary">
               {(publicUnknownMonth + editorialUnknownMonth).toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Unresolved reservations
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {reservedCount.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Ambiguous provider outcomes
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {unknownOutcomeCount.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Provider success / upload failure
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {uploadFailedCount.toLocaleString()}
             </p>
           </div>
         </div>
