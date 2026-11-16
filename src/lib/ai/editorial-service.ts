@@ -179,17 +179,28 @@ async function callOpenAiJson<T extends z.ZodTypeAny>(params: {
     );
   }
 
-  const payload = (await response.json()) as {
+  let payload: {
     output_text?: string;
     output?: Array<{ content?: Array<{ text?: string }> }>;
     usage?: { input_tokens?: number; output_tokens?: number; input_tokens_details?: { cached_tokens?: number } };
   };
+  try {
+    payload = (await response.json()) as typeof payload;
+  } catch {
+    throw new EditorialAiError("malformed_output", "The model returned invalid JSON.", { providerState: "responded", httpStatus: response.status });
+  }
   const content = payload.output_text || payload.output?.[0]?.content?.[0]?.text || "";
   if (!content.trim()) {
     throw new EditorialAiError("malformed_output", "The model returned an empty response.", { providerState: "responded", httpStatus: response.status });
   }
 
-  const parsed = params.schema.safeParse(extractJson(content));
+  let extracted: unknown;
+  try {
+    extracted = extractJson(content);
+  } catch {
+    throw new EditorialAiError("malformed_output", "The model returned unparseable structured output.", { providerState: "responded", httpStatus: response.status });
+  }
+  const parsed = params.schema.safeParse(extracted);
   if (!parsed.success) {
     throw new EditorialAiError("malformed_output", "The model returned a response that failed validation.", { providerState: "responded", httpStatus: response.status });
   }
@@ -307,6 +318,8 @@ export async function generateEditorialArticle(input: EditorialGenerateInput, ac
       outputTokens: result.outputTokens,
       estimatedCost,
       costAvailable: estimatedCost !== null,
+      providerOutcome: "PROVIDER_SUCCEEDED",
+      reconciliationRequired: false,
     });
 
     const prisma = getPrisma();
@@ -327,6 +340,8 @@ export async function generateEditorialArticle(input: EditorialGenerateInput, ac
         estimatedCost: null,
         costAvailable: false,
         status: "PROVIDER_OUTCOME_UNKNOWN",
+        providerOutcome: "PROVIDER_OUTCOME_UNKNOWN",
+        reconciliationRequired: true,
       });
     } else {
       await failEditorialUsage(reservationId);
@@ -396,6 +411,8 @@ Return JSON only.`,
       outputTokens: result.outputTokens,
       estimatedCost,
       costAvailable: estimatedCost !== null,
+      providerOutcome: "PROVIDER_SUCCEEDED",
+      reconciliationRequired: false,
     });
 
     return { ...sanitized, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
@@ -409,6 +426,8 @@ Return JSON only.`,
         estimatedCost: null,
         costAvailable: false,
         status: "PROVIDER_OUTCOME_UNKNOWN",
+        providerOutcome: "PROVIDER_OUTCOME_UNKNOWN",
+        reconciliationRequired: true,
       });
     } else {
       await failEditorialUsage(reservationId);
@@ -479,6 +498,8 @@ CONTENT>>>`,
       outputTokens: result.outputTokens,
       estimatedCost,
       costAvailable: estimatedCost !== null,
+      providerOutcome: "PROVIDER_SUCCEEDED",
+      reconciliationRequired: false,
     });
 
     return { ...sanitized, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
@@ -492,6 +513,8 @@ CONTENT>>>`,
         estimatedCost: null,
         costAvailable: false,
         status: "PROVIDER_OUTCOME_UNKNOWN",
+        providerOutcome: "PROVIDER_OUTCOME_UNKNOWN",
+        reconciliationRequired: true,
       });
     } else {
       await failEditorialUsage(reservationId);
@@ -548,6 +571,8 @@ CONTENT>>>`,
       outputTokens: result.outputTokens,
       estimatedCost,
       costAvailable: estimatedCost !== null,
+      providerOutcome: "PROVIDER_SUCCEEDED",
+      reconciliationRequired: false,
     });
 
     return { summary: result.data.summary, issues: result.data.issues, checklist: result.data.checklist, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
@@ -561,6 +586,8 @@ CONTENT>>>`,
         estimatedCost: null,
         costAvailable: false,
         status: "PROVIDER_OUTCOME_UNKNOWN",
+        providerOutcome: "PROVIDER_OUTCOME_UNKNOWN",
+        reconciliationRequired: true,
       });
     } else {
       await failEditorialUsage(reservationId);

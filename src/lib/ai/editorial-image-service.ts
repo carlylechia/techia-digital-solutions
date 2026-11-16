@@ -74,10 +74,10 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
       if (controller.signal.aborted) throw new EditorialAiError("timeout", "Image generation timed out.");
       throw new EditorialAiError("api", `Image generation failed: ${getErrorMessage(error)}`);
     } finally {
-      providerResponded = true;
       clearTimeout(timer);
     }
 
+    providerResponded = true;
     if (!response.ok) {
       if (response.status === 404) throw new EditorialAiError("model_unavailable", `Image model (${model}) is not available.`);
       if (response.status === 429) throw new EditorialAiError("quota", "Image generation quota or rate limit reached.");
@@ -162,6 +162,8 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
       costAvailable: estimatedCost !== null,
       imageCount: 1,
       status: "SUCCEEDED",
+      providerOutcome: "PROVIDER_SUCCEEDED",
+      reconciliationRequired: false,
     });
 
     return {
@@ -187,6 +189,8 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
         costAvailable: estimatedCost !== null,
         imageCount: 1,
         status: "PROVIDER_SUCCEEDED_UPLOAD_FAILED",
+        providerOutcome: "PROVIDER_SUCCEEDED",
+        reconciliationRequired: true,
       });
     } else if (ambiguous) {
       await finalizeEditorialUsage(reservationId, {
@@ -197,6 +201,8 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
         costAvailable: false,
         imageCount: 0,
         status: "PROVIDER_OUTCOME_UNKNOWN",
+        providerOutcome: "PROVIDER_OUTCOME_UNKNOWN",
+        reconciliationRequired: true,
       });
     } else {
       await failEditorialUsage(reservationId);

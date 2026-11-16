@@ -74,6 +74,8 @@ export async function finalizeEditorialUsage(id: string | null, data: {
   costAvailable: boolean;
   imageCount?: number;
   status?: string;
+  providerOutcome?: string | null;
+  reconciliationRequired?: boolean;
 }) {
   if (!id) return;
   const prisma = getPrisma();
@@ -90,6 +92,8 @@ export async function finalizeEditorialUsage(id: string | null, data: {
         costAvailable: data.costAvailable,
         imageCount: data.imageCount ?? 0,
         status: data.status ?? "SUCCEEDED",
+        providerOutcome: data.providerOutcome ?? null,
+        reconciliationRequired: data.reconciliationRequired ?? false,
       },
     });
   } catch (error) {

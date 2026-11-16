@@ -1211,6 +1211,8 @@ model AIUsage {
   costAvailable  Boolean         @default(true)
   imageCount     Int             @default(0)
   status         String          @default("SUCCEEDED")
+  providerOutcome String?
+  reconciliationRequired Boolean @default(false)
   requestType    String          @default("PUBLIC_AGENT")
   createdAt      DateTime        @default(now())
 
