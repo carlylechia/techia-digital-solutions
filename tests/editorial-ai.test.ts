@@ -42,12 +42,26 @@ describe("editorial AI configuration", () => {
     ).not.toThrow();
   });
 
+  function assertStrict(schema: unknown) {
+    if (!schema || typeof schema !== "object") return;
+    const node = schema as Record<string, unknown>;
+    if (node.type === "object" && node.properties && typeof node.properties === "object") {
+      expect(node.additionalProperties).toBe(false);
+      expect(Array.isArray(node.required)).toBe(true);
+      expect((node.required as string[]).length).toBe(Object.keys(node.properties as Record<string, unknown>).length);
+      for (const value of Object.values(node.properties as Record<string, unknown>)) {
+        assertStrict(value);
+      }
+    }
+    if (node.type === "array" && node.items) assertStrict(node.items);
+    if (node.anyOf) for (const value of node.anyOf as unknown[]) assertStrict(value);
+    if (node.oneOf) for (const value of node.oneOf as unknown[]) assertStrict(value);
+    if (node.allOf) for (const value of node.allOf as unknown[]) assertStrict(value);
+  }
+
   it("generates strict JSON schemas for structured outputs", () => {
     for (const schema of [editorialArticleSchema, editorialEditResultSchema, editorialTranslateResultSchema, editorialReviewResultSchema]) {
-      const jsonSchema = z.toJSONSchema(schema) as { required?: string[]; additionalProperties?: boolean; properties?: Record<string, unknown> };
-      expect(jsonSchema.additionalProperties).toBe(false);
-      expect(Array.isArray(jsonSchema.required)).toBe(true);
-      expect(jsonSchema.required?.length).toBe(Object.keys(jsonSchema.properties || {}).length);
+      assertStrict(z.toJSONSchema(schema));
     }
   });
 });
