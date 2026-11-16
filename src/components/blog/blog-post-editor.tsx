@@ -8,7 +8,11 @@ import type { BlogPostStatusValue } from "@/lib/blog/constants";
 import { createBlogPostAction, deleteBlogPostAction, saveBlogPostAction, transitionBlogPostAction, type BlogActionResult } from "@/lib/blog/actions";
 import { RichTextEditor } from "./rich-text-editor";
 import { normalizeRichTextSource } from "@/lib/blog/rich-text";
+import dynamic from "next/dynamic";
 import { BlogMediaUploader } from "./blog-media-uploader";
+import type { EditorialArticlePackage } from "@/lib/ai/editorial-types";
+
+const EditorialAiAssistant = dynamic(() => import("./editorial-ai-assistant").then((module) => module.EditorialAiAssistant), { ssr: false });
 
 type EditorPost = {
   id: string;
@@ -113,6 +117,7 @@ export function BlogPostEditor({
   previewBase,
   translationCandidates = [],
   linkedTranslation = null,
+  canUseEditorialAi = false,
 }: {
   locale: BlogLocale;
   post: EditorPost;
@@ -125,6 +130,7 @@ export function BlogPostEditor({
   previewBase?: string;
   translationCandidates?: TranslationCandidate[];
   linkedTranslation?: LinkedTranslation | null;
+  canUseEditorialAi?: boolean;
 }) {
   const [form, setForm] = useState(post);
   const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null);
@@ -282,6 +288,31 @@ export function BlogPostEditor({
     });
   }
 
+  function handleAiInsert(article: EditorialArticlePackage, image?: { url: string; publicId: string; altText: string }) {
+    setForm((current) => ({
+      ...current,
+      title: article.title,
+      slug: article.suggestedSlug || current.slug,
+      excerpt: article.excerpt,
+      content: article.articleContent,
+      seoTitle: article.seoTitle,
+      seoDescription: article.metaDescription,
+      focusKeyword: article.focusKeyword,
+      ctaTitle: current.ctaTitle || "Need help with your digital growth?",
+      ctaDescription: article.suggestedCallToAction,
+      ...(image
+        ? {
+            featuredImageUrl: image.url,
+            featuredImagePublicId: image.publicId,
+            featuredImageAlt: image.altText,
+            ogImageUrl: image.url,
+          }
+        : {}),
+    }));
+    setSaveState("unsaved");
+    setStatusMessage({ kind: "success", text: "AI content inserted into the editor. Review before publishing." });
+  }
+
   const inputClass = "form-input";
   return (
     <form ref={formRef} onSubmit={saveDraft} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
@@ -289,6 +320,12 @@ export function BlogPostEditor({
       <input type="hidden" name="locale" value={form.locale} />
       <input type="hidden" name="version" value={form.version} />
       <div className="grid gap-6">
+        {canUseEditorialAi ? (
+          <section className="premium-card grid gap-4 p-5 sm:p-7" aria-labelledby="editor-ai-title">
+            <div><p className="eyebrow">AI assistant</p><h2 id="editor-ai-title" className="mt-2 text-2xl font-semibold text-primary">Generate with AI</h2><p className="mt-2 text-sm text-muted">SuperAdmin-only editorial assistant. Generated content is previewed before insertion.</p></div>
+            <EditorialAiAssistant locale={locale} disabled={!editable} hasExistingContent={normalizeRichTextSource(form.content).replace(/<[^>]+>/g, "").trim().length > 0} onInsert={handleAiInsert} />
+          </section>
+        ) : null}
         <section className="premium-card grid gap-5 p-5 sm:p-7" aria-labelledby="editor-basics-title">
           <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="eyebrow">Article editor</p><h2 id="editor-basics-title" className="mt-2 text-2xl font-semibold text-primary">Story foundations</h2></div><span className="status-pill">{form.status.replaceAll("_", " ")}</span></div>
           <label className="form-label">Title<input id="editor-title" className={inputClass} name="title" value={form.title} onChange={(event) => update("title", event.target.value)} disabled={!editable} required minLength={5} maxLength={180} /></label>
