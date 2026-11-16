@@ -110,7 +110,7 @@ export async function loadOutreachDashboard(db: Db) {
     }),
     db.outreachProspect.count({ where: { discoveredAt: { gte: today } } }),
     db.outreachProspect.count({ where: { status: "QUALIFIED" } }),
-    db.outreachMessage.count({ where: { status: "PENDING_APPROVAL" } }),
+    db.outreachMessage.count({ where: reviewQueueWhere() }),
     db.outreachMessage.count({ where: { sentAt: { gte: today } } }),
     db.outreachMessage.count({ where: { sentAt: { not: null } } }),
     db.outreachProspect.count({ where: { status: "REPLIED" } }),
@@ -123,8 +123,7 @@ export async function loadOutreachDashboard(db: Db) {
     db.outreachProspect.count({ where: { status: "APPROVED" } }),
     db.outreachProspect.count({ where: { outreachReadinessScore: { gte: 70 } } }),
     db.outreachProspect.count({ where: { qualificationStatus: "REVIEW" } }),
-    countQueuedJobs(now),
-    db.outreachDailyStats.findMany({
+    countQueuedJobs(now),    db.outreachDailyStats.findMany({
       where: { date: { gte: thirtyDaysAgo } },
       orderBy: { date: "asc" },
       take: 500,
@@ -434,37 +433,117 @@ export async function loadOutreachProspects(db: Db, filters: ProspectListFilters
 }
 
 export async function loadOutreachProspectDetail(db: Db, prospectId: string) {
-  const prospect = await db.outreachProspect.findUnique({
-    where: { id: prospectId },
-    include: {
-      campaign: { select: { id: true, name: true, timezone: true, sendingWindowStart: true, sendingWindowEnd: true, dailySendLimit: true, maxFollowUps: true, requireApproval: true, mode: true, status: true } },
-      assessments: { orderBy: { createdAt: "desc" }, take: 10 },
-      messages: { orderBy: { createdAt: "desc" }, take: 30 },
-      events: { orderBy: { createdAt: "desc" }, take: 60 },
-      meetings: { orderBy: { scheduledAt: "desc" }, take: 10 },
-    },
-  });
+  // Load the base row first. Optional relations are fetched separately so a
+  // failure in one panel (or a missing related row) cannot turn an existing
+  // prospect into a "not found" page.
+  const prospect = await db.outreachProspect.findUnique({ where: { id: prospectId } });
   if (!prospect) return null;
 
-  const suppression = prospect.publicEmail
-    ? await db.outreachSuppression.findMany({
-        where: { OR: [{ email: prospect.publicEmail }, { domain: prospect.publicEmail.split("@")[1] }] },
-        select: { id: true, email: true, domain: true, reason: true, createdAt: true },
+  const [campaign, assessments, messages, events, meetings] = await Promise.all([
+    db.outreachCampaign
+      .findUnique({
+        where: { id: prospect.campaignId },
+        select: {
+          id: true,
+          name: true,
+          timezone: true,
+          sendingWindowStart: true,
+          sendingWindowEnd: true,
+          dailySendLimit: true,
+          maxFollowUps: true,
+          requireApproval: true,
+          mode: true,
+          status: true,
+        },
       })
+      .catch(() => null),
+    db.outreachAssessment.findMany({ where: { prospectId }, orderBy: { createdAt: "desc" }, take: 10 }).catch(() => []),
+    db.outreachMessage.findMany({ where: { prospectId }, orderBy: { createdAt: "desc" }, take: 30 }).catch(() => []),
+    db.outreachEvent.findMany({ where: { prospectId }, orderBy: { createdAt: "desc" }, take: 60 }).catch(() => []),
+    db.outreachMeeting.findMany({ where: { prospectId }, orderBy: { scheduledAt: "desc" }, take: 10 }).catch(() => []),
+  ]);
+
+  const emailDomain =
+    prospect.publicEmail && prospect.publicEmail.includes("@")
+      ? prospect.publicEmail.split("@")[1]
+      : null;
+  const suppression = prospect.publicEmail
+    ? await db.outreachSuppression
+        .findMany({
+          where: {
+            OR: [
+              { email: prospect.publicEmail },
+              ...(emailDomain ? [{ domain: emailDomain }] : []),
+            ],
+          },
+          select: { id: true, email: true, domain: true, reason: true, createdAt: true },
+        })
+        .catch(() => [])
     : [];
 
-  return { prospect, suppression };
+  return {
+    prospect: { ...prospect, campaign, assessments, messages, events, meetings },
+    suppression,
+  };
 }
 
-export async function loadReviewQueue(db: Db, campaignId?: string, page = 1) {
-  const pageSize = 20;
-  // Typed as OutreachMessageWhereInput: this query runs against OutreachMessage,
-  // so filtering the related prospect here is correct.
+const ACTIONABLE_PROSPECT_STATUSES = ["QUALIFIED", "APPROVED"] as const;
+
+/**
+ * Messages the review page can actually act on: pending approval and attached
+ * to a prospect that is still qualified/approved. Every count shown in the
+ * navigation and on the page uses this exact filter.
+ */
+export function reviewQueueWhere(campaignId?: string): Prisma.OutreachMessageWhereInput {
   const where: Prisma.OutreachMessageWhereInput = {
     status: "PENDING_APPROVAL",
-    prospect: { status: { in: ["QUALIFIED", "APPROVED"] } },
+    prospect: { status: { in: [...ACTIONABLE_PROSPECT_STATUSES] } },
   };
   if (campaignId) where.campaignId = campaignId;
+  return where;
+}
+
+/**
+ * Pending drafts excluded from the actionable queue because their prospect is
+ * no longer QUALIFIED/APPROVED (for example, it was disqualified or paused
+ * after the draft was generated). They remain visible in the hidden view so no
+ * generated message silently disappears.
+ */
+export function hiddenReviewQueueWhere(campaignId?: string): Prisma.OutreachMessageWhereInput {
+  const where: Prisma.OutreachMessageWhereInput = {
+    status: "PENDING_APPROVAL",
+    NOT: { prospect: { status: { in: [...ACTIONABLE_PROSPECT_STATUSES] } } },
+  };
+  if (campaignId) where.campaignId = campaignId;
+  return where;
+}
+
+export type ReviewQueueScope = "actionable" | "hidden" | "all";
+
+export async function loadReviewQueueCounts(db: Db, campaignId?: string) {
+  const [actionable, hidden, all] = await Promise.all([
+    db.outreachMessage.count({ where: reviewQueueWhere(campaignId) }),
+    db.outreachMessage.count({ where: hiddenReviewQueueWhere(campaignId) }),
+    db.outreachMessage.count({
+      where: { status: "PENDING_APPROVAL", ...(campaignId ? { campaignId } : {}) },
+    }),
+  ]);
+  return { actionable, hidden, all };
+}
+
+export async function loadReviewQueue(
+  db: Db,
+  campaignId?: string,
+  page = 1,
+  scope: ReviewQueueScope = "actionable"
+) {
+  const pageSize = 20;
+  const where: Prisma.OutreachMessageWhereInput =
+    scope === "hidden"
+      ? hiddenReviewQueueWhere(campaignId)
+      : scope === "all"
+        ? { status: "PENDING_APPROVAL", ...(campaignId ? { campaignId } : {}) }
+        : reviewQueueWhere(campaignId);
 
   const [rows, total] = await Promise.all([
     db.outreachMessage.findMany({
@@ -493,7 +572,7 @@ export async function loadReviewQueue(db: Db, campaignId?: string, page = 1) {
     db.outreachMessage.count({ where }),
   ]);
 
-  return { rows, total, page: Math.max(1, page), pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
+  return { rows, total, page: Math.max(1, page), pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)), scope };
 }
 
 /**

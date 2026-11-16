@@ -34,6 +34,7 @@ export async function loadCrmWorkspace(prisma: PrismaClient): Promise<CrmWorkspa
       },
     }),
     prisma.outreachProspect.findMany({
+      where: { crmGraduatedAt: null },
       orderBy: [{ updatedAt: "desc" }],
       take: 250,
       select: {
@@ -43,6 +44,15 @@ export async function loadCrmWorkspace(prisma: PrismaClient): Promise<CrmWorkspa
         publicPhone: true,
         contactName: true,
         contactRole: true,
+        websiteUrl: true,
+        city: true,
+        country: true,
+        industry: true,
+        status: true,
+        qualificationStatus: true,
+        hasContactInfo: true,
+        crmImportedAt: true,
+        updatedAt: true,
       },
     }),
   ]);
@@ -114,9 +124,30 @@ export async function loadCrmWorkspace(prisma: PrismaClient): Promise<CrmWorkspa
     return left.name.localeCompare(right.name);
   });
 
+  const crmProspects = outreachProspects
+    .filter((prospect) => prospect.crmImportedAt !== null)
+    .map((prospect) => ({
+      id: prospect.id,
+      businessName: prospect.businessName,
+      contactName: prospect.contactName,
+      contactRole: prospect.contactRole,
+      publicEmail: prospect.publicEmail,
+      publicPhone: prospect.publicPhone,
+      websiteUrl: prospect.websiteUrl,
+      city: prospect.city,
+      country: prospect.country,
+      industry: prospect.industry,
+      status: prospect.status,
+      qualificationStatus: prospect.qualificationStatus,
+      hasContactInfo: prospect.hasContactInfo,
+      crmImportedAt: prospect.crmImportedAt!.toISOString(),
+      updatedAt: prospect.updatedAt.toISOString(),
+    }));
+
   return {
     contacts,
     clients: clientRows,
+    crmProspects,
     outreachProspects: outreachProspects.map((prospect) => ({
       id: prospect.id,
       businessName: prospect.businessName,
@@ -124,11 +155,13 @@ export async function loadCrmWorkspace(prisma: PrismaClient): Promise<CrmWorkspa
       publicPhone: prospect.publicPhone,
       contactName: prospect.contactName,
       contactRole: prospect.contactRole,
+      crmImportedAt: prospect.crmImportedAt?.toISOString() ?? null,
     })),
     stats: {
       totalContacts: contacts.length,
       contactsWithEmail: contacts.filter((contact) => Boolean(contact.email)).length,
       totalClients: clientRows.length,
+      totalCrmProspects: crmProspects.length,
       threads: contacts.filter((contact) => contact.conversationId).length,
     },
   };

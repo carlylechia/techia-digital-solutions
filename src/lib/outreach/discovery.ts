@@ -295,11 +295,21 @@ export async function runDiscovery(campaignId: string, now = new Date()): Promis
       continue;
     }
 
+    const hasWebsite = Boolean(business.websiteUrl);
+    const hasPhone = Boolean(business.phone);
+
     const prospect = await prisma.outreachProspect
       .create({
         data: {
           campaignId,
-          status: "DISCOVERED",
+          // A business with neither a website nor a contact channel cannot be
+          // contacted yet. Keep it for later research, but disqualify it by
+          // default instead of letting it enter the outreach queue.
+          status: !hasWebsite && !hasPhone ? "DISQUALIFIED" : "DISCOVERED",
+          disqualificationReason:
+            !hasWebsite && !hasPhone
+              ? "No website or contact information found yet. Kept for later research."
+              : null,
           businessName: business.name.slice(0, 200),
           country: business.country ?? campaign.country,
           region: business.region,
@@ -318,7 +328,7 @@ export async function runDiscovery(campaignId: string, now = new Date()): Promis
           googlePlaceId: business.provider === "GOOGLE_PLACES" ? business.providerPlaceId : null,
           googleMapsUri: business.googleMapsUrl,
           publicPhone: business.phone,
-          hasContactInfo: Boolean(business.phone),
+          hasContactInfo: hasPhone,
           source: business.provider === "GOOGLE_PLACES" ? "google_places" : "openstreetmap",
           discoveredAt: now,
         },

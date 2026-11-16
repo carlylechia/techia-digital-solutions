@@ -1519,6 +1519,14 @@ model OutreachProspect {
   disqualificationReason  String? @db.Text
   recommendedNextAction   String?
 
+  // ─── CRM workspace state ────────────────────────────────────────────────
+  // A prospect can be added to the CRM without becoming a Client. It only
+  // leaves the CRM prospect list when an administrator graduates it, which
+  // creates the Client/contact records and records the graduation here.
+  crmImportedAt      DateTime?
+  crmGraduatedAt     DateTime?
+  crmGraduatedClientId String?
+
   // Follow-up state machine checkpoint. Automation stops whenever this is set.
   automationStoppedReason String?
   emailsSentCount         Int     @default(0)

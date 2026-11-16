@@ -14,8 +14,10 @@ const localeSchema = z.enum(["en", "fr"]);
 export type CrmFormState = {
   success: boolean;
   error?: string;
+  message?: string;
   contactId?: string;
   clientId?: string;
+  prospectId?: string;
   conversationId?: string;
 } | null;
 
@@ -118,14 +120,15 @@ export async function createCrmContactAction(_prevState: CrmFormState, formData:
       notes: value(formData, "notes"),
     });
 
-    // An outreach prospect chosen from the "sources" dropdown is imported into the
-    // CRM on demand rather than being treated as an existing client row.
+    // An outreach prospect chosen from the "sources" dropdown is added to the
+    // CRM prospect list. It deliberately does not create a Client or a contact:
+    // the administrator graduates it explicitly when it becomes a client.
     if (data.clientId?.startsWith("outreach:")) {
       const prospectId = data.clientId.slice("outreach:".length);
       const imported = await importOutreachProspectToCrmAction({ prospectId, locale: data.locale });
-      if (!imported?.success) throw new Error(imported?.error || "Failed to import the outreach prospect.");
+      if (!imported?.success) throw new Error(imported?.error || "Failed to add the outreach prospect to the CRM.");
       revalidateCrm(data.locale);
-      return { success: true, contactId: imported.contactId, clientId: imported.clientId };
+      return { success: true, prospectId: imported.prospectId, message: imported.message };
     }
 
     const headlineSelect = { id: true, name: true, contactName: true, contactRole: true, email: true, phone: true } as const;
@@ -468,7 +471,131 @@ export async function draftAdminEmailAction(input: {
   }
 }
 
-// ── Import an outreach prospect into the CRM ──────────────────────────────────
+// ── Outreach prospects in the CRM ────────────────────────────────────────────
+
+type ProspectForGraduation = {
+  id: string;
+  businessName: string;
+  industry: string | null;
+  city: string | null;
+  country: string | null;
+  websiteUrl: string | null;
+  publicEmail: string | null;
+  publicPhone: string | null;
+  contactName: string | null;
+  contactRole: string | null;
+  aiSummary: string | null;
+  primaryOpportunity: string | null;
+  qualificationReason: string | null;
+  messages: Array<{
+    type: string;
+    subject: string;
+    bodyText: string;
+    sentAt: Date | null;
+    createdAt: Date;
+  }>;
+};
+
+/**
+ * Creates the Client, primary ClientContact and CRM conversation for a
+ * prospect. This is only called by an explicit graduation action — importing a
+ * prospect into the CRM must never create a Client on its own.
+ */
+async function createClientFromProspect(
+  prisma: PrismaClient,
+  prospect: ProspectForGraduation,
+  locale: "en" | "fr"
+) {
+  let client = await prisma.client.findFirst({
+    where: { sourceRequestType: "outreach_prospect", sourceRequestId: prospect.id },
+  });
+
+  if (!client) {
+    const slug = await uniqueClientSlug(prisma, prospect.businessName);
+    client = await prisma.client.create({
+      data: {
+        name: sanitizeText(prospect.businessName),
+        slug,
+        status: "ONBOARDING",
+        industry: prospect.industry,
+        city: prospect.city,
+        country: prospect.country,
+        website: prospect.websiteUrl,
+        email: prospect.publicEmail,
+        phone: prospect.publicPhone,
+        contactName: prospect.contactName ? sanitizeText(prospect.contactName) : sanitizeText(prospect.businessName),
+        contactRole: prospect.contactRole ? sanitizeText(prospect.contactRole) : null,
+        preferredLocale: locale,
+        source: "outreach",
+        sourceRequestType: "outreach_prospect",
+        sourceRequestId: prospect.id,
+        notes: [prospect.aiSummary, prospect.primaryOpportunity, prospect.qualificationReason]
+          .filter(Boolean)
+          .join("\n\n")
+          .slice(0, 4000) || null,
+      },
+    });
+  }
+
+  let contact = await prisma.clientContact.findFirst({
+    where: {
+      clientId: client.id,
+      ...(prospect.publicEmail
+        ? { email: prospect.publicEmail }
+        : { name: sanitizeText(prospect.contactName || prospect.businessName) }),
+    },
+  });
+
+  if (!contact) {
+    const existingContacts = await prisma.clientContact.count({ where: { clientId: client.id } });
+    contact = await prisma.clientContact.create({
+      data: {
+        clientId: client.id,
+        name: sanitizeText(prospect.contactName || prospect.businessName),
+        role: prospect.contactRole ? sanitizeText(prospect.contactRole) : null,
+        email: prospect.publicEmail,
+        phone: prospect.publicPhone,
+        notes: prospect.qualificationReason ? sanitizeText(prospect.qualificationReason) : null,
+        isPrimary: existingContacts === 0,
+      },
+    });
+  }
+
+  const conversation =
+    (await prisma.conversation.findFirst({ where: { requestType: "crm", requestId: contact.id } })) ??
+    (await prisma.conversation.create({
+      data: {
+        requestType: "crm",
+        requestId: contact.id,
+        clientId: client.id,
+        subject: `Conversation with ${prospect.businessName}`,
+      },
+    }));
+
+  const existingMessageCount = await prisma.conversationMessage.count({ where: { conversationId: conversation.id } });
+  if (existingMessageCount === 0 && prospect.messages.length > 0) {
+    const from = fromAddress();
+    const toEmail = prospect.publicEmail || "prospect";
+    for (const message of prospect.messages) {
+      const isReply = message.type === "REPLY";
+      await prisma.conversationMessage.create({
+        data: {
+          conversationId: conversation.id,
+          channel: "email",
+          direction: isReply ? "inbound" : "outbound",
+          from: isReply ? prospect.publicEmail || "prospect" : from,
+          to: isReply ? from : toEmail,
+          subject: message.subject,
+          body: message.bodyText,
+          sentAt: message.sentAt ?? message.createdAt,
+        },
+      });
+    }
+    await prisma.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } }).catch(() => undefined);
+  }
+
+  return { client, contact };
+}
 
 export async function importOutreachProspectToCrm(input: {
   prospectId: string;
@@ -477,6 +604,11 @@ export async function importOutreachProspectToCrm(input: {
   return importOutreachProspectToCrmAction(input);
 }
 
+/**
+ * Adds an outreach prospect to the CRM prospect list. No Client, contact or
+ * conversation is created here; that only happens when the administrator
+ * explicitly graduates the prospect.
+ */
 export async function importOutreachProspectToCrmAction(input: {
   prospectId: string;
   locale: "en" | "fr";
@@ -490,113 +622,103 @@ export async function importOutreachProspectToCrmAction(input: {
 
     const prospect = await prisma.outreachProspect.findUnique({
       where: { id: prospectId },
-      include: {
-        messages: { orderBy: { createdAt: "asc" } },
-        campaign: { select: { id: true, name: true } },
-      },
+      select: { id: true, businessName: true, crmImportedAt: true, crmGraduatedAt: true },
     });
     if (!prospect) throw new Error("The outreach prospect could not be found.");
 
-    let client = await prisma.client.findFirst({
-      where: { sourceRequestType: "outreach_prospect", sourceRequestId: prospectId },
-    });
+    if (prospect.crmGraduatedAt) {
+      return {
+        success: true,
+        prospectId,
+        message: "This prospect has already been graduated to a client.",
+      };
+    }
 
-    if (!client) {
-      const slug = await uniqueClientSlug(prisma, prospect.businessName);
-      client = await prisma.client.create({
-        data: {
-          name: sanitizeText(prospect.businessName),
-          slug,
-          status: "PROSPECT",
-          industry: prospect.industry,
-          city: prospect.city,
-          country: prospect.country,
-          website: prospect.websiteUrl,
-          email: prospect.publicEmail,
-          phone: prospect.publicPhone,
-          contactName: prospect.contactName ? sanitizeText(prospect.contactName) : sanitizeText(prospect.businessName),
-          contactRole: prospect.contactRole ? sanitizeText(prospect.contactRole) : null,
-          preferredLocale: locale,
-          source: "outreach",
-          sourceRequestType: "outreach_prospect",
-          sourceRequestId: prospectId,
-          notes: [prospect.aiSummary, prospect.primaryOpportunity, prospect.qualificationReason]
-            .filter(Boolean)
-            .join("\n\n")
-            .slice(0, 4000) || null,
-        },
+    if (!prospect.crmImportedAt) {
+      await prisma.outreachProspect.update({
+        where: { id: prospectId },
+        data: { crmImportedAt: new Date() },
+      });
+
+      await writeAuditLog({
+        actorId: actor.id,
+        action: "crm.outreach_prospect_added",
+        entityType: "OutreachProspect",
+        entityId: prospectId,
+        metadata: { businessName: prospect.businessName },
       });
     }
 
-    let contact = await prisma.clientContact.findFirst({
-      where: {
-        clientId: client.id,
-        ...(prospect.publicEmail ? { email: prospect.publicEmail } : {}),
+    revalidateCrm(locale);
+    revalidatePath(`/${locale}/admin/outreach/prospects/${prospectId}`);
+    return {
+      success: true,
+      prospectId,
+      message: prospect.crmImportedAt ? "Already in the CRM prospect list." : "Added to the CRM prospect list.",
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to add the prospect to the CRM.";
+    console.error("[crm] importOutreachProspectToCrmAction failed", message);
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Explicit one-click conversion: creates the Client, primary contact and CRM
+ * conversation, and records the graduation on the prospect.
+ */
+export async function graduateOutreachProspectToClientAction(input: {
+  prospectId: string;
+  locale: "en" | "fr";
+}): Promise<CrmFormState> {
+  try {
+    const actor = await requireAdmin("requests.manage");
+    const prisma = requireDatabase();
+    const locale = localeSchema.parse(input.locale);
+    const prospectId = String(input.prospectId ?? "").slice(0, 64);
+    if (!prospectId) throw new Error("Invalid prospect.");
+
+    const prospect = await prisma.outreachProspect.findUnique({
+      where: { id: prospectId },
+      include: { messages: { orderBy: { createdAt: "asc" } } },
+    });
+    if (!prospect) throw new Error("The outreach prospect could not be found.");
+
+    const { client, contact } = await createClientFromProspect(prisma, prospect, locale);
+
+    await prisma.outreachProspect.update({
+      where: { id: prospectId },
+      data: {
+        crmImportedAt: prospect.crmImportedAt ?? new Date(),
+        crmGraduatedAt: new Date(),
+        crmGraduatedClientId: client.id,
       },
     });
 
-    if (!contact) {
-      const existingContacts = await prisma.clientContact.count({ where: { clientId: client.id } });
-      contact = await prisma.clientContact.create({
-        data: {
-          clientId: client.id,
-          name: sanitizeText(prospect.contactName || prospect.businessName),
-          role: prospect.contactRole ? sanitizeText(prospect.contactRole) : null,
-          email: prospect.publicEmail,
-          phone: prospect.publicPhone,
-          notes: prospect.qualificationReason ? sanitizeText(prospect.qualificationReason) : null,
-          isPrimary: existingContacts === 0,
-        },
-      });
-    }
-
-    const conversation =
-      (await prisma.conversation.findFirst({ where: { requestType: "crm", requestId: contact.id } })) ??
-      (await prisma.conversation.create({
-        data: {
-          requestType: "crm",
-          requestId: contact.id,
-          clientId: client.id,
-          subject: `Conversation with ${prospect.businessName}`,
-        },
-      }));
-
-    const existingMessageCount = await prisma.conversationMessage.count({ where: { conversationId: conversation.id } });
-    if (existingMessageCount === 0 && prospect.messages.length > 0) {
-      const from = fromAddress();
-      const toEmail = prospect.publicEmail || "prospect";
-      for (const message of prospect.messages) {
-        const isReply = message.type === "REPLY";
-        await prisma.conversationMessage.create({
-          data: {
-            conversationId: conversation.id,
-            channel: "email",
-            direction: isReply ? "inbound" : "outbound",
-            from: isReply ? prospect.publicEmail || "prospect" : from,
-            to: isReply ? from : toEmail,
-            subject: message.subject,
-            body: message.bodyText,
-            sentAt: message.sentAt ?? message.createdAt,
-          },
-        });
-      }
-      await prisma.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } }).catch(() => undefined);
-    }
-
     await writeAuditLog({
       actorId: actor.id,
-      action: "crm.outreach_prospect_imported",
+      action: "crm.outreach_prospect_graduated",
       entityType: "Client",
       entityId: client.id,
-      metadata: { prospectId, contactId: contact.id, importedMessages: prospect.messages.length },
+      metadata: {
+        prospectId,
+        contactId: contact.id,
+        importedMessages: prospect.messages.length,
+      },
     });
 
     revalidateCrm(locale);
     revalidatePath(`/${locale}/admin/outreach/prospects/${prospectId}`);
-    return { success: true, contactId: contact.id, clientId: client.id };
+    return {
+      success: true,
+      contactId: contact.id,
+      clientId: client.id,
+      prospectId,
+      message: "Graduated to a client.",
+    };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to import the prospect.";
-    console.error("[crm] importOutreachProspectToCrmAction failed", message);
+    const message = error instanceof Error ? error.message : "Failed to graduate the prospect.";
+    console.error("[crm] graduateOutreachProspectToClientAction failed", message);
     return { success: false, error: message };
   }
 }

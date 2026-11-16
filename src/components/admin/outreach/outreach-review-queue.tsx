@@ -36,7 +36,15 @@ export type ReviewItem = {
   };
 };
 
-export function OutreachReviewQueue({ items, canManage }: { items: ReviewItem[]; canManage: boolean }) {
+export function OutreachReviewQueue({
+  items,
+  canManage,
+  readOnly = false,
+}: {
+  items: ReviewItem[];
+  canManage: boolean;
+  readOnly?: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<Record<string, string>>({});
@@ -62,10 +70,13 @@ export function OutreachReviewQueue({ items, canManage }: { items: ReviewItem[];
   if (items.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border bg-background p-6 text-center">
-        <p className="text-sm font-semibold text-primary">Nothing is waiting for approval</p>
+        <p className="text-sm font-semibold text-primary">
+          {readOnly ? "No hidden drafts" : "Nothing is waiting for approval"}
+        </p>
         <p className="mt-2 text-sm text-muted">
-          When the pipeline generates a message for a qualified prospect it will appear here for a person to approve, edit
-          or reject.
+          {readOnly
+            ? "Every generated draft currently belongs to a prospect that is still reviewable. Hidden drafts will appear here if a prospect is disqualified or paused after a message was generated."
+            : "When the pipeline generates a message for a qualified prospect it will appear here for a person to approve, edit or reject."}
         </p>
       </div>
     );
@@ -129,7 +140,7 @@ export function OutreachReviewQueue({ items, canManage }: { items: ReviewItem[];
                 <input
                   className={outreachInputClass}
                   value={subject}
-                  disabled={!canManage || pending}
+                  disabled={readOnly || !canManage || pending}
                   maxLength={180}
                   onChange={(event) =>
                     setEditing((current) => ({
@@ -143,7 +154,7 @@ export function OutreachReviewQueue({ items, canManage }: { items: ReviewItem[];
                 <textarea
                   className={`${outreachInputClass} min-h-44`}
                   value={bodyText}
-                  disabled={!canManage || pending}
+                  disabled={readOnly || !canManage || pending}
                   maxLength={4000}
                   onChange={(event) =>
                     setEditing((current) => ({
@@ -156,25 +167,34 @@ export function OutreachReviewQueue({ items, canManage }: { items: ReviewItem[];
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {dirty ? (
-                <OutreachButton
-                  type="button"
-                  tone="quiet"
-                  disabled={pending || !canManage}
-                  onClick={() => act(item.messageId, "EDIT", { subject, bodyText })}
-                >
-                  Save edits
-                </OutreachButton>
-              ) : null}
-              <OutreachButton type="button" tone="good" disabled={pending || !canManage} onClick={() => act(item.messageId, "APPROVE")}>
-                Approve and queue
-              </OutreachButton>
-              <OutreachButton type="button" tone="danger" disabled={pending || !canManage} onClick={() => act(item.messageId, "REJECT")}>
-                Reject
-              </OutreachButton>
-              <OutreachButton type="button" tone="warn" disabled={pending || !canManage} onClick={() => act(item.messageId, "PAUSE_PROSPECT")}>
-                Pause prospect
-              </OutreachButton>
+              {readOnly ? (
+                <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                  Read-only: this draft is hidden because the prospect is currently {item.prospect.status.replace(/_/g, " ")}.
+                  Open the prospect to requalify it before approving any message.
+                </p>
+              ) : (
+                <>
+                  {dirty ? (
+                    <OutreachButton
+                      type="button"
+                      tone="quiet"
+                      disabled={pending || !canManage}
+                      onClick={() => act(item.messageId, "EDIT", { subject, bodyText })}
+                    >
+                      Save edits
+                    </OutreachButton>
+                  ) : null}
+                  <OutreachButton type="button" tone="good" disabled={pending || !canManage} onClick={() => act(item.messageId, "APPROVE")}>
+                    Approve and queue
+                  </OutreachButton>
+                  <OutreachButton type="button" tone="danger" disabled={pending || !canManage} onClick={() => act(item.messageId, "REJECT")}>
+                    Reject
+                  </OutreachButton>
+                  <OutreachButton type="button" tone="warn" disabled={pending || !canManage} onClick={() => act(item.messageId, "PAUSE_PROSPECT")}>
+                    Pause prospect
+                  </OutreachButton>
+                </>
+              )}
             </div>
 
             {feedback[item.messageId] ? <p className="text-xs text-muted">{feedback[item.messageId]}</p> : null}

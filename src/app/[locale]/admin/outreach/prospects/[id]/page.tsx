@@ -130,7 +130,7 @@ export default async function OutreachProspectDetailPage({ params }: { params: P
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <OutreachPill tone={prospectStatusTone(prospect.status)}>{OUTREACH_STATUS_LABELS[prospect.status] ?? prospect.status}</OutreachPill>
-              <OutreachPill tone="quiet">{prospect.campaign.name}</OutreachPill>
+              <OutreachPill tone="quiet">{prospect.campaign?.name ?? "Unknown campaign"}</OutreachPill>
               {prospect.googlePlaceId ? <OutreachPill tone="quiet">Google place ID stored</OutreachPill> : null}
               {prospect.automationStoppedReason ? <OutreachPill tone="warn">Automation stopped: {prospect.automationStoppedReason}</OutreachPill> : null}
               {suppression.length > 0 ? <OutreachPill tone="danger">Suppressed</OutreachPill> : null}
@@ -194,7 +194,7 @@ export default async function OutreachProspectDetailPage({ params }: { params: P
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <OutreachStatCard label="Messages delivered" value={prospect.emailsSentCount} hint={`Max ${prospect.campaign.maxFollowUps + 1} per prospect`} />
+          <OutreachStatCard label="Messages delivered" value={prospect.emailsSentCount} hint={`Max ${(prospect.campaign?.maxFollowUps ?? 0) + 1} per prospect`} />
           <OutreachStatCard label="Last contacted" value={prospect.lastContactedAt ? formatDateTime(prospect.lastContactedAt) : "Never"} tone="quiet" />
           <OutreachStatCard label="Discovered" value={formatDateTime(prospect.discoveredAt)} tone="quiet" />
           <OutreachStatCard label="Public email" value={prospect.publicEmail ?? "None found"} tone={prospect.publicEmail ? "good" : "warn"} />
@@ -368,7 +368,12 @@ export default async function OutreachProspectDetailPage({ params }: { params: P
       <OutreachPanel>
         <h3 className="text-lg font-semibold">Actions</h3>
         <div className="mt-4 grid gap-4">
-          <ImportProspectToCrmButton prospectId={prospect.id} locale={locale} />
+          <ImportProspectToCrmButton
+            prospectId={prospect.id}
+            locale={locale}
+            alreadyImported={Boolean(prospect.crmImportedAt)}
+            graduated={Boolean(prospect.crmGraduatedAt)}
+          />
           <OutreachProspectActions
             prospectId={prospect.id}
             currentStatus={prospect.status}

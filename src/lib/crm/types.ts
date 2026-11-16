@@ -46,9 +46,29 @@ export type CrmClient = {
   contactCount: number;
 };
 
+/** An outreach prospect that was added to the CRM but is not a Client yet. */
+export type CrmProspect = {
+  id: string;
+  businessName: string;
+  contactName: string | null;
+  contactRole: string | null;
+  publicEmail: string | null;
+  publicPhone: string | null;
+  websiteUrl: string | null;
+  city: string | null;
+  country: string | null;
+  industry: string | null;
+  status: string;
+  qualificationStatus: string | null;
+  hasContactInfo: boolean;
+  crmImportedAt: string;
+  updatedAt: string;
+};
+
 export type CrmWorkspaceData = {
   contacts: CrmContact[];
   clients: CrmClient[];
+  crmProspects: CrmProspect[];
   outreachProspects: Array<{
     id: string;
     businessName: string;
@@ -56,11 +76,13 @@ export type CrmWorkspaceData = {
     publicPhone: string | null;
     contactName: string | null;
     contactRole: string | null;
+    crmImportedAt: string | null;
   }>;
   stats: {
     totalContacts: number;
     contactsWithEmail: number;
     totalClients: number;
+    totalCrmProspects: number;
     threads: number;
   };
 };

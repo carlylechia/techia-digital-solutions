@@ -26,6 +26,7 @@ import type { Locale } from "@/content/site";
 import { cn } from "@/lib/utils";
 import type { CrmContact, CrmWorkspaceData } from "@/lib/crm/types";
 import { AiEmailAssistant } from "@/components/admin/ai-email-assistant";
+import { CrmProspectList } from "@/components/admin/crm/crm-prospect-list";
 import { OutreachPanel, OutreachPill, OutreachStatCard } from "@/components/admin/outreach/outreach-ui";
 
 function formatDateTime(value: string | null) {
@@ -142,6 +143,7 @@ export function CrmWorkspace({ locale, data }: { locale: Locale; data: CrmWorksp
     () => data.contacts.find((contact) => contact.id === selectedId) ?? data.contacts[0] ?? null,
     [data.contacts, selectedId]
   );
+  const addingOutreachProspect = addClientChoice.startsWith("outreach:");
 
   const [sendState, sendAction, sendPending] = useActionState<CrmFormState, FormData>(
     async (previous, formData) => {
@@ -191,12 +193,15 @@ export function CrmWorkspace({ locale, data }: { locale: Locale; data: CrmWorksp
 
   return (
     <div className="grid gap-5">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <OutreachStatCard label="Contacts" value={data.stats.totalContacts} />
         <OutreachStatCard label="With email" value={data.stats.contactsWithEmail} tone="good" />
         <OutreachStatCard label="Clients" value={data.stats.totalClients} />
+        <OutreachStatCard label="CRM prospects" value={data.stats.totalCrmProspects} tone="warn" hint="Not clients yet" />
         <OutreachStatCard label="Open threads" value={data.stats.threads} hint="Conversations with at least one message" />
       </div>
+
+      <CrmProspectList prospects={data.crmProspects} locale={locale} />
 
       {showAdd ? (
         <OutreachPanel>
@@ -231,7 +236,7 @@ export function CrmWorkspace({ locale, data }: { locale: Locale; data: CrmWorksp
                   ))}
                   {data.outreachProspects?.map((prospect) => (
                     <option key={`outreach:${prospect.id}`} value={`outreach:${prospect.id}`}>
-                      {prospect.businessName} (outreach prospect)
+                      {prospect.businessName} (outreach prospect{prospect.crmImportedAt ? " · in CRM" : ""})
                     </option>
                   ))}
                 </select>
@@ -240,38 +245,47 @@ export function CrmWorkspace({ locale, data }: { locale: Locale; data: CrmWorksp
                 <Field label="New client name" hint="Leave blank to use the contact name.">
                   <input name="clientName" className={inputClass} placeholder="Company or client name" />
                 </Field>
+              ) : addingOutreachProspect ? (
+                <p className="self-end rounded-lg border border-accent/25 bg-accent/10 px-3 py-2 text-xs text-muted">
+                  This adds the business to the CRM prospect list without creating a client. You can graduate it from the
+                  CRM prospects panel.
+                </p>
               ) : null}
             </div>
 
-            {!addClientChoice ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Client email">
-                  <input name="clientEmail" type="email" className={inputClass} placeholder="hello@company.com" />
+            {!addingOutreachProspect ? (
+              <>
+                {!addClientChoice ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Client email">
+                      <input name="clientEmail" type="email" className={inputClass} placeholder="hello@company.com" />
+                    </Field>
+                    <Field label="Client phone">
+                      <input name="clientPhone" className={inputClass} placeholder="+237 ..." />
+                    </Field>
+                  </div>
+                ) : null}
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Contact name">
+                    <input name="contactName" required className={inputClass} placeholder="Full name" />
+                  </Field>
+                  <Field label="Role">
+                    <input name="contactRole" className={inputClass} placeholder="Owner, marketing lead..." />
+                  </Field>
+                  <Field label="Contact email" hint="Required to send email from the CRM.">
+                    <input name="contactEmail" type="email" className={inputClass} placeholder="name@company.com" />
+                  </Field>
+                  <Field label="Contact phone">
+                    <input name="contactPhone" className={inputClass} placeholder="+237 ..." />
+                  </Field>
+                </div>
+
+                <Field label="Notes">
+                  <textarea name="notes" rows={2} className={inputClass} placeholder="Context, preferences, how you met..." />
                 </Field>
-                <Field label="Client phone">
-                  <input name="clientPhone" className={inputClass} placeholder="+237 ..." />
-                </Field>
-              </div>
+              </>
             ) : null}
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Contact name">
-                <input name="contactName" required className={inputClass} placeholder="Full name" />
-              </Field>
-              <Field label="Role">
-                <input name="contactRole" className={inputClass} placeholder="Owner, marketing lead..." />
-              </Field>
-              <Field label="Contact email" hint="Required to send email from the CRM.">
-                <input name="contactEmail" type="email" className={inputClass} placeholder="name@company.com" />
-              </Field>
-              <Field label="Contact phone">
-                <input name="contactPhone" className={inputClass} placeholder="+237 ..." />
-              </Field>
-            </div>
-
-            <Field label="Notes">
-              <textarea name="notes" rows={2} className={inputClass} placeholder="Context, preferences, how you met..." />
-            </Field>
 
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -280,14 +294,18 @@ export function CrmWorkspace({ locale, data }: { locale: Locale; data: CrmWorksp
                 className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-[#001018] transition hover:opacity-90 disabled:opacity-60"
               >
                 {addPending ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-                Add contact
+                {addingOutreachProspect ? "Add prospect to CRM" : "Add contact"}
               </button>
               <button type="button" onClick={() => setShowAdd(false)} className="text-sm text-muted hover:text-primary">
                 Cancel
               </button>
             </div>
             {addState?.error ? <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">{addState.error}</p> : null}
-            {addState?.success ? <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">Contact added.</p> : null}
+            {addState?.success ? (
+              <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+                {addState.prospectId ? "Prospect added to the CRM. Graduate it when it becomes a client." : "Contact added."}
+              </p>
+            ) : null}
           </form>
         </OutreachPanel>
       ) : null}

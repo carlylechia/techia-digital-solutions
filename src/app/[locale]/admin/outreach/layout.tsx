@@ -6,6 +6,7 @@ import { AdminSectionBreadcrumbs } from "@/components/admin/admin-section-breadc
 import { isLocale } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
 import { getOutreachActor } from "@/lib/outreach/auth";
+import { reviewQueueWhere } from "@/lib/outreach/queries";
 import { OutreachNavLinks } from "@/components/admin/outreach/outreach-nav-links";
 
 /**
@@ -35,8 +36,11 @@ export default async function AdminOutreachLayout({
   if (!actor.canView && actor.roleLevel < 100) redirect(`/${locale}/admin`);
 
   const prisma = getPrisma();
+  // The badge must count exactly the messages the review page can act on.
+  // Hidden drafts (prospect no longer qualified) are exposed separately on the
+  // review page instead of inflating this number.
   const reviewCount = prisma
-    ? await prisma.outreachMessage.count({ where: { status: "PENDING_APPROVAL" } }).catch(() => 0)
+    ? await prisma.outreachMessage.count({ where: reviewQueueWhere() }).catch(() => 0)
     : 0;
 
   return (
