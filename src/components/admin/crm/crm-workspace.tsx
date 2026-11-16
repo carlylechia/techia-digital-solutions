@@ -4,7 +4,6 @@ import { useActionState, useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Building2,
-  CheckCircle2,
   Globe,
   Inbox,
   Loader2,
