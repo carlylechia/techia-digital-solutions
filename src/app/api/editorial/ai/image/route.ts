@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { assertSameOrigin, requireSuperAdmin, BlogAuthorizationError } from "@/lib/blog/auth";
-import { checkRateLimit, requestIp } from "@/lib/rate-limit";
+import { checkEditorialBurstLimit } from "@/lib/ai/editorial-usage";
 import { isEditorialImageEnabled } from "@/lib/ai/editorial-config";
 import { generateEditorialImage, EditorialAiError } from "@/lib/ai/editorial-image-service";
 import { editorialImageInputSchema } from "@/lib/ai/editorial-types";
@@ -10,8 +10,12 @@ export async function POST(request: Request) {
     assertSameOrigin(request);
     const actor = await requireSuperAdmin();
     if (!isEditorialImageEnabled()) return NextResponse.json({ ok: false, error: "Editorial image generation is disabled." }, { status: 503, headers: { "Cache-Control": "no-store" } });
-    const rate = checkRateLimit(`editorial-ai-image:${actor.id}:${requestIp(request.headers)}`, 10, 60_000);
-    if (!rate.ok) return NextResponse.json({ ok: false, error: "Too many requests. Try again shortly." }, { status: 429, headers: { "Retry-After": String(rate.retryAfter), "Cache-Control": "no-store" } });
+    try { await checkEditorialBurstLimit(actor.id, 10); } catch (rateError) {
+      if (rateError instanceof EditorialAiError) {
+        return NextResponse.json({ ok: false, error: rateError.message, category: rateError.category }, { status: 429, headers: { "Cache-Control": "no-store" } });
+      }
+      throw rateError;
+    }
     const json = await request.json().catch(() => null);
     const parsed = editorialImageInputSchema.safeParse(json);
     if (!parsed.success) return NextResponse.json({ ok: false, error: "Invalid image request.", issues: parsed.error.issues }, { status: 400, headers: { "Cache-Control": "no-store" } });
