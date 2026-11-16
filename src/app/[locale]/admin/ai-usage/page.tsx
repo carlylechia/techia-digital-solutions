@@ -113,7 +113,8 @@ export default async function AIUsagePage({
           _count: { id: true },
           where: { requestType: { in: editorialTypes }, createdAt: { gte: startOfMonth } },
         }),
-        prisma.aIUsage.count({ where: { costAvailable: false } }),
+        prisma.aIUsage.count({ where: { costAvailable: false, createdAt: { gte: startOfDay } } }),
+        prisma.aIUsage.count({ where: { costAvailable: false, createdAt: { gte: startOfMonth } } }),
         prisma.aIUsage.findMany({
           orderBy: { createdAt: "desc" },
           skip: (page - 1) * pageSize,
@@ -126,6 +127,8 @@ export default async function AIUsagePage({
             outputTokens: true,
             totalTokens: true,
             estimatedCost: true,
+            costAvailable: true,
+            status: true,
             requestType: true,
             createdAt: true,
           },
@@ -158,7 +161,7 @@ export default async function AIUsagePage({
     );
   }
 
-  const [todayStats, editorialTodayStats, monthStats, editorialMonthStats, unknownCostCount, recentRecords, total] = result.data;
+  const [todayStats, editorialTodayStats, monthStats, editorialMonthStats, unknownTodayCount, unknownMonthCount, recentRecords, total] = result.data;
 
   const totalPages = Math.ceil(total / pageSize);
   const baseHref = "/admin/ai-usage";
@@ -228,10 +231,10 @@ export default async function AIUsagePage({
           </div>
           <div className="rounded-2xl border border-border bg-surface p-5">
             <p className="text-xs font-medium uppercase tracking-wider text-muted">
-              Unknown-cost requests
+              Unknown-cost requests (month)
             </p>
             <p className="mt-2 text-3xl font-bold text-primary">
-              {unknownCostCount.toLocaleString()}
+              {unknownMonthCount.toLocaleString()}
             </p>
           </div>
         </div>
@@ -271,8 +274,8 @@ export default async function AIUsagePage({
                   <td className="px-4 py-3 text-muted">{rec.inputTokens}</td>
                   <td className="px-4 py-3 text-muted">{rec.outputTokens}</td>
                   <td className="px-4 py-3 font-medium text-primary">{rec.totalTokens}</td>
-                  <td className="px-4 py-3 text-muted text-xs">${(rec.estimatedCost ?? 0).toFixed(6)}</td>
-                  <td className="px-4 py-3 text-xs text-muted">{rec.requestType}</td>
+                  <td className="px-4 py-3 text-muted text-xs">{rec.costAvailable && rec.estimatedCost !== null ? `$${rec.estimatedCost.toFixed(6)}` : "Unknown"}</td>
+                  <td className="px-4 py-3 text-xs text-muted">{rec.requestType} · {rec.status}</td>
                   <td className="px-4 py-3 text-xs text-muted">
                     {rec.createdAt.toLocaleString()}
                   </td>
