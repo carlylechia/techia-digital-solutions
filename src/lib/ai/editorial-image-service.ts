@@ -42,6 +42,7 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
     imageCount: 1,
   });
 
+  let providerSucceeded = false;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), EDITORIAL_AI_CONFIG.imageTimeoutMs);
   let response: Response;
@@ -91,6 +92,7 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
   if (!isAllowedBlogImageMime(detected)) {
     throw new EditorialAiError("malformed_output", "The generated image format is not supported.");
   }
+  providerSucceeded = true;
 
   const filename = `editorial-ai-${Date.now()}.png`;
   const file = new File([new Uint8Array(buffer)], filename, { type: detected || "image/png" });
@@ -161,7 +163,20 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
     };
   } catch (error) {
     if (uploadedPublicId) await deleteFromCloudinary(uploadedPublicId).catch(() => undefined);
-    await failEditorialUsage(reservationId);
+    if (providerSucceeded) {
+      const estimatedCost = estimateEditorialImageCost(model, "1536x1024");
+      await finalizeEditorialUsage(reservationId, {
+        model,
+        inputTokens: 0,
+        outputTokens: 0,
+        estimatedCost,
+        costAvailable: estimatedCost !== null,
+        imageCount: 1,
+        status: "PROVIDER_SUCCEEDED_UPLOAD_FAILED",
+      });
+    } else {
+      await failEditorialUsage(reservationId);
+    }
     if (error instanceof EditorialAiError) throw error;
     throw new EditorialAiError("api", `Image upload failed: ${getErrorMessage(error)}`);
   }
