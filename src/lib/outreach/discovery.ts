@@ -318,6 +318,7 @@ export async function runDiscovery(campaignId: string, now = new Date()): Promis
           googlePlaceId: business.provider === "GOOGLE_PLACES" ? business.providerPlaceId : null,
           googleMapsUri: business.googleMapsUrl,
           publicPhone: business.phone,
+          hasContactInfo: Boolean(business.phone),
           source: business.provider === "GOOGLE_PLACES" ? "google_places" : "openstreetmap",
           discoveredAt: now,
         },

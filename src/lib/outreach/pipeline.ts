@@ -70,6 +70,8 @@ function emptyWebsiteSnapshot(errorCategory: string): WebsiteSnapshot {
     industryKeywords: [],
     contactPageUrl: null,
     publishedEmails: [],
+    publishedPhones: [],
+    socialUrls: [],
     robotsRespected: true,
     errorCategory,
     hasPropertyListings: false,
@@ -153,6 +155,8 @@ export async function runEnrichment(prospectId: string) {
       industryKeywords: [],
       contactPageUrl: null,
       publishedEmails: [],
+      publishedPhones: [],
+      socialUrls: [],
       robotsRespected: true,
       errorCategory: "no_website",
       hasPropertyListings: false,
@@ -181,7 +185,9 @@ export async function runEnrichment(prospectId: string) {
       contactPageUrl: snapshot?.contactPageUrl ?? prospect.contactPageUrl,
       // Only an address the business published on its own page is ever stored.
       publicEmail: publishedEmail,
-      publicPhone: place?.phone ?? prospect.publicPhone,
+      publicPhone: place?.phone ?? prospect.publicPhone ?? (snapshot?.publishedPhones?.[0] ?? null),
+      hasContactInfo:
+        Boolean(publishedEmail || place?.phone || prospect.publicPhone || (snapshot?.publishedPhones?.length ?? 0) > 0 || (snapshot?.socialUrls?.length ?? 0) > 0 || (snapshot?.socialPlatforms?.length ?? 0) > 0),
       industry: place?.primaryType ?? prospect.industry,
       country: place?.country ?? prospect.country,
       region: place?.region ?? prospect.region,
@@ -225,6 +231,35 @@ export async function runEnrichment(prospectId: string) {
     await recordEvent({ type: "DISQUALIFIED", campaignId: prospect.campaignId, prospectId, summary: score.disqualifiers[0] });
     await incrementDailyStat(prospect.campaignId, "disqualified", 1, now);
     return { skipped: "disqualified" as const, score: score.total };
+  }
+
+  const hasContactMethod =
+    Boolean(publishedEmail) ||
+    Boolean(place?.phone) ||
+    Boolean(prospect.publicPhone) ||
+    Boolean(snapshot?.publishedPhones?.length) ||
+    Boolean(snapshot?.socialUrls?.length) ||
+    Boolean(snapshot?.socialPlatforms?.length);
+  if (!hasContactMethod) {
+    await prisma.outreachProspect.update({
+      where: { id: prospectId },
+      data: { status: "DISQUALIFIED", hasContactInfo: false, disqualificationReason: "No contact information found on the website or contact page." },
+    });
+    await recordStatusChange({
+      prospectId,
+      campaignId: prospect.campaignId,
+      from: "DISCOVERED",
+      to: "DISQUALIFIED",
+      reason: "No contact information found.",
+    });
+    await recordEvent({
+      type: "DISQUALIFIED",
+      campaignId: prospect.campaignId,
+      prospectId,
+      summary: "No contact information found.",
+    });
+    await incrementDailyStat(prospect.campaignId, "disqualified", 1, now);
+    return { skipped: "no_contact_method" as const, score: score.total };
   }
 
   await enqueueJob({
@@ -336,7 +371,11 @@ export async function runAssessmentStage(prospectId: string) {
     readiness,
     evidence,
     hasConcreteOpportunity: brief.gaps.length > 0,
-    hasContactMethod: prospect.publicEmail !== null || prospect.publicPhone !== null,
+    hasContactMethod:
+      prospect.publicEmail !== null ||
+      prospect.publicPhone !== null ||
+      (snapshot?.socialUrls?.length ?? 0) > 0 ||
+      (snapshot?.socialPlatforms?.length ?? 0) > 0,
     appearsActive: prospect.websiteSnapshot !== null || prospect.googlePlaceId !== null,
     hasServiceFit: Boolean(brief.primaryGap?.service || reconciled.recommendedServices.length > 0),
     isSuppressed: false, // Checked at send time

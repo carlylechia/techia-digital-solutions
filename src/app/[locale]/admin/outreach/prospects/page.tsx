@@ -64,7 +64,11 @@ export default async function AdminOutreachProspectsPage({
   const provider = OUTREACH_DISCOVERY_PROVIDERS.find((value) => value === sp.provider) ?? "";
   const qualificationStatus = OUTREACH_QUALIFICATION_STATUSES.find((value) => value === sp.qualification) ?? "";
   const minReadiness = sp.minReadiness ? Number.parseInt(sp.minReadiness, 10) : undefined;
-  const missingContact = sp.missingContact === "1";
+  const contactFilter = sp.contact ?? "";
+  const missingContact = sp.missingContact === "1" || contactFilter === "without";
+  const hasContact = sp.hasContact === "1" || sp.contactAvailable === "1" || contactFilter === "with";
+  const discoveredFrom = (sp.discoveredFrom ?? sp.discoveredAfter ?? sp.discoveredSince ?? "").slice(0, 40);
+  const discoveredTo = (sp.discoveredTo ?? sp.discoveredBefore ?? sp.discoveredUntil ?? "").slice(0, 40);
 
   const [result, campaigns] = await Promise.all([
     loadOutreachProspects(prisma, {
@@ -76,6 +80,9 @@ export default async function AdminOutreachProspectsPage({
       qualificationStatus: qualificationStatus || undefined,
       minReadinessScore: minReadiness,
       missingContact: missingContact || undefined,
+      hasContact: hasContact || undefined,
+      discoveredAfter: discoveredFrom || undefined,
+      discoveredBefore: discoveredTo || undefined,
     }),
     loadOutreachCampaigns(prisma),
   ]);
@@ -89,6 +96,9 @@ export default async function AdminOutreachProspectsPage({
     if (qualificationStatus) params2.set("qualification", qualificationStatus);
     if (minReadiness !== undefined) params2.set("minReadiness", String(minReadiness));
     if (missingContact) params2.set("missingContact", "1");
+    if (hasContact) params2.set("hasContact", "1");
+    if (discoveredFrom) params2.set("discoveredFrom", discoveredFrom);
+    if (discoveredTo) params2.set("discoveredTo", discoveredTo);
     params2.set("page", String(nextPage));
     return `/admin/outreach/prospects?${params2.toString()}`;
   };
@@ -157,6 +167,22 @@ export default async function AdminOutreachProspectsPage({
               <option value="50">50+</option>
               <option value="40">40+</option>
             </select>
+          </label>
+          <label className="grid gap-1 text-xs">
+            <span className="font-semibold text-muted">Contact info</span>
+            <select name="contact" defaultValue={hasContact ? "with" : missingContact ? "without" : ""} className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm">
+              <option value="">All</option>
+              <option value="with">With contact info</option>
+              <option value="without">Without contact info</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs">
+            <span className="font-semibold text-muted">Discovered from</span>
+            <input type="date" name="discoveredFrom" defaultValue={discoveredFrom} className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm" />
+          </label>
+          <label className="grid gap-1 text-xs">
+            <span className="font-semibold text-muted">Discovered to</span>
+            <input type="date" name="discoveredTo" defaultValue={discoveredTo} className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm" />
           </label>
           <label className="grid gap-1 text-xs">
             <span className="font-semibold text-muted">Search</span>

@@ -1019,6 +1019,15 @@ export async function runOutreachOrchestratorNow(): Promise<OutreachActionResult
   }
 }
 
+export async function importOutreachProspectToCrmAction(input: { prospectId: string; locale: string }) {
+  return importOutreachProspectToCrm(input);
+}
+
+export async function importOutreachProspectToCrm(input: { prospectId: string; locale: string }) {
+  const { importOutreachProspectToCrmAction } = await import("@/app/[locale]/admin/crm/actions");
+  return importOutreachProspectToCrmAction({ prospectId: input.prospectId, locale: input.locale as "en" | "fr" });
+}
+
 export async function getOutreachSendingStatus() {
   const prisma = getPrisma();
   if (!prisma) return { available: false as const };

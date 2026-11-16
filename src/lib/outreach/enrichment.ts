@@ -45,6 +45,10 @@ export type WebsiteSnapshot = {
   contactPageUrl: string | null;
   /** Email addresses the business published on its own page. */
   publishedEmails: string[];
+  /** Phone numbers the business published on its own page. */
+  publishedPhones: string[];
+  /** Social profile URLs the business published on its own page. */
+  socialUrls: string[];
   robotsRespected: boolean;
   errorCategory: string | null;
   // ─── Real-estate-specific signals ──────────────────────────────────────
@@ -268,6 +272,10 @@ export async function enrichWebsite(
 
   const emails = [...new Set((haystack.match(EMAIL_PATTERN) ?? []).map((item) => item.toLowerCase()))].slice(0, 5);
 
+  // Contact details published on the page itself. These are merged with anything
+  // found on the business's dedicated contact page below.
+  const pageContactInfo = extractContactInfo(html, response.finalUrl);
+
   const hasForm = /<form\b/i.test(html);
   const hasQuoteOrForm = score(haystack, /\b(devis|quote|quotation|request a quote|demande de devis|enquir)/i) || /type=["']?email["']?/i.test(html);
   const hasBooking = BOOKING_PATTERNS.some((pattern) => pattern.test(haystack));
@@ -300,6 +308,18 @@ export async function enrichWebsite(
 
   const contactPageUrl = findContactPageUrl(html, response.finalUrl);
 
+  // Check the dedicated contact page when one is linked, so contact details that
+  // only live there are still captured.
+  const contactPageInfo = await (async () => {
+    if (!contactPageUrl) return null;
+    try {
+      const cp = await safeFetch(contactPageUrl, { accept: "text/html,application/xhtml+xml" });
+      if (!cp.ok || !cp.body) return null;
+      return extractContactInfo(cp.body, cp.finalUrl || contactPageUrl);
+    } catch {
+      return null;
+    }
+  })();
   // Real-estate-specific signal detection.
   const hasPropertyListings = PROPERTY_LISTING_PATTERNS.some((pattern) => pattern.test(haystack));
   const hasPropertyEnquiry = PROPERTY_ENQUIRY_PATTERNS.some((pattern) => pattern.test(haystack));
@@ -310,6 +330,12 @@ export async function enrichWebsite(
   const hasServicesListed = SERVICES_LISTED_PATTERNS.some((pattern) => pattern.test(haystack));
   const hasAgentProfiles = AGENT_PROFILE_PATTERNS.some((pattern) => pattern.test(haystack));
   const hasPropertyReviews = PROPERTY_REVIEW_PATTERNS.some((pattern) => pattern.test(haystack));
+
+  const mergedEmails = [...new Set([...emails, ...(pageContactInfo?.emails ?? []), ...(contactPageInfo?.emails ?? [])])].slice(0, 8);
+  const mergedPhones = [...new Set([...pageContactInfo.phones, ...(contactPageInfo?.phones ?? [])])].slice(0, 8);
+  const mergedSocialUrls = [...new Set([...pageContactInfo.socialUrls, ...(contactPageInfo?.socialUrls ?? [])])].slice(0, 12);
+  const mergedSocialPlatforms = [...new Set([...socialPlatforms, ...pageContactInfo.socialPlatforms, ...(contactPageInfo?.socialPlatforms ?? [])])];
+  const mergedContactMethods = [...new Set([...contactMethods, ...pageContactInfo.contactMethods, ...(contactPageInfo?.contactMethods ?? [])])];
 
   const snapshot: WebsiteSnapshot = {
     fetchedAt: new Date().toISOString(),
@@ -323,8 +349,8 @@ export async function enrichWebsite(
     viewportPresent: /<meta[^>]+\bname=["']?viewport["']?/i.test(html),
     canonicalPresent: /<link[^>]+rel=["'][^"']*canonical/i.test(html),
     textExcerpt: textExcerpt.slice(0, OUTREACH_SAFETY.maxAiEvidenceChars),
-    socialPlatforms,
-    contactMethods,
+    socialPlatforms: mergedSocialPlatforms,
+    contactMethods: mergedContactMethods,
     trustSignals,
     testimonialSignals,
     leadCaptureForm: hasForm,
@@ -340,7 +366,9 @@ export async function enrichWebsite(
     serviceKeywords,
     industryKeywords,
     contactPageUrl,
-    publishedEmails: emails,
+    publishedEmails: mergedEmails,
+    publishedPhones: mergedPhones,
+    socialUrls: mergedSocialUrls,
     robotsRespected: robotsAllows(new URL(response.finalUrl).origin, new URL(response.finalUrl).pathname),
     errorCategory: null,
     hasPropertyListings,
@@ -367,6 +395,76 @@ function findContactPageUrl(html: string, finalUrl: string) {
   } catch {
     return null;
   }
+}
+
+const PHONE_LINK_PATTERN = /href=["']tel:([^"']+)["']/gi;
+const PHONE_TEXT_PATTERN = /(?:\+?\d[\d\s().-]{7,}\d)/g;
+
+function extractPhoneNumbers(html: string): string[] {
+  const found = new Set<string>();
+  for (const match of html.matchAll(PHONE_LINK_PATTERN)) {
+    const value = match[1].trim();
+    if (value) found.add(value.slice(0, 40));
+  }
+  const text = stripScriptsAndTags(html);
+  for (const match of text.matchAll(PHONE_TEXT_PATTERN)) {
+    const value = match[0].replace(/\s+/g, " ").trim();
+    if (value.length >= 8 && value.length <= 40) found.add(value);
+  }
+  return [...found].slice(0, 8);
+}
+
+function resolveUrl(raw: string, base: string): string | null {
+  try {
+    const resolved = new URL(raw, base);
+    if (resolved.protocol !== "http:" && resolved.protocol !== "https:") return null;
+    return resolved.toString().slice(0, 500);
+  } catch {
+    return null;
+  }
+}
+
+function extractSocialUrls(html: string, base: string): string[] {
+  const found = new Set<string>();
+  for (const match of html.matchAll(/href=["']([^"']+)["']/gi)) {
+    const resolved = resolveUrl(match[1], base);
+    if (!resolved) continue;
+    let host = "";
+    try {
+      host = new URL(resolved).hostname.toLowerCase();
+    } catch {
+      continue;
+    }
+    if (SOCIAL_HOSTS.some(([pattern]) => pattern.test(host))) {
+      found.add(resolved);
+    }
+  }
+  return [...found].slice(0, 12);
+}
+
+function platformForHost(host: string): string | null {
+  for (const [pattern, label] of SOCIAL_HOSTS) {
+    if (pattern.test(host)) return label;
+  }
+  return null;
+}
+
+function extractContactInfo(html: string, base: string) {
+  const emails = [...new Set((stripScriptsAndTags(html).match(EMAIL_PATTERN) ?? []).map((item) => item.toLowerCase()))].slice(0, 8);
+  const phones = extractPhoneNumbers(html);
+  const socialUrls = extractSocialUrls(html, base);
+  const socialPlatforms = [...new Set(socialUrls.map((url) => {
+    try {
+      return platformForHost(new URL(url).hostname.toLowerCase());
+    } catch {
+      return null;
+    }
+  }).filter((value): value is string => Boolean(value)))];
+  const contactMethods: string[] = [];
+  if (emails.length > 0) contactMethods.push("email");
+  if (phones.length > 0) contactMethods.push("phone");
+  if (socialPlatforms.length > 0) contactMethods.push("social");
+  return { emails, phones, socialUrls, socialPlatforms, contactMethods };
 }
 
 function buildEmpty(websiteUrl: string): WebsiteSnapshot {
@@ -400,6 +498,8 @@ function buildEmpty(websiteUrl: string): WebsiteSnapshot {
     industryKeywords: [],
     contactPageUrl: null,
     publishedEmails: [],
+    publishedPhones: [],
+    socialUrls: [],
     robotsRespected: true,
     errorCategory: null,
     hasPropertyListings: false,

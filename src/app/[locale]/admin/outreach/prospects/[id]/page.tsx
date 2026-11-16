@@ -9,6 +9,7 @@ import { loadOutreachProspectDetail } from "@/lib/outreach/queries";
 import { OUTREACH_DISCOVERY_PROVIDER_LABELS, OUTREACH_QUALIFICATION_LABELS, OUTREACH_SERVICE_LABELS, OUTREACH_STATUS_LABELS, messageStatusTone, prospectStatusTone } from "@/lib/outreach/constants";
 import { createMetadata } from "@/lib/seo";
 import { OutreachProspectActions } from "@/components/admin/outreach/outreach-prospect-actions";
+import { ImportProspectToCrmButton } from "@/components/admin/outreach/import-prospect-to-crm-button";
 import {
   OutreachBar,
   OutreachEmptyState,
@@ -365,7 +366,8 @@ export default async function OutreachProspectDetailPage({ params }: { params: P
 
       <OutreachPanel>
         <h3 className="text-lg font-semibold">Actions</h3>
-        <div className="mt-4">
+        <div className="mt-4 grid gap-4">
+          <ImportProspectToCrmButton prospectId={prospect.id} locale={locale} />
           <OutreachProspectActions
             prospectId={prospect.id}
             currentStatus={prospect.status}

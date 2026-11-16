@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { AdminSectionBreadcrumbs } from "@/components/admin/admin-section-breadcrumbs";
 import { isLocale } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
 import { getOutreachActor } from "@/lib/outreach/auth";
@@ -72,7 +73,10 @@ export default async function AdminOutreachLayout({
                 </p>
               </div>
             </div>
-            <div className="mt-5">
+            <div className="mt-4">
+              <AdminSectionBreadcrumbs locale={locale} />
+            </div>
+            <div className="mt-3">
               <OutreachNavLinks reviewCount={reviewCount} />
             </div>
           </div>

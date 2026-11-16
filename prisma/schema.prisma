@@ -1471,6 +1471,9 @@ model OutreachProspect {
   // Only ever populated from evidence the business published itself.
   publicEmail    String?
   publicPhone    String?
+  // Denormalized flag: true when at least one usable contact method (email,
+  // phone or social profile/handle) is available for this prospect.
+  hasContactInfo Boolean @default(false)
   contactName    String?
   contactRole    String?
 
@@ -1548,6 +1551,7 @@ model OutreachProspect {
   @@index([outreachReadinessScore(sort: Desc)])
   @@index([qualificationStatus])
   @@index([campaignId, qualificationStatus])
+  @@index([hasContactInfo])
 }
 
 model OutreachAssessment {

@@ -302,6 +302,15 @@ export type ProspectListFilters = {
   qualificationStatus?: string;
   minReadinessScore?: number;
   missingContact?: boolean;
+  hasContact?: boolean;
+  hasContactInfo?: boolean;
+  contactAvailable?: boolean;
+  discoveredAfter?: Date | string;
+  discoveredBefore?: Date | string;
+  discoveredFrom?: Date | string;
+  discoveredTo?: Date | string;
+  discoveredSince?: Date | string;
+  discoveredUntil?: Date | string;
   page?: number;
   pageSize?: number;
 };
@@ -324,18 +333,53 @@ export async function loadOutreachProspects(db: Db, filters: ProspectListFilters
   if (filters.minReadinessScore !== undefined) {
     where.outreachReadinessScore = { gte: filters.minReadinessScore };
   }
-  if (filters.missingContact) {
-    where.OR = [
-      { publicEmail: null },
-      { publicPhone: null },
-    ];
+  const andConditions: Prisma.OutreachProspectWhereInput[] = [];
+
+  const wantsMissingContact = filters.missingContact === true;
+  const wantsHasContact =
+    filters.hasContact === true ||
+    filters.hasContactInfo === true ||
+    filters.contactAvailable === true;
+  if (wantsMissingContact || wantsHasContact) {
+    const hasContactCondition: Prisma.OutreachProspectWhereInput = {
+      OR: [
+        { publicEmail: { not: null } },
+        { publicPhone: { not: null } },
+        { hasContactInfo: true },
+      ],
+    };
+    andConditions.push(wantsMissingContact ? { NOT: hasContactCondition } : hasContactCondition);
   }
+
   if (filters.search) {
-    where.OR = [
-      { businessName: { contains: filters.search, mode: "insensitive" } },
-      { city: { contains: filters.search, mode: "insensitive" } },
-      { publicEmail: { contains: filters.search, mode: "insensitive" } },
-    ];
+    andConditions.push({
+      OR: [
+        { businessName: { contains: filters.search, mode: "insensitive" } },
+        { city: { contains: filters.search, mode: "insensitive" } },
+        { publicEmail: { contains: filters.search, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  const discoveredAfter =
+    filters.discoveredAfter ?? filters.discoveredFrom ?? filters.discoveredSince;
+  const discoveredBefore =
+    filters.discoveredBefore ?? filters.discoveredTo ?? filters.discoveredUntil;
+  if (discoveredAfter !== undefined && discoveredAfter !== null && discoveredAfter !== "") {
+    const date = discoveredAfter instanceof Date ? discoveredAfter : new Date(String(discoveredAfter));
+    if (!Number.isNaN(date.getTime())) {
+      andConditions.push({ discoveredAt: { gte: date } });
+    }
+  }
+  if (discoveredBefore !== undefined && discoveredBefore !== null && discoveredBefore !== "") {
+    const date = discoveredBefore instanceof Date ? discoveredBefore : new Date(String(discoveredBefore));
+    if (!Number.isNaN(date.getTime())) {
+      andConditions.push({ discoveredAt: { lte: date } });
+    }
+  }
+
+  if (andConditions.length > 0) {
+    where.AND = andConditions;
   }
 
   const [rows, total] = await Promise.all([

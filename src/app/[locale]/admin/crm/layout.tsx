@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, Target } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { AdminSectionBreadcrumbs } from "@/components/admin/admin-section-breadcrumbs";
 import { isLocale } from "@/content/site";
 import { getAdminSessionUser } from "@/lib/admin/session";
 import { hasPermission } from "@/lib/admin/permissions";
@@ -55,16 +56,8 @@ export default async function AdminCrmLayout({
                 <p>{actor.role}</p>
               </div>
             </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-2 rounded-lg bg-accent/10 px-3 py-2 text-xs font-semibold text-accent">
-                <Target className="size-3.5" /> CRM
-              </span>
-              <Link
-                href="/admin/outreach"
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-muted transition hover:text-primary"
-              >
-                Outreach console
-              </Link>
+            <div className="mt-5">
+              <AdminSectionBreadcrumbs locale={locale} />
             </div>
           </div>
         </header>
