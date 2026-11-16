@@ -12,6 +12,7 @@ CREATE TABLE "EditorialUsageReconciliation" (
     "nextAttemptAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "lastError" TEXT,
     "payload" JSONB,
+    "claimToken" TEXT NOT NULL,
     "lockedAt" TIMESTAMP(3),
     "lockedBy" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

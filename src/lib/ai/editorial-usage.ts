@@ -364,7 +364,7 @@ async function claimNextReconciliationTask(
     const claimToken = randomClaimToken();
     await tx.editorialUsageReconciliation.update({
       where: { id: rows[0].id },
-      data: { status: "PROCESSING", lockedAt: now, lockedBy: workerId, claimToken },
+      data: { status: "PROCESSING", lockedAt: now, lockedBy: workerId, claimToken, attemptCount: { increment: 1 } },
     });
     return tx.editorialUsageReconciliation.findUnique({ where: { id: rows[0].id } });
   });
@@ -469,11 +469,6 @@ export async function runEditorialUsageReconciliation(opts?: {
   const batchSize = Math.min(Math.max(opts?.batchSize ?? 10, 1), 50);
   const now = opts?.now ?? new Date();
 
-  // Provide a shared claim token if one wasn't explicitly passed; this lets
-  // the reconciliation run present the same token for every task it claims,
-  // ensuring the claim‑ownership guard works end‑to-end.
-  const sharedClaimToken = randomClaimToken();
-
   try {
     result.staleDiscovered = await discoverStaleReservations();
   } catch (error) {
@@ -491,7 +486,10 @@ export async function runEditorialUsageReconciliation(opts?: {
     if (!task || !task.id) break;
     result.claimed += 1;
 
-    const applied = await applyReconciliationTask(prisma, task, sharedClaimToken);
+    // Pass the task's own claim token — not a separate shared token — so the
+    // ownership check in applyReconciliationTask can correctly verify that this
+    // worker still owns the task it claimed.
+    const applied = await applyReconciliationTask(prisma, task, task.claimToken);
     try {
       if (applied.outcome === "resolved") {
         await prisma.editorialUsageReconciliation.update({
@@ -511,14 +509,18 @@ export async function runEditorialUsageReconciliation(opts?: {
         });
         result.review += 1;
       } else {
-        const attemptCount = task.attemptCount + 1;
-        const exhausted = attemptCount >= task.maxAttempts;
+        // apply outcome was "retry" or "review" — attempt count was already
+        // incremented when the task was reclaimed (claimNextReconciliationTask).
+        // Do not add another increment here; doing so would double-count.
+        const exhausted = task.attemptCount >= task.maxAttempts;
         await prisma.editorialUsageReconciliation.update({
           where: { id: task.id },
           data: {
             status: exhausted ? "EXHAUSTED" : "PENDING",
-            attemptCount,
-            nextAttemptAt: new Date(now.getTime() + backoffMs(attemptCount)),
+            attemptCount: task.attemptCount,
+            nextAttemptAt: exhausted
+              ? new Date(0) // persist EXHAUSTED state indefinitely
+              : new Date(now.getTime() + backoffMs(task.attemptCount)),
             lastError: truncateError(applied.error ?? "recovery_apply_failed"),
             lockedAt: null,
             lockedBy: null,

@@ -298,7 +298,7 @@ export default async function AIUsagePage({
               {reconciliationStats.pending.toLocaleString()}
             </p>
             <p className="mt-1 text-xs text-muted">
-              Retried automatically; never re-runs generation.
+              Pending tasks are retried automatically on the next scheduled reconciliation run; generation is never re-invoked.
             </p>
           </div>
           <div className="rounded-2xl border border-border bg-surface p-5">
