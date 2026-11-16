@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof BlogAuthorizationError) return NextResponse.json({ ok: false, error: error.message }, { status: error.status, headers: { "Cache-Control": "no-store" } });
     if (error instanceof EditorialAiError) {
-      const status = error.category === "limit_reached" ? 429 : error.category === "disabled" || error.category === "not_configured" ? 503 : 400;
+      const status = error.category === "limit_reached" || error.category === "quota" ? 429 : error.category === "disabled" || error.category === "not_configured" ? 503 : 400;
       return NextResponse.json({ ok: false, error: error.message, category: error.category }, { status, headers: { "Cache-Control": "no-store" } });
     }
     console.error("editorial_ai_translate_failed", error instanceof Error ? error.message : "Unknown error");

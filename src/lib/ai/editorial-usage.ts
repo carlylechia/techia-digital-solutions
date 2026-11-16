@@ -10,6 +10,7 @@ export async function reserveEditorialUsage(params: {
   limit: number;
   model: string;
   imageCount?: number;
+  burstLimit?: number;
 }) {
   const prisma = getPrisma();
   if (!prisma) throw new EditorialAiError("not_configured", "Editorial AI usage tracking is unavailable.");
@@ -19,6 +20,19 @@ export async function reserveEditorialUsage(params: {
 
   return prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${params.actorId + ":" + params.requestType}))`;
+    if (params.burstLimit) {
+      const burstSince = new Date(Date.now() - 60_000);
+      const burstCount = await tx.aIUsage.count({
+        where: {
+          userId: params.actorId,
+          createdAt: { gte: burstSince },
+          requestType: { in: ["EDITORIAL_ARTICLE", "EDITORIAL_EDIT", "EDITORIAL_TRANSLATE", "EDITORIAL_REVIEW", "EDITORIAL_IMAGE"] },
+        },
+      });
+      if (burstCount >= params.burstLimit) {
+        throw new EditorialAiError("quota", "Too many editorial AI requests. Try again shortly.");
+      }
+    }
     const used = await tx.aIUsage.count({
       where: { userId: params.actorId, requestType: params.requestType, createdAt: { gte: start } },
     });
