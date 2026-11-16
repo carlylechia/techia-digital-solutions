@@ -242,6 +242,22 @@ export default async function AIUsagePage({
           </div>
           <div className="rounded-2xl border border-border bg-surface p-5">
             <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Unknown-cost requests (today, public)
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {publicUnknownToday.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Unknown-cost requests (today, editorial)
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {editorialUnknownToday.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
               Unknown-cost requests (month)
             </p>
             <p className="mt-2 text-3xl font-bold text-primary">

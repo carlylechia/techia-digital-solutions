@@ -136,9 +136,7 @@ async function callOpenAiJson<T extends z.ZodTypeAny>(params: {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), params.timeoutMs);
   let response: Response;
-  let requestStarted = false;
   try {
-    requestStarted = true;
     const body: Record<string, unknown> = {
       model: params.model,
       max_output_tokens: params.maxTokens,
@@ -331,7 +329,15 @@ export async function generateEditorialArticle(input: EditorialGenerateInput, ac
 
     return { article, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
   } catch (error) {
-    const ambiguous = error instanceof EditorialAiError && (error.providerState === "started" || (error.providerState === "responded" && (!error.httpStatus || (error.httpStatus >= 200 && error.httpStatus < 300))));
+    const ambiguous = error instanceof EditorialAiError && (
+      error.providerState === "started" ||
+      (error.providerState === "responded" && (
+        error.httpStatus === null ||
+        error.httpStatus >= 500 ||
+        error.httpStatus === 408 ||
+        (error.httpStatus >= 200 && error.httpStatus < 300)
+      ))
+    );
     if (ambiguous) {
       await finalizeEditorialUsage(reservationId, {
         model,
@@ -417,7 +423,15 @@ Return JSON only.`,
 
     return { ...sanitized, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
   } catch (error) {
-    const ambiguous = error instanceof EditorialAiError && (error.providerState === "started" || (error.providerState === "responded" && (!error.httpStatus || (error.httpStatus >= 200 && error.httpStatus < 300))));
+    const ambiguous = error instanceof EditorialAiError && (
+      error.providerState === "started" ||
+      (error.providerState === "responded" && (
+        error.httpStatus === null ||
+        error.httpStatus >= 500 ||
+        error.httpStatus === 408 ||
+        (error.httpStatus >= 200 && error.httpStatus < 300)
+      ))
+    );
     if (ambiguous) {
       await finalizeEditorialUsage(reservationId, {
         model,
@@ -504,7 +518,15 @@ CONTENT>>>`,
 
     return { ...sanitized, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
   } catch (error) {
-    const ambiguous = error instanceof EditorialAiError && (error.providerState === "started" || (error.providerState === "responded" && (!error.httpStatus || (error.httpStatus >= 200 && error.httpStatus < 300))));
+    const ambiguous = error instanceof EditorialAiError && (
+      error.providerState === "started" ||
+      (error.providerState === "responded" && (
+        error.httpStatus === null ||
+        error.httpStatus >= 500 ||
+        error.httpStatus === 408 ||
+        (error.httpStatus >= 200 && error.httpStatus < 300)
+      ))
+    );
     if (ambiguous) {
       await finalizeEditorialUsage(reservationId, {
         model,
@@ -577,7 +599,15 @@ CONTENT>>>`,
 
     return { summary: result.data.summary, issues: result.data.issues, checklist: result.data.checklist, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
   } catch (error) {
-    const ambiguous = error instanceof EditorialAiError && (error.providerState === "started" || (error.providerState === "responded" && (!error.httpStatus || (error.httpStatus >= 200 && error.httpStatus < 300))));
+    const ambiguous = error instanceof EditorialAiError && (
+      error.providerState === "started" ||
+      (error.providerState === "responded" && (
+        error.httpStatus === null ||
+        error.httpStatus >= 500 ||
+        error.httpStatus === 408 ||
+        (error.httpStatus >= 200 && error.httpStatus < 300)
+      ))
+    );
     if (ambiguous) {
       await finalizeEditorialUsage(reservationId, {
         model,
