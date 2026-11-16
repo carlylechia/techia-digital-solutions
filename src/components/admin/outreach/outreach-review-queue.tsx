@@ -6,6 +6,7 @@ import Link from "next/link";
 import { reviewOutreachMessage } from "@/app/[locale]/admin/outreach/actions";
 import { OUTREACH_SERVICE_LABELS } from "@/lib/outreach/constants";
 import { OutreachButton, OutreachField, OutreachPill, outreachInputClass } from "./outreach-ui";
+import { ProfessionalLoader } from "@/components/ui/professional-loader";
 
 /**
  * Human review queue.
@@ -83,8 +84,9 @@ export function OutreachReviewQueue({
   }
 
   return (
-    <ul className="grid gap-4">
-      {items.map((item) => {
+    <div className="relative">
+      <ul className="grid gap-4">
+        {items.map((item) => {
         const draft = editing[item.messageId];
         const subject = draft?.subject ?? item.subject;
         const bodyText = draft?.bodyText ?? item.bodyText;
@@ -201,6 +203,8 @@ export function OutreachReviewQueue({
           </li>
         );
       })}
-    </ul>
+      </ul>
+      {pending ? <ProfessionalLoader variant="overlay" label="Processing…" /> : null}
+    </div>
   );
 }

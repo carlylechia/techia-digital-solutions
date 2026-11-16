@@ -28,6 +28,7 @@ import type { CrmContact, CrmWorkspaceData } from "@/lib/crm/types";
 import { AiEmailAssistant } from "@/components/admin/ai-email-assistant";
 import { CrmProspectList } from "@/components/admin/crm/crm-prospect-list";
 import { OutreachPanel, OutreachPill, OutreachStatCard } from "@/components/admin/outreach/outreach-ui";
+import { ProfessionalLoader, StatusBanner } from "@/components/ui/professional-loader";
 
 function formatDateTime(value: string | null) {
   if (!value) return "No messages yet";
@@ -310,7 +311,7 @@ export function CrmWorkspace({ locale, data }: { locale: Locale; data: CrmWorksp
         </OutreachPanel>
       ) : null}
 
-      <OutreachPanel>
+      <OutreachPanel className="relative">
         <div className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
           <div className="grid content-start gap-3">
             <div className="flex items-center justify-between gap-2">
@@ -570,13 +571,10 @@ export function CrmWorkspace({ locale, data }: { locale: Locale; data: CrmWorksp
                       {!selected.email ? <span className="text-xs text-amber-300">This contact has no email address.</span> : null}
                     </div>
 
-                    {sendState?.error ? (
-                      <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">{sendState.error}</p>
-                    ) : null}
+                    {sendPending ? <StatusBanner tone="info" message="Sending your message…" /> : null}
+                    {sendState?.error ? <StatusBanner tone="error" message={sendState.error} /> : null}
                     {sendState?.success ? (
-                      <p className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
-                        <CheckCircle2 className="size-3.5" /> Email sent and added to the conversation. The compose fields were cleared.
-                      </p>
+                      <StatusBanner tone="success" message="Email sent and added to the conversation. The compose fields were cleared." />
                     ) : null}
                   </form>
                 </div>
@@ -593,6 +591,7 @@ export function CrmWorkspace({ locale, data }: { locale: Locale; data: CrmWorksp
             )}
           </div>
         </div>
+        {sendPending ? <ProfessionalLoader variant="overlay" label="Sending message…" /> : null}
       </OutreachPanel>
     </div>
   );

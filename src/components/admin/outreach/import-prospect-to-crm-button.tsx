@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { importOutreachProspectToCrmAction } from "@/app/[locale]/admin/crm/actions";
 import { OutreachButton } from "./outreach-ui";
+import { StatusBanner } from "@/components/ui/professional-loader";
 
 export function ImportProspectToCrmButton({
   prospectId,
@@ -19,6 +20,7 @@ export function ImportProspectToCrmButton({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedbackTone, setFeedbackTone] = useState<"success" | "error">("success");
   const [added, setAdded] = useState(alreadyImported);
 
   function handleImport() {
@@ -26,10 +28,12 @@ export function ImportProspectToCrmButton({
     startTransition(async () => {
       const result = await importOutreachProspectToCrmAction({ prospectId, locale: locale as "en" | "fr" });
       if (result?.success) {
+        setFeedbackTone("success");
         setFeedback(result.message ?? "Added to the CRM prospect list.");
         setAdded(true);
         router.refresh();
       } else {
+        setFeedbackTone("error");
         setFeedback(result?.error ?? "Failed to add the prospect to the CRM.");
       }
     });
@@ -45,7 +49,7 @@ export function ImportProspectToCrmButton({
       >
         {pending ? "Adding…" : graduated ? "Already a client" : added ? "In CRM prospect list" : "Add to CRM"}
       </OutreachButton>
-      {feedback ? <p className="text-xs text-emerald-300">{feedback}</p> : null}
+      {feedback ? <StatusBanner tone={feedbackTone} message={feedback} /> : null}
       {graduated || added ? (
         <a href={`/${locale}/admin/crm`} className="text-xs font-semibold text-accent underline">
           Open CRM

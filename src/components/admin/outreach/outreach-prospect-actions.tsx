@@ -14,6 +14,7 @@ import {
 } from "@/app/[locale]/admin/outreach/actions";
 import { OUTREACH_PROSPECT_STATUSES, OUTREACH_STATUS_LABELS } from "@/lib/outreach/constants";
 import { OutreachButton, OutreachField, outreachInputClass } from "./outreach-ui";
+import { ProfessionalLoader, StatusBanner } from "@/components/ui/professional-loader";
 import { whatsappLink } from "@/lib/whatsapp";
 
 /**
@@ -45,6 +46,7 @@ export function OutreachProspectActions({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedbackTone, setFeedbackTone] = useState<"success" | "error">("success");
   const [note, setNote] = useState("");
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyBody, setReplyBody] = useState("");
@@ -54,13 +56,14 @@ export function OutreachProspectActions({
     setFeedback(null);
     startTransition(async () => {
       const result = await action();
+      setFeedbackTone(result.ok ? "success" : "error");
       setFeedback(result.ok ? result.message : result.error);
       if (result.ok) router.refresh();
     });
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="relative grid gap-4">
       {/* Primary action: Instant AI Assessment */}
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-accent/30 bg-accent/5 p-3">
         <OutreachButton
@@ -222,10 +225,9 @@ export function OutreachProspectActions({
       </div>
 
       {feedback ? (
-        <p className={`text-xs ${feedback.startsWith("Assessment complete") || feedback.startsWith("Message generated") ? "text-emerald-300" : "text-red-300"}`}>
-          {feedback}
-        </p>
+        <StatusBanner tone={feedbackTone} message={feedback} />
       ) : null}
+      {pending ? <ProfessionalLoader variant="overlay" label="Working…" /> : null}
     </div>
   );
 }
