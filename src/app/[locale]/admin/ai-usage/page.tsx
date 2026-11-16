@@ -7,6 +7,7 @@ import { Logo } from "@/components/brand/Logo";
 import { isLocale, type Locale } from "@/content/site";
 import { authOptions } from "@/lib/auth";
 import { getPrisma } from "@/lib/prisma";
+import { getEditorialReconciliationStats } from "@/lib/ai/editorial-usage";
 import { requireAdmin } from "@/lib/admin/session";
 import { getErrorMessage, isPrismaSchemaDriftError } from "@/lib/prisma-errors";
 
@@ -120,6 +121,7 @@ export default async function AIUsagePage({
         prisma.aIUsage.count({ where: { status: "RESERVED" } }),
         prisma.aIUsage.count({ where: { status: "PROVIDER_OUTCOME_UNKNOWN" } }),
         prisma.aIUsage.count({ where: { status: "PROVIDER_SUCCEEDED_UPLOAD_FAILED" } }),
+        getEditorialReconciliationStats(),
         prisma.aIUsage.findMany({
           orderBy: { createdAt: "desc" },
           skip: (page - 1) * pageSize,
@@ -166,7 +168,7 @@ export default async function AIUsagePage({
     );
   }
 
-  const [todayStats, editorialTodayStats, monthStats, editorialMonthStats, publicUnknownToday, editorialUnknownToday, publicUnknownMonth, editorialUnknownMonth, reservedCount, unknownOutcomeCount, uploadFailedCount, recentRecords, total] = result.data;
+  const [todayStats, editorialTodayStats, monthStats, editorialMonthStats, publicUnknownToday, editorialUnknownToday, publicUnknownMonth, editorialUnknownMonth, reservedCount, unknownOutcomeCount, uploadFailedCount, reconciliationStats, recentRecords, total] = result.data;
 
   const totalPages = Math.ceil(total / pageSize);
   const baseHref = "/admin/ai-usage";
@@ -287,6 +289,35 @@ export default async function AIUsagePage({
             <p className="mt-2 text-3xl font-bold text-primary">
               {uploadFailedCount.toLocaleString()}
             </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Recovery tasks pending
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {reconciliationStats.pending.toLocaleString()}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Retried automatically; never re-runs generation.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Recovery tasks exhausted
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {reconciliationStats.exhausted.toLocaleString()}
+            </p>
+            <p className="mt-1 text-xs text-muted">Retry limit reached; needs administrator review.</p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Recovery tasks for manual review
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {reconciliationStats.review.toLocaleString()}
+            </p>
+            <p className="mt-1 text-xs text-muted">Stale or unrecognized; no cost was assumed.</p>
           </div>
         </div>
 

@@ -215,6 +215,28 @@ export function isReasoningModel(model: string) {
   return /^(o[0-9]|gpt-[56])/i.test(model.trim());
 }
 
+/**
+ * Conservative billing classification for a failed editorial provider call.
+ *
+ * - Errors raised before the request was sent are never billable.
+ * - Timeouts and network interruptions after transmission are potentially billable.
+ * - HTTP 5xx and 408 responses are not proof that no billable processing occurred.
+ * - A successful HTTP response followed by malformed or invalid output is potentially billable.
+ * - Definitive 4xx rejections (auth, validation, rate limit, model unavailable) are billable-denied.
+ * - Any non-EditorialAiError exception is treated as potentially billable because
+ *   the provider state cannot be established from it.
+ */
+export function isPotentiallyBillable(error: unknown): boolean {
+  if (!(error instanceof EditorialAiError)) return true;
+  if (error.providerState === "started") return true;
+  if (error.providerState === "responded") {
+    const status = error.httpStatus;
+    if (status === null || status >= 500 || status === 408 || (status >= 200 && status < 300)) return true;
+    return false;
+  }
+  return false;
+}
+
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -329,15 +351,7 @@ export async function generateEditorialArticle(input: EditorialGenerateInput, ac
 
     return { article, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
   } catch (error) {
-    const ambiguous = error instanceof EditorialAiError && (
-      error.providerState === "started" ||
-      (error.providerState === "responded" && (
-        error.httpStatus === null ||
-        error.httpStatus >= 500 ||
-        error.httpStatus === 408 ||
-        (error.httpStatus >= 200 && error.httpStatus < 300)
-      ))
-    );
+    const ambiguous = isPotentiallyBillable(error);
     if (ambiguous) {
       await finalizeEditorialUsage(reservationId, {
         model,
@@ -423,15 +437,7 @@ Return JSON only.`,
 
     return { ...sanitized, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
   } catch (error) {
-    const ambiguous = error instanceof EditorialAiError && (
-      error.providerState === "started" ||
-      (error.providerState === "responded" && (
-        error.httpStatus === null ||
-        error.httpStatus >= 500 ||
-        error.httpStatus === 408 ||
-        (error.httpStatus >= 200 && error.httpStatus < 300)
-      ))
-    );
+    const ambiguous = isPotentiallyBillable(error);
     if (ambiguous) {
       await finalizeEditorialUsage(reservationId, {
         model,
@@ -518,15 +524,7 @@ CONTENT>>>`,
 
     return { ...sanitized, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
   } catch (error) {
-    const ambiguous = error instanceof EditorialAiError && (
-      error.providerState === "started" ||
-      (error.providerState === "responded" && (
-        error.httpStatus === null ||
-        error.httpStatus >= 500 ||
-        error.httpStatus === 408 ||
-        (error.httpStatus >= 200 && error.httpStatus < 300)
-      ))
-    );
+    const ambiguous = isPotentiallyBillable(error);
     if (ambiguous) {
       await finalizeEditorialUsage(reservationId, {
         model,
@@ -599,15 +597,7 @@ CONTENT>>>`,
 
     return { summary: result.data.summary, issues: result.data.issues, checklist: result.data.checklist, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
   } catch (error) {
-    const ambiguous = error instanceof EditorialAiError && (
-      error.providerState === "started" ||
-      (error.providerState === "responded" && (
-        error.httpStatus === null ||
-        error.httpStatus >= 500 ||
-        error.httpStatus === 408 ||
-        (error.httpStatus >= 200 && error.httpStatus < 300)
-      ))
-    );
+    const ambiguous = isPotentiallyBillable(error);
     if (ambiguous) {
       await finalizeEditorialUsage(reservationId, {
         model,

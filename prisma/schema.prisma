@@ -1215,6 +1215,7 @@ model AIUsage {
   reconciliationRequired Boolean @default(false)
   requestType    String          @default("PUBLIC_AGENT")
   createdAt      DateTime        @default(now())
+  reconciliationTasks EditorialUsageReconciliation[]
 
   @@index([ipHash])
   @@index([sessionId])
@@ -1222,6 +1223,30 @@ model AIUsage {
   @@index([conversationId])
   @@index([createdAt])
   @@index([requestType])
+}
+
+model EditorialUsageReconciliation {
+  id               String    @id @default(cuid())
+  usageId          String?   @unique
+  usage            AIUsage?  @relation(fields: [usageId], references: [id], onDelete: SetNull)
+  userId           String?
+  requestType      String
+  model            String?
+  providerOutcome   String?
+  status           String    @default("PENDING")
+  attemptCount     Int       @default(0)
+  maxAttempts      Int       @default(5)
+  nextAttemptAt    DateTime  @default(now())
+  lastError        String?
+  payload          Json?
+  lockedAt         DateTime?
+  lockedBy         String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([usageId])
+  @@index([userId])
 }
 
 model AIAbuseEvent {
