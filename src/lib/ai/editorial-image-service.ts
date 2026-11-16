@@ -6,7 +6,9 @@ import { getErrorMessage } from "@/lib/prisma-errors";
 import { uploadToCloudinary, deleteFromCloudinary } from "@/lib/cloudinary";
 import { detectImageMime, isAllowedBlogImageMime } from "@/lib/blog/media-validation";
 import { isEditorialImageEnabled, getEditorialImageModel, EDITORIAL_AI_CONFIG } from "./editorial-config";
-import { checkEditorialUsage, recordEditorialUsage, EditorialAiError } from "./editorial-service";
+import { EditorialAiError } from "./editorial-service";
+import { reserveEditorialUsage, finalizeEditorialUsage, failEditorialUsage } from "./editorial-usage";
+import { estimateEditorialImageCost } from "./editorial-pricing";
 import { editorialImageInputSchema } from "./editorial-types";
 export { EditorialAiError } from "./editorial-service";
 
@@ -30,7 +32,15 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
   if (!apiKey) throw new EditorialAiError("not_configured", "OPENAI_API_KEY is not configured.");
 
   const model = getEditorialImageModel();
-  await checkEditorialUsage(actorId, "EDITORIAL_IMAGE", EDITORIAL_AI_CONFIG.maxImageGenerationsPerDay);
+  if (!model) throw new EditorialAiError("not_configured", "OPENAI_EDITORIAL_IMAGE_MODEL is not configured.");
+
+  const reservationId = await reserveEditorialUsage({
+    actorId,
+    requestType: "EDITORIAL_IMAGE",
+    limit: EDITORIAL_AI_CONFIG.maxImageGenerationsPerDay,
+    model,
+    imageCount: 1,
+  });
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), EDITORIAL_AI_CONFIG.imageTimeoutMs);
@@ -128,12 +138,15 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
       return created;
     });
 
-    await recordEditorialUsage({
-      actorId,
+    const estimatedCost = estimateEditorialImageCost(model, "1536x1024");
+    await finalizeEditorialUsage(reservationId, {
       model,
-      requestType: "EDITORIAL_IMAGE",
       inputTokens: 0,
       outputTokens: 0,
+      estimatedCost,
+      costAvailable: estimatedCost !== null,
+      imageCount: 1,
+      status: "SUCCEEDED",
     });
 
     return {
@@ -148,6 +161,7 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
     };
   } catch (error) {
     if (uploadedPublicId) await deleteFromCloudinary(uploadedPublicId).catch(() => undefined);
+    await failEditorialUsage(reservationId);
     if (error instanceof EditorialAiError) throw error;
     throw new EditorialAiError("api", `Image upload failed: ${getErrorMessage(error)}`);
   }
