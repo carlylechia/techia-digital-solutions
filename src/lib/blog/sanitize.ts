@@ -177,7 +177,7 @@ export function sanitizeArticleHtml(value: string) {
     if (tag && allowedTags.has(tag)) output.push(`</${tag}>`);
   }
   const clean = output.join("").replace(/<span>/g, "").replace(/<\/span>/g, "");
-  if (Buffer.byteLength(clean, "utf8") > BLOG_MAX_HTML_BYTES) throw new Error("Article content is too large after sanitization.");
+  if (new TextEncoder().encode(clean).byteLength > BLOG_MAX_HTML_BYTES) throw new Error("Article content is too large after sanitization.");
   return clean;
 }
 

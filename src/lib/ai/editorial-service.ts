@@ -23,11 +23,15 @@ import { estimateEditorialTextCost } from "./editorial-pricing";
 
 export class EditorialAiError extends Error {
   readonly category: "disabled" | "not_configured" | "invalid_input" | "timeout" | "quota" | "auth" | "model_unavailable" | "api" | "malformed_output" | "limit_reached" | "too_large";
+  readonly providerState: "not_started" | "started" | "responded";
+  readonly httpStatus: number | null;
 
-  constructor(category: EditorialAiError["category"], message: string) {
+  constructor(category: EditorialAiError["category"], message: string, options?: { providerState?: "not_started" | "started" | "responded"; httpStatus?: number | null }) {
     super(message);
     this.name = "EditorialAiError";
     this.category = category;
+    this.providerState = options?.providerState ?? "not_started";
+    this.httpStatus = options?.httpStatus ?? null;
   }
 }
 
@@ -126,67 +130,80 @@ async function callOpenAiJson<T extends z.ZodTypeAny>(params: {
   schema: T;
   timeoutMs: number;
   maxTokens: number;
-}): Promise<{ data: z.infer<T>; inputTokens: number; outputTokens: number }> {
+}): Promise<{ data: z.infer<T>; inputTokens: number; outputTokens: number; cachedInputTokens?: number }> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new EditorialAiError("not_configured", "OPENAI_API_KEY is not configured.");
+  if (!apiKey) throw new EditorialAiError("not_configured", "OPENAI_API_KEY is not configured.", { providerState: "not_started" });
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), params.timeoutMs);
   let response: Response;
+  let requestStarted = false;
   try {
+    requestStarted = true;
+    const body: Record<string, unknown> = {
+      model: params.model,
+      max_output_tokens: params.maxTokens,
+      input: [
+        { role: "system", content: params.system },
+        { role: "user", content: params.user },
+      ],
+      text: {
+        format: {
+          type: "json_schema",
+          name: "editorial_output",
+          strict: true,
+          schema: z.toJSONSchema(params.schema),
+        },
+      },
+    };
+    if (!isReasoningModel(params.model)) {
+      body.temperature = 0.4;
+    }
     response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       signal: controller.signal,
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: params.model,
-        temperature: 0.4,
-        max_output_tokens: params.maxTokens,
-        input: [
-          { role: "system", content: params.system },
-          { role: "user", content: params.user },
-        ],
-        text: {
-          format: {
-            type: "json_schema",
-            name: "editorial_output",
-            strict: true,
-            schema: z.toJSONSchema(params.schema),
-          },
-        },
-      }),
+      body: JSON.stringify(body),
     });
   } catch (error) {
-    if (controller.signal.aborted) throw new EditorialAiError("timeout", "The AI request timed out.");
-    throw new EditorialAiError("api", `The AI request failed: ${getErrorMessage(error)}`);
+    if (controller.signal.aborted) throw new EditorialAiError("timeout", "The AI request timed out.", { providerState: "started" });
+    throw new EditorialAiError("api", `The AI request failed: ${getErrorMessage(error)}`, { providerState: "started" });
   } finally {
     clearTimeout(timer);
   }
 
   if (!response.ok) {
-    if (response.status === 404) throw new EditorialAiError("model_unavailable", `The configured model (${params.model}) is not available.`);
-    if (response.status === 429) throw new EditorialAiError("quota", "The AI provider reported a quota or rate-limit problem.");
-    if (response.status === 401 || response.status === 403) throw new EditorialAiError("auth", "The AI provider rejected the configured credentials.");
-    throw new EditorialAiError("api", `The AI provider returned HTTP ${response.status}.`);
+    throw new EditorialAiError(
+      response.status === 404 ? "model_unavailable" : response.status === 429 ? "quota" : response.status === 401 || response.status === 403 ? "auth" : "api",
+      `The AI provider returned HTTP ${response.status}.`,
+      { providerState: "responded", httpStatus: response.status },
+    );
   }
 
   const payload = (await response.json()) as {
     output_text?: string;
     output?: Array<{ content?: Array<{ text?: string }> }>;
-    usage?: { input_tokens?: number; output_tokens?: number };
+    usage?: { input_tokens?: number; output_tokens?: number; input_tokens_details?: { cached_tokens?: number } };
   };
   const content = payload.output_text || payload.output?.[0]?.content?.[0]?.text || "";
-  if (!content.trim()) throw new EditorialAiError("malformed_output", "The model returned an empty response.");
+  if (!content.trim()) {
+    throw new EditorialAiError("malformed_output", "The model returned an empty response.", { providerState: "responded", httpStatus: response.status });
+  }
 
   const parsed = params.schema.safeParse(extractJson(content));
   if (!parsed.success) {
-    throw new EditorialAiError("malformed_output", "The model returned a response that failed validation.");
+    throw new EditorialAiError("malformed_output", "The model returned a response that failed validation.", { providerState: "responded", httpStatus: response.status });
   }
 
   return {
     data: parsed.data,
     inputTokens: payload.usage?.input_tokens ?? estimateTokens(params.system + params.user),
     outputTokens: payload.usage?.output_tokens ?? estimateTokens(content),
+    cachedInputTokens: payload.usage?.input_tokens_details?.cached_tokens,
   };
+}
+
+export function isReasoningModel(model: string) {
+  return /^(o[0-9]|gpt-[56])/i.test(model.trim());
 }
 
 function slugify(value: string) {
@@ -283,7 +300,7 @@ export async function generateEditorialArticle(input: EditorialGenerateInput, ac
       articleContent: normalizeArticleHtml(result.data.articleContent),
     };
 
-    const estimatedCost = estimateEditorialTextCost(model, result.inputTokens, result.outputTokens);
+    const estimatedCost = estimateEditorialTextCost(model, result.inputTokens, result.outputTokens, result.cachedInputTokens);
     await finalizeEditorialUsage(reservationId, {
       model,
       inputTokens: result.inputTokens,
@@ -301,7 +318,19 @@ export async function generateEditorialArticle(input: EditorialGenerateInput, ac
 
     return { article, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
   } catch (error) {
-    await failEditorialUsage(reservationId);
+    const ambiguous = error instanceof EditorialAiError && (error.providerState === "started" || (error.providerState === "responded" && (!error.httpStatus || (error.httpStatus >= 200 && error.httpStatus < 300))));
+    if (ambiguous) {
+      await finalizeEditorialUsage(reservationId, {
+        model,
+        inputTokens: 0,
+        outputTokens: 0,
+        estimatedCost: null,
+        costAvailable: false,
+        status: "PROVIDER_OUTCOME_UNKNOWN",
+      });
+    } else {
+      await failEditorialUsage(reservationId);
+    }
     throw error;
   }
 }
@@ -360,7 +389,7 @@ Return JSON only.`,
       notes: result.data.notes,
     };
 
-    const estimatedCost = estimateEditorialTextCost(model, result.inputTokens, result.outputTokens);
+    const estimatedCost = estimateEditorialTextCost(model, result.inputTokens, result.outputTokens, result.cachedInputTokens);
     await finalizeEditorialUsage(reservationId, {
       model,
       inputTokens: result.inputTokens,
@@ -371,7 +400,19 @@ Return JSON only.`,
 
     return { ...sanitized, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
   } catch (error) {
-    await failEditorialUsage(reservationId);
+    const ambiguous = error instanceof EditorialAiError && (error.providerState === "started" || (error.providerState === "responded" && (!error.httpStatus || (error.httpStatus >= 200 && error.httpStatus < 300))));
+    if (ambiguous) {
+      await finalizeEditorialUsage(reservationId, {
+        model,
+        inputTokens: 0,
+        outputTokens: 0,
+        estimatedCost: null,
+        costAvailable: false,
+        status: "PROVIDER_OUTCOME_UNKNOWN",
+      });
+    } else {
+      await failEditorialUsage(reservationId);
+    }
     throw error;
   }
 }
@@ -431,7 +472,7 @@ CONTENT>>>`,
       notes: result.data.notes,
     };
 
-    const estimatedCost = estimateEditorialTextCost(model, result.inputTokens, result.outputTokens);
+    const estimatedCost = estimateEditorialTextCost(model, result.inputTokens, result.outputTokens, result.cachedInputTokens);
     await finalizeEditorialUsage(reservationId, {
       model,
       inputTokens: result.inputTokens,
@@ -442,7 +483,19 @@ CONTENT>>>`,
 
     return { ...sanitized, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
   } catch (error) {
-    await failEditorialUsage(reservationId);
+    const ambiguous = error instanceof EditorialAiError && (error.providerState === "started" || (error.providerState === "responded" && (!error.httpStatus || (error.httpStatus >= 200 && error.httpStatus < 300))));
+    if (ambiguous) {
+      await finalizeEditorialUsage(reservationId, {
+        model,
+        inputTokens: 0,
+        outputTokens: 0,
+        estimatedCost: null,
+        costAvailable: false,
+        status: "PROVIDER_OUTCOME_UNKNOWN",
+      });
+    } else {
+      await failEditorialUsage(reservationId);
+    }
     throw error;
   }
 }
@@ -488,7 +541,7 @@ CONTENT>>>`,
       maxTokens: 3000,
     });
 
-    const estimatedCost = estimateEditorialTextCost(model, result.inputTokens, result.outputTokens);
+    const estimatedCost = estimateEditorialTextCost(model, result.inputTokens, result.outputTokens, result.cachedInputTokens);
     await finalizeEditorialUsage(reservationId, {
       model,
       inputTokens: result.inputTokens,
@@ -499,7 +552,19 @@ CONTENT>>>`,
 
     return { summary: result.data.summary, issues: result.data.issues, checklist: result.data.checklist, model, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
   } catch (error) {
-    await failEditorialUsage(reservationId);
+    const ambiguous = error instanceof EditorialAiError && (error.providerState === "started" || (error.providerState === "responded" && (!error.httpStatus || (error.httpStatus >= 200 && error.httpStatus < 300))));
+    if (ambiguous) {
+      await finalizeEditorialUsage(reservationId, {
+        model,
+        inputTokens: 0,
+        outputTokens: 0,
+        estimatedCost: null,
+        costAvailable: false,
+        status: "PROVIDER_OUTCOME_UNKNOWN",
+      });
+    } else {
+      await failEditorialUsage(reservationId);
+    }
     throw error;
   }
 }

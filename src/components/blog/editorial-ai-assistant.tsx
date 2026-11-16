@@ -331,7 +331,11 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
       setError("The focus keyword changed. Run refinement again.");
       return;
     }
-    if (refineCapturedBase !== null && article.articleContent !== refineCapturedBase) {
+    if (refineCapturedBase === null) {
+      setError("This result was generated without an original article and cannot be applied.");
+      return;
+    }
+    if (article.articleContent !== refineCapturedBase) {
       setError("The article changed after refinement started. Review and retry.");
       return;
     }
@@ -378,7 +382,11 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
       setError("The target language changed. Run translation again.");
       return;
     }
-    if (translateCapturedBase !== null && article.articleContent !== translateCapturedBase) {
+    if (translateCapturedBase === null) {
+      setError("This result was generated without an original article and cannot be applied.");
+      return;
+    }
+    if (article.articleContent !== translateCapturedBase) {
       setError("The article changed after translation started. Review and retry.");
       return;
     }
@@ -631,7 +639,7 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
                 <textarea className={`${inputClass} min-h-32`} value={refineResult} onChange={(e) => setRefineResult(e.target.value)} />
                 {refineNotes.length ? <ul className="list-disc pl-4 text-xs text-muted">{refineNotes.map((n, i) => <li key={i}>{n}</li>)}</ul> : null}
                 {refineScope === "suggestion" ? (
-                  <p className="text-[11px] text-muted">Suggestion only: review the proposed text. Switch scope to apply it.</p>
+                  <p className="text-[11px] text-muted">Suggestion only: review the proposed text. To apply it, rerun the operation with the desired scope.</p>
                 ) : (
                   <button type="button" onClick={applyRefineToArticle} className="inline-flex w-fit items-center gap-2 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-[#001018]">
                     <Check className="size-3.5" /> Apply to article
@@ -693,7 +701,7 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
                 <textarea className={`${inputClass} min-h-32`} value={translateResult} onChange={(e) => setTranslateResult(e.target.value)} />
                 {translateNotes.length ? <ul className="list-disc pl-4 text-xs text-muted">{translateNotes.map((n, i) => <li key={i}>{n}</li>)}</ul> : null}
                 {translateScope === "suggestion" ? (
-                  <p className="text-[11px] text-muted">Suggestion only: review the proposed translation. Switch scope to apply it.</p>
+                  <p className="text-[11px] text-muted">Suggestion only: review the proposed translation. To apply it, rerun the operation with the desired scope.</p>
                 ) : (
                   <button type="button" onClick={applyTranslateToArticle} className="inline-flex w-fit items-center gap-2 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-[#001018]">
                     <Check className="size-3.5" /> Apply to article

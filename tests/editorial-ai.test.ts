@@ -3,6 +3,8 @@ import { isEditorialAiEnabled, getEditorialTextModel, getEditorialImageModel } f
 import { estimateEditorialTextCost, estimateEditorialImageCost } from "@/lib/ai/editorial-pricing";
 import { editorialArticleSchema, editorialEditResultSchema, editorialTranslateResultSchema, editorialReviewResultSchema } from "@/lib/ai/editorial-types";
 import { z } from "zod";
+import { normalizeArticleHtml } from "@/lib/blog/sanitize";
+import { isReasoningModel } from "@/lib/ai/editorial-service";
 
 describe("editorial AI configuration", () => {
   it("is disabled unless explicitly enabled", () => {
@@ -63,5 +65,23 @@ describe("editorial AI configuration", () => {
     for (const schema of [editorialArticleSchema, editorialEditResultSchema, editorialTranslateResultSchema, editorialReviewResultSchema]) {
       assertStrict(z.toJSONSchema(schema));
     }
+  });
+
+  it("sanitizes article HTML without Node Buffer", () => {
+    const originalBuffer = globalThis.Buffer;
+    // @ts-expect-error test-only browser simulation
+    delete globalThis.Buffer;
+    try {
+      const clean = normalizeArticleHtml("<p>Hello <strong>world</strong></p><script>alert(1)</script>");
+      expect(clean).toContain("<strong>world</strong>");
+      expect(clean).not.toContain("script");
+    } finally {
+      globalThis.Buffer = originalBuffer;
+    }
+  });
+
+  it("omits sampling parameters for reasoning models", () => {
+    expect(isReasoningModel("gpt-6-luna")).toBe(true);
+    expect(isReasoningModel("gpt-4o")).toBe(false);
   });
 });
