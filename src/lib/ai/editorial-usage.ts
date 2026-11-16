@@ -18,43 +18,52 @@ export async function reserveEditorialUsage(params: {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
 
-  return prisma.$transaction(async (tx) => {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${params.actorId + ":" + params.requestType}))`;
-    if (params.burstLimit) {
-      const burstSince = new Date(Date.now() - 60_000);
-      const burstCount = await tx.aIUsage.count({
-        where: {
-          userId: params.actorId,
-          createdAt: { gte: burstSince },
-          requestType: { in: ["EDITORIAL_ARTICLE", "EDITORIAL_EDIT", "EDITORIAL_TRANSLATE", "EDITORIAL_REVIEW", "EDITORIAL_IMAGE"] },
-        },
-      });
-      if (burstCount >= params.burstLimit) {
-        throw new EditorialAiError("quota", "Too many editorial AI requests. Try again shortly.");
-      }
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${params.actorId}))`;
+        if (params.burstLimit) {
+          const burstSince = new Date(Date.now() - 60_000);
+          const burstCount = await tx.aIUsage.count({
+            where: {
+              userId: params.actorId,
+              createdAt: { gte: burstSince },
+              requestType: { in: ["EDITORIAL_ARTICLE", "EDITORIAL_EDIT", "EDITORIAL_TRANSLATE", "EDITORIAL_REVIEW", "EDITORIAL_IMAGE"] },
+            },
+          });
+          if (burstCount >= params.burstLimit) {
+            throw new EditorialAiError("quota", "Too many editorial AI requests. Try again shortly.");
+          }
+        }
+        const used = await tx.aIUsage.count({
+          where: { userId: params.actorId, requestType: params.requestType, createdAt: { gte: start } },
+        });
+        if (used >= params.limit) {
+          throw new EditorialAiError("limit_reached", `Daily limit of ${params.limit} requests reached.`);
+        }
+        const row = await tx.aIUsage.create({
+          data: {
+            userId: params.actorId,
+            model: params.model,
+            requestType: params.requestType,
+            status: "RESERVED",
+            estimatedCost: null,
+            costAvailable: false,
+            imageCount: params.imageCount ?? 0,
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+          },
+        });
+        return row.id;
+      }, { isolationLevel: "Serializable" });
+    } catch (error) {
+      const code = (error as { code?: string })?.code;
+      if (code === "P2034" && attempt < 2) continue;
+      throw error;
     }
-    const used = await tx.aIUsage.count({
-      where: { userId: params.actorId, requestType: params.requestType, createdAt: { gte: start } },
-    });
-    if (used >= params.limit) {
-      throw new EditorialAiError("limit_reached", `Daily limit of ${params.limit} requests reached.`);
-    }
-    const row = await tx.aIUsage.create({
-      data: {
-        userId: params.actorId,
-        model: params.model,
-        requestType: params.requestType,
-        status: "RESERVED",
-        estimatedCost: null,
-        costAvailable: false,
-        imageCount: params.imageCount ?? 0,
-        inputTokens: 0,
-        outputTokens: 0,
-        totalTokens: 0,
-      },
-    });
-    return row.id;
-  }, { isolationLevel: "Serializable" });
+  }
+  throw new EditorialAiError("api", "Usage reservation could not be completed.");
 }
 
 export async function finalizeEditorialUsage(id: string | null, data: {
@@ -84,7 +93,7 @@ export async function finalizeEditorialUsage(id: string | null, data: {
       },
     });
   } catch (error) {
-    console.warn("[editorial-ai] usage_finalize_failed", getErrorMessage(error));
+    console.error("[editorial-ai] usage_finalize_failed", { reservationId: id, error: getErrorMessage(error), reconciliationRequired: true });
   }
 }
 
@@ -98,7 +107,7 @@ export async function failEditorialUsage(id: string | null) {
       data: { status: "FAILED" },
     });
   } catch (error) {
-    console.warn("[editorial-ai] usage_fail_record_failed", getErrorMessage(error));
+    console.error("[editorial-ai] usage_fail_record_failed", { reservationId: id, error: getErrorMessage(error), reconciliationRequired: true });
   }
 }
 

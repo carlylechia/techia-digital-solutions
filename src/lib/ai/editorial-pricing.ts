@@ -14,10 +14,12 @@ const TEXT_PRICING_USD_PER_MILLION: Record<string, { input: number; output: numb
   "gpt-6-luna": { input: 0.1, output: 0.5 },
 };
 
-export function estimateEditorialTextCost(model: string, inputTokens: number, outputTokens: number): EditorialTextCost {
+export function estimateEditorialTextCost(model: string, inputTokens: number, outputTokens: number, cachedInputTokens = 0): EditorialTextCost {
   const pricing = TEXT_PRICING_USD_PER_MILLION[model];
   if (!pricing) return null;
-  return (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
+  const cached = Math.min(Math.max(cachedInputTokens, 0), inputTokens);
+  const uncachedInput = inputTokens - cached;
+  return (uncachedInput * pricing.input + cached * pricing.input * 0.1 + outputTokens * pricing.output) / 1_000_000;
 }
 
 // Verified against OpenAI pricing documentation on 2026-11-16.
