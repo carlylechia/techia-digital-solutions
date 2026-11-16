@@ -12,13 +12,13 @@ export async function reserveEditorialUsage(params: {
   imageCount?: number;
 }) {
   const prisma = getPrisma();
-  if (!prisma) return null;
+  if (!prisma) throw new EditorialAiError("not_configured", "Editorial AI usage tracking is unavailable.");
 
   const start = new Date();
   start.setHours(0, 0, 0, 0);
 
   return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${params.actorId + ":" + params.requestType}))`;
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${params.actorId + ":" + params.requestType}))`;
     const used = await tx.aIUsage.count({
       where: { userId: params.actorId, requestType: params.requestType, createdAt: { gte: start } },
     });
@@ -50,7 +50,7 @@ export async function finalizeEditorialUsage(id: string | null, data: {
   estimatedCost: number | null;
   costAvailable: boolean;
   imageCount?: number;
-  status?: "SUCCEEDED" | "FAILED";
+  status?: string;
 }) {
   if (!id) return;
   const prisma = getPrisma();
@@ -85,5 +85,29 @@ export async function failEditorialUsage(id: string | null) {
     });
   } catch (error) {
     console.warn("[editorial-ai] usage_fail_record_failed", getErrorMessage(error));
+  }
+}
+
+const EDITORIAL_BURST_REQUEST_TYPES = [
+  "EDITORIAL_ARTICLE",
+  "EDITORIAL_EDIT",
+  "EDITORIAL_TRANSLATE",
+  "EDITORIAL_REVIEW",
+  "EDITORIAL_IMAGE",
+];
+
+export async function checkEditorialBurstLimit(actorId: string, limit: number, windowMs = 60_000) {
+  const prisma = getPrisma();
+  if (!prisma) throw new EditorialAiError("not_configured", "Editorial AI usage tracking is unavailable.");
+  const since = new Date(Date.now() - windowMs);
+  const count = await prisma.aIUsage.count({
+    where: {
+      userId: actorId,
+      createdAt: { gte: since },
+      requestType: { in: EDITORIAL_BURST_REQUEST_TYPES },
+    },
+  });
+  if (count >= limit) {
+    throw new EditorialAiError("quota", "Too many editorial AI requests. Try again shortly.");
   }
 }
