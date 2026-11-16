@@ -16,11 +16,22 @@ export function isEditorialImageEnabled() {
 }
 
 export function getEditorialTextModel() {
-  return (process.env.OPENAI_EDITORIAL_TEXT_MODEL || process.env.OPENAI_MODEL || "gpt-4.1").trim();
+  const configured = process.env.OPENAI_EDITORIAL_TEXT_MODEL?.trim();
+  if (configured) return configured;
+  const shared = process.env.OPENAI_MODEL?.trim();
+  return shared || "";
 }
 
 export function getEditorialImageModel() {
-  return (process.env.OPENAI_EDITORIAL_IMAGE_MODEL || "gpt-image-1").trim();
+  return process.env.OPENAI_EDITORIAL_IMAGE_MODEL?.trim() || "";
+}
+
+export function isEditorialTextModelConfigured() {
+  return Boolean(getEditorialTextModel());
+}
+
+export function isEditorialImageModelConfigured() {
+  return Boolean(getEditorialImageModel());
 }
 
 export const EDITORIAL_AI_CONFIG = {
