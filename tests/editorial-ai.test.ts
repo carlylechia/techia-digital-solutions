@@ -21,6 +21,20 @@ describe("editorial AI configuration", () => {
     expect(estimateEditorialImageCost("unknown-model", "1536x1024")).toBeNull();
   });
 
+  it("uses corrected text pricing", () => {
+    expect(estimateEditorialTextCost("gpt-5.4", 1_000_000, 1_000_000)).toBe(17.5);
+    expect(estimateEditorialTextCost("gpt-5.4-mini", 1_000_000, 1_000_000)).toBe(5.25);
+    expect(estimateEditorialTextCost("gpt-6-luna", 1_000_000, 1_000_000)).toBe(0.6);
+  });
+
+  it("accounts for cached input tokens", () => {
+    expect(estimateEditorialTextCost("gpt-4o-mini", 1_000_000, 0, 500_000)).toBeCloseTo(0.0825, 6);
+  });
+
+  it("does not present image output estimates as complete costs", () => {
+    expect(estimateEditorialImageCost("gpt-image-1.5", "1536x1024", "high")).toBeNull();
+  });
+
   it("validates the structured article package", () => {
     expect(() =>
       editorialArticleSchema.parse({
