@@ -89,6 +89,7 @@ export default async function AIUsagePage({
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
+  const editorialTypes = ["EDITORIAL_ARTICLE", "EDITORIAL_EDIT", "EDITORIAL_TRANSLATE", "EDITORIAL_REVIEW", "EDITORIAL_IMAGE"];
   const result = await (async () => {
     try {
       const data = await Promise.all([
@@ -100,7 +101,17 @@ export default async function AIUsagePage({
         prisma.aIUsage.aggregate({
           _sum: { totalTokens: true, estimatedCost: true },
           _count: { id: true },
+          where: { requestType: { in: editorialTypes }, createdAt: { gte: startOfDay } },
+        }),
+        prisma.aIUsage.aggregate({
+          _sum: { totalTokens: true, estimatedCost: true },
+          _count: { id: true },
           where: { requestType: "PUBLIC_AGENT", createdAt: { gte: startOfMonth } },
+        }),
+        prisma.aIUsage.aggregate({
+          _sum: { totalTokens: true, estimatedCost: true },
+          _count: { id: true },
+          where: { requestType: { in: editorialTypes }, createdAt: { gte: startOfMonth } },
         }),
         prisma.aIUsage.findMany({
           orderBy: { createdAt: "desc" },
@@ -146,7 +157,7 @@ export default async function AIUsagePage({
     );
   }
 
-  const [todayStats, monthStats, recentRecords, total] = result.data;
+  const [todayStats, editorialTodayStats, monthStats, editorialMonthStats, recentRecords, total] = result.data;
 
   const totalPages = Math.ceil(total / pageSize);
   const baseHref = "/admin/ai-usage";
@@ -198,6 +209,22 @@ export default async function AIUsagePage({
               ${(monthStats._sum.estimatedCost ?? 0).toFixed(4)}
             </p>
           </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Editorial today requests
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {editorialTodayStats._count.id.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Editorial month cost
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              ${(editorialMonthStats._sum.estimatedCost ?? 0)?.toFixed(4) ?? "n/a"}
+            </p>
+          </div>
         </div>
 
         {/* Table */}
@@ -235,7 +262,7 @@ export default async function AIUsagePage({
                   <td className="px-4 py-3 text-muted">{rec.inputTokens}</td>
                   <td className="px-4 py-3 text-muted">{rec.outputTokens}</td>
                   <td className="px-4 py-3 font-medium text-primary">{rec.totalTokens}</td>
-                  <td className="px-4 py-3 text-muted text-xs">${rec.estimatedCost.toFixed(6)}</td>
+                  <td className="px-4 py-3 text-muted text-xs">${(rec.estimatedCost ?? 0).toFixed(6)}</td>
                   <td className="px-4 py-3 text-xs text-muted">{rec.requestType}</td>
                   <td className="px-4 py-3 text-xs text-muted">
                     {rec.createdAt.toLocaleString()}
