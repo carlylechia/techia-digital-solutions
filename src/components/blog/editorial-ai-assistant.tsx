@@ -85,8 +85,13 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
   const [refineCapturedScope, setRefineCapturedScope] = useState<"suggestion" | "selected" | "full">("suggestion");
   const [refineCapturedTarget, setRefineCapturedTarget] = useState("");
   const [refineCapturedBase, setRefineCapturedBase] = useState<string | null>(null);
+  const [refineCapturedAction, setRefineCapturedAction] = useState<EditorialEditAction>("improve_clarity");
+  const [refineCapturedLanguage, setRefineCapturedLanguage] = useState<EditorialLanguage>("en");
+  const [refineCapturedFocusKeyword, setRefineCapturedFocusKeyword] = useState("");
 
   const [translateDirection, setTranslateDirection] = useState<"en_to_fr" | "fr_to_en" | "improve_translation">("en_to_fr");
+  const [translateSourceLanguage, setTranslateSourceLanguage] = useState<"en" | "fr">("en");
+  const [translateTargetLanguage, setTranslateTargetLanguage] = useState<"en" | "fr">("fr");
   const [translateContent, setTranslateContent] = useState("");
   const [translatePending, setTranslatePending] = useState(false);
   const [translateResult, setTranslateResult] = useState<string | null>(null);
@@ -97,6 +102,9 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
   const [translateCapturedScope, setTranslateCapturedScope] = useState<"suggestion" | "selected" | "full">("suggestion");
   const [translateCapturedTarget, setTranslateCapturedTarget] = useState("");
   const [translateCapturedBase, setTranslateCapturedBase] = useState<string | null>(null);
+  const [translateCapturedDirection, setTranslateCapturedDirection] = useState<"en_to_fr" | "fr_to_en" | "improve_translation">("en_to_fr");
+  const [translateCapturedSourceLanguage, setTranslateCapturedSourceLanguage] = useState<"en" | "fr">("en");
+  const [translateCapturedTargetLanguage, setTranslateCapturedTargetLanguage] = useState<"en" | "fr">("fr");
 
   const [reviewContent, setReviewContent] = useState("");
   const [reviewPending, setReviewPending] = useState(false);
@@ -207,6 +215,9 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
     setRefineCapturedScope(refineScope);
     setRefineCapturedTarget(refineTarget);
     setRefineCapturedBase(article?.articleContent || null);
+    setRefineCapturedAction(refineAction);
+    setRefineCapturedLanguage(language);
+    setRefineCapturedFocusKeyword(focusKeyword);
     try {
       const result = await postJson<{ ok: true; result: string; notes: string[] }>(
         "/api/editorial/ai/edit",
@@ -247,6 +258,9 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
     setTranslateCapturedScope(translateScope);
     setTranslateCapturedTarget(translateTarget);
     setTranslateCapturedBase(article?.articleContent || null);
+    setTranslateCapturedDirection(translateDirection);
+    setTranslateCapturedSourceLanguage(translateSourceLanguage);
+    setTranslateCapturedTargetLanguage(translateTargetLanguage);
     try {
       const result = await postJson<{ ok: true; translatedContent: string; notes: string[] }>(
         "/api/editorial/ai/translate",
@@ -254,6 +268,8 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
           direction: translateDirection,
           content: contentToSend,
           context: additionalInstructions || undefined,
+          sourceLanguage: translateDirection === "improve_translation" ? translateSourceLanguage : undefined,
+          targetLanguage: translateDirection === "improve_translation" ? translateTargetLanguage : undefined,
         },
       );
       setTranslateResult(result.translatedContent);
@@ -303,6 +319,18 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
       setError("The selected passage changed. Run refinement again.");
       return;
     }
+    if (refineCapturedAction !== refineAction) {
+      setError("The refinement action changed. Run refinement again.");
+      return;
+    }
+    if (refineCapturedLanguage !== language) {
+      setError("The language changed. Run refinement again.");
+      return;
+    }
+    if (refineCapturedFocusKeyword !== focusKeyword) {
+      setError("The focus keyword changed. Run refinement again.");
+      return;
+    }
     if (refineCapturedBase !== null && article.articleContent !== refineCapturedBase) {
       setError("The article changed after refinement started. Review and retry.");
       return;
@@ -320,6 +348,7 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
         setError("The selected passage must occur exactly once. Update the selection and retry.");
         return;
       }
+      if (target === article.articleContent && !window.confirm("The selected passage is the entire article. Replace the entire article?")) return;
       setArticle({ ...article, articleContent: article.articleContent.replace(target, refineResult) });
       setRefineResult(null);
       return;
@@ -335,6 +364,18 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
     }
     if (translateCapturedTarget !== translateTarget) {
       setError("The selected passage changed. Run translation again.");
+      return;
+    }
+    if (translateCapturedDirection !== translateDirection) {
+      setError("The translation direction changed. Run translation again.");
+      return;
+    }
+    if (translateCapturedSourceLanguage !== translateSourceLanguage) {
+      setError("The source language changed. Run translation again.");
+      return;
+    }
+    if (translateCapturedTargetLanguage !== translateTargetLanguage) {
+      setError("The target language changed. Run translation again.");
       return;
     }
     if (translateCapturedBase !== null && article.articleContent !== translateCapturedBase) {
@@ -354,6 +395,7 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
         setError("The selected passage must occur exactly once. Update the selection and retry.");
         return;
       }
+      if (target === article.articleContent && !window.confirm("The selected passage is the entire article. Replace the entire article?")) return;
       setArticle({ ...article, articleContent: article.articleContent.replace(target, translateResult) });
       setTranslateResult(null);
       return;
@@ -618,6 +660,22 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
                 <option value="improve_translation">Improve translation</option>
               </select>
             </label>
+            {translateDirection === "improve_translation" ? (
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="form-label text-xs">Source language
+                  <select className={inputClass} value={translateSourceLanguage} onChange={(e) => setTranslateSourceLanguage(e.target.value as typeof translateSourceLanguage)}>
+                    <option value="en">English</option>
+                    <option value="fr">French</option>
+                  </select>
+                </label>
+                <label className="form-label text-xs">Target language
+                  <select className={inputClass} value={translateTargetLanguage} onChange={(e) => setTranslateTargetLanguage(e.target.value as typeof translateTargetLanguage)}>
+                    <option value="en">English</option>
+                    <option value="fr">French</option>
+                  </select>
+                </label>
+              </div>
+            ) : null}
             {translateScope === "selected" ? (
               <label className="form-label text-xs">Exact passage to translate
                 <textarea className={`${inputClass} min-h-24`} value={translateTarget} onChange={(e) => setTranslateTarget(e.target.value)} placeholder="Paste the exact passage from the article" />
