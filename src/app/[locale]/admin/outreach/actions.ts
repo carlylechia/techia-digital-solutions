@@ -738,9 +738,9 @@ export async function instantGenerateOutreachMessage(input: { prospectId: string
     const prospectId = String(input.prospectId ?? "").slice(0, 64);
     if (!prospectId) return { ok: false, error: "Invalid request." };
 
-    const prospect = await db.outreachProspect.findUnique({ where: { id: prospectId }, select: { id: true, campaignId: true, status: true, publicEmail: true } });
+    const prospect = await db.outreachProspect.findUnique({ where: { id: prospectId }, select: { id: true, campaignId: true, status: true, publicEmail: true, publicPhone: true } });
     if (!prospect) return { ok: false, error: "Prospect not found." };
-    if (!prospect.publicEmail) return { ok: false, error: "This prospect has no email address." };
+    if (!prospect.publicEmail && !prospect.publicPhone) return { ok: false, error: "This prospect has no email address or phone number." };
 
     // Run the email generation stage directly (bypasses the queue)
     const result = await runEmailGenerationStage(prospectId, "INITIAL");

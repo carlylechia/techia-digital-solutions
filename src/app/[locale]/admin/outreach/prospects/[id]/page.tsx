@@ -373,6 +373,9 @@ export default async function OutreachProspectDetailPage({ params }: { params: P
             prospectId={prospect.id}
             currentStatus={prospect.status}
             hasEmail={Boolean(prospect.publicEmail)}
+            hasPhone={Boolean(prospect.publicPhone)}
+            phone={prospect.publicPhone}
+            latestMessage={prospect.messages[0]?.bodyText ?? null}
             canManage={actor.canManage}
             canSend={actor.canSend}
           />

@@ -14,6 +14,7 @@ import {
 } from "@/app/[locale]/admin/outreach/actions";
 import { OUTREACH_PROSPECT_STATUSES, OUTREACH_STATUS_LABELS } from "@/lib/outreach/constants";
 import { OutreachButton, OutreachField, outreachInputClass } from "./outreach-ui";
+import { whatsappLink } from "@/lib/whatsapp";
 
 /**
  * Prospect actions.
@@ -21,16 +22,23 @@ import { OutreachButton, OutreachField, outreachInputClass } from "./outreach-ui
  * Status changes go through server actions that re-verify `outreach.manage` on
  * every call, so a stale page cannot bypass the permission check.
  */
+
 export function OutreachProspectActions({
   prospectId,
   currentStatus,
   hasEmail,
+  hasPhone,
+  phone,
+  latestMessage,
   canManage,
   canSend,
 }: {
   prospectId: string;
   currentStatus: string;
   hasEmail: boolean;
+  hasPhone: boolean;
+  phone?: string | null;
+  latestMessage?: string | null;
   canManage: boolean;
   canSend: boolean;
 }) {
@@ -80,11 +88,21 @@ export function OutreachProspectActions({
         <OutreachButton
           type="button"
           tone="good"
-          disabled={pending || !canManage || !hasEmail}
+          disabled={pending || !canManage || (!hasEmail && !hasPhone)}
           onClick={() => run(() => instantGenerateOutreachMessage({ prospectId }))}
         >
           ✉️ Generate Message Instantly
         </OutreachButton>
+        {hasPhone && phone ? (
+          <a
+            href={whatsappLink(phone, latestMessage || "Hello, I wanted to reach out regarding your business.")}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/20"
+          >
+            💬 Send via WhatsApp
+          </a>
+        ) : null}
         <OutreachButton
           type="button"
           tone="good"
