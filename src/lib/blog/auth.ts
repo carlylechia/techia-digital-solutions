@@ -88,6 +88,17 @@ export async function requireBlogPostAccess(postId: string, permission?: AdminPe
   return { user, post, canManage, ownsPost };
 }
 
+export function isSuperAdminUser(user: BlogSessionUser) {
+  return user.role === "super_admin" || user.roleLevel >= 100;
+}
+
+export async function requireSuperAdmin() {
+  const user = await getBlogSessionUser();
+  if (!user) throw new BlogAuthorizationError("Authentication is required.", 401);
+  if (!isSuperAdminUser(user)) throw new BlogAuthorizationError("SuperAdmin access is required.", 403);
+  return user;
+}
+
 export function isBlogEditor(user: BlogSessionUser) {
   return hasPermission(user.permissions, "blog.posts.manage");
 }
