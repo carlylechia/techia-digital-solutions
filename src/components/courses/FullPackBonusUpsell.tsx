@@ -16,10 +16,10 @@ export function FullPackBonusUpsell({
       ? {
           eyebrow: "Bundle bonus complet",
           title: "Vous voulez le bundle bonus complet ?",
-          body: "Le Full teChia Digital Skills Pack vous donne acces aux 16 cours et debloque le bundle bonus complet, y compris le Business Digital Checkup Template et le 30-Day Digital Skills Action Plan.",
+          body: "Le Full teChia Digital Skills Pack vous donne acces aux 15 cours et debloque le bundle bonus complet, y compris le Business Digital Checkup Template et le 30-Day Digital Skills Action Plan.",
           cta: "Voir le pack complet",
           highlights: [
-            "16 cours",
+            "15 cours",
             "Bundle bonus complet",
             "Meilleure valeur",
           ],
@@ -27,10 +27,10 @@ export function FullPackBonusUpsell({
       : {
           eyebrow: "Complete bonus bundle",
           title: "Want the complete bonus bundle?",
-          body: "The Full teChia Digital Skills Pack gives you access to all 16 courses and unlocks the full bonus bundle, including the Business Digital Checkup Template and 30-Day Digital Skills Action Plan.",
+          body: "The Full teChia Digital Skills Pack gives you access to all 15 courses and unlocks the full bonus bundle, including the Business Digital Checkup Template and 30-Day Digital Skills Action Plan.",
           cta: "View Full Pack",
           highlights: [
-            "16 courses",
+            "15 courses",
             "Complete bonus bundle",
             "Best value",
           ],

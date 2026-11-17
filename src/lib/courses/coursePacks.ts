@@ -94,7 +94,7 @@ export const COURSE_PACK_DEFINITIONS: CoursePackDefinition[] = [
         shortTitle: "Full Pack",
         category: "Complete learning library",
         tagline:
-          "The complete 16-course learning library for practical digital growth.",
+          "The complete 15-course learning library for practical digital growth.",
         summary:
           "Get the full collection of teChia’s curated digital skills courses in one complete pack. This is the best option if you want a broad learning path covering online business, marketing, content creation, AI, technology, office productivity, business skills, finance, and market education.",
         longDescription:
@@ -115,13 +115,13 @@ export const COURSE_PACK_DEFINITIONS: CoursePackDefinition[] = [
           "Learn at your own pace with a broad digital skills library",
         ],
         whyChoose: [
-          "It gives you access to all 16 available courses instead of limiting you to one narrower category.",
+          "It gives you access to all 15 available courses instead of limiting you to one narrower category.",
           "It is the best value if you expect to grow across business, creative, technical, and professional skill areas.",
           "It gives you a more flexible learning library, so you can move between topics as your goals evolve.",
         ],
         seoTitle: "Full teChia Digital Skills Pack | teChia Digital Academy",
         seoDescription:
-          "Get the full 16-course teChia Digital Academy library covering digital marketing, AI, design, office skills, business, finance, and online growth.",
+          "Get the full 15-course teChia Digital Academy library covering digital marketing, AI, design, office skills, business, finance, and online growth.",
       },
       fr: {
         slug: "pack-complet-competences-digitales",
@@ -129,7 +129,7 @@ export const COURSE_PACK_DEFINITIONS: CoursePackDefinition[] = [
         shortTitle: "Pack complet",
         category: "Bibliothèque complète",
         tagline:
-          "La bibliothèque complète de 16 cours pour développer des compétences digitales utiles.",
+          "La bibliothèque complète de 15 cours pour développer des compétences digitales utiles.",
         summary:
           "Accédez à toute la collection de cours sélectionnés par teChia dans un seul pack complet. C’est le meilleur choix si vous voulez un parcours large couvrant business en ligne, marketing, création de contenu, IA, technologie, bureautique, compétences business, finance et éducation de marché.",
         longDescription:
@@ -150,13 +150,13 @@ export const COURSE_PACK_DEFINITIONS: CoursePackDefinition[] = [
           "Apprendre à votre rythme avec une bibliothèque complète",
         ],
         whyChoose: [
-          "Vous accédez aux 16 cours disponibles au lieu de rester limité à une seule catégorie.",
+          "Vous accédez aux 15 cours disponibles au lieu de rester limité à une seule catégorie.",
           "C’est la meilleure valeur si vous voulez progresser en business, création, tech et compétences professionnelles.",
           "Vous gardez une bibliothèque plus flexible pour évoluer selon vos objectifs.",
         ],
         seoTitle: "Pack complet teChia Digital Skills | teChia Digital Academy",
         seoDescription:
-          "Accédez à la bibliothèque complète de 16 cours teChia Digital Academy sur le marketing digital, l’IA, le design, la bureautique, le business, la finance et la croissance en ligne.",
+          "Accédez à la bibliothèque complète de 15 cours teChia Digital Academy sur le marketing digital, l’IA, le design, la bureautique, le business, la finance et la croissance en ligne.",
       },
     },
   },
@@ -630,7 +630,7 @@ export function getCourseAcademyFaqs(locale: Locale): CourseFaqItem[] {
       {
         question: "Le pack complet est-il la meilleure valeur ?",
         answer:
-          "Le pack complet inclut les 16 cours. C’est le choix le plus complet si vous voulez toute la bibliothèque d’apprentissage en un seul achat.",
+          "Le pack complet inclut les 15 cours. C’est le choix le plus complet si vous voulez toute la bibliothèque d’apprentissage en un seul achat.",
       },
       {
         question: "Les cours conviennent-ils aux débutants ?",
@@ -679,7 +679,7 @@ export function getCourseAcademyFaqs(locale: Locale): CourseFaqItem[] {
     {
       question: "Is the full pack better value?",
       answer:
-        "The full pack includes all 16 courses. It is the most complete option if you want the entire learning library in one purchase.",
+        "The full pack includes all 15 courses. It is the most complete option if you want the entire learning library in one purchase.",
     },
     {
       question: "Are the courses beginner-friendly?",

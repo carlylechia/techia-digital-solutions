@@ -494,9 +494,9 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
         type="button"
         onClick={() => setOpen(true)}
         disabled={disabled}
-        className="inline-flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition hover:bg-accent/20 disabled:opacity-50"
+        className="inline-flex items-center gap-2 rounded-lg border-2 border-accent/40 bg-accent/10 px-4 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/20 disabled:opacity-50"
       >
-        <Sparkles className="size-3.5" />
+        <Sparkles className="size-4" />
         Generate with AI
       </button>
     );

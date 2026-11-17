@@ -135,7 +135,7 @@ export default async function CoursePackDetailPage({
               ? "Bundle bonus exclusif du pack complet"
               : "Votre achat inclut le Official teChia Buyer Bonus",
             buyerBonusDescription: pack.recommended
-              ? "Achetez le pack complet 16 cours via la page officielle teChia Digital Academy et débloquez le bundle bonus complet."
+              ? "Achetez le pack complet 15 cours via la page officielle teChia Digital Academy et débloquez le bundle bonus complet."
               : "Quand vous achetez ce pack via la page officielle teChia Digital Academy, vous pouvez réclamer les ressources bonus éligibles.",
             buyerBonusClaim: "Réclamer le bonus acheteur",
             buyerBonusBuyFullPack: "Acheter le pack complet + bonus",
