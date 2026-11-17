@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { Loader2, Sparkles, Wand2, Image as ImageIcon, Languages, ClipboardCheck, Check, X } from "lucide-react";
 import { ProfessionalLoader } from "@/components/ui/professional-loader";
 import type { BlogLocale } from "@/lib/blog/constants";
@@ -517,34 +516,31 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
         </button>
       </div>
 
-      {busyOperation
-        ? createPortal(
-            <div
-              role="status"
-              aria-live="polite"
-              className="pointer-events-none fixed bottom-5 right-5 z-[80] w-[min(22rem,calc(100vw-2.5rem))] overflow-hidden rounded-2xl border border-accent/25 bg-background/95 p-4 shadow-[0_24px_60px_-24px_rgba(34,211,238,0.55)] backdrop-blur-md"
-            >
-              <p className="text-center text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
-                {busyOperation === "generate" ? "Generating article" : busyOperation === "image" ? "Generating featured image" : busyOperation === "refine" ? "Refining content" : busyOperation === "translate" ? "Translating content" : "Reviewing article"}
-              </p>
-              <ProfessionalLoader size="sm" label={operationStages[busyOperation][loaderStage]} />
-              <div className="mt-3 flex items-center justify-center gap-1.5" aria-hidden="true">
-                {operationStages[busyOperation].map((stage, index) => (
-                  <span
-                    key={stage}
-                    className={`h-1.5 rounded-full transition-all duration-500 ${
-                      index === loaderStage ? "w-8 bg-accent" : index < loaderStage ? "w-4 bg-accent/60" : "w-4 bg-border"
-                    }`}
-                  />
-                ))}
-              </div>
-              <p className="mt-2 text-center text-[11px] leading-5 text-muted">
-                Step {loaderStage + 1} of {operationStages[busyOperation].length} · {operationHints[busyOperation]}
-              </p>
-            </div>,
-            document.body,
-          )
-        : null}
+      {busyOperation ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="overflow-hidden rounded-2xl border border-accent/25 bg-surface-strong/70 p-4"
+        >
+          <p className="text-center text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
+            {busyOperation === "generate" ? "Generating article" : busyOperation === "image" ? "Generating featured image" : busyOperation === "refine" ? "Refining content" : busyOperation === "translate" ? "Translating content" : "Reviewing article"}
+          </p>
+          <ProfessionalLoader size="sm" label={operationStages[busyOperation][loaderStage]} />
+          <div className="mt-3 flex items-center justify-center gap-1.5" aria-hidden="true">
+            {operationStages[busyOperation].map((stage, index) => (
+              <span
+                key={stage}
+                className={`h-1.5 rounded-full transition-all duration-500 ${
+                  index === loaderStage ? "w-8 bg-accent" : index < loaderStage ? "w-4 bg-accent/60" : "w-4 bg-border"
+                }`}
+              />
+            ))}
+          </div>
+          <p className="mt-2 text-center text-[11px] leading-5 text-muted">
+            Step {loaderStage + 1} of {operationStages[busyOperation].length} · {operationHints[busyOperation]}
+          </p>
+        </div>
+      ) : null}
 
       {error ? <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</p> : null}
 

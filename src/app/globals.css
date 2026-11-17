@@ -2786,6 +2786,29 @@ textarea {
     scrollbar-width: none;
   }
 
+  .scroll-pane {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--accent) 45%, transparent) transparent;
+  }
+
+  .scroll-pane::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scroll-pane::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--accent) 38%, transparent);
+    border-radius: 999px;
+  }
+
+  .scroll-pane::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+
+  .scroll-pane::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
   .blog-prose {
     color: var(--muted);
   }
