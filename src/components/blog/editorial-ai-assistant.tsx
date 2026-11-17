@@ -618,6 +618,65 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
         {model ? <span className="text-[11px] text-muted">via {model}</span> : null}
       </div>
 
+      {imageResult ? (
+        <div className="grid gap-2 border-t border-border pt-4">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-primary">
+            <ImageIcon className="size-4 text-accent" />
+            Featured image (image-only)
+          </h3>
+          <p className="text-[11px] text-muted">Write a prompt below to regenerate or replace the featured image independently of the article text.</p>
+          <label className="form-label text-xs">Image prompt
+            <textarea className={`${inputClass} min-h-24`} value={imagePrompt} onChange={(e) => setImagePrompt(e.target.value)} />
+          </label>
+          <label className="form-label text-xs">Alt text
+            <input className={inputClass} value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} />
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void runImageGeneration()}
+              disabled={imagePending}
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-[#001018] transition hover:opacity-90 disabled:opacity-60"
+            >
+              {imagePending ? <Loader2 className="size-3.5 animate-spin" /> : <ImageIcon className="size-3.5" />}
+              {imageResult ? "Regenerate featured image" : "Generate featured image"}
+            </button>
+            {imageResult ? <span className="text-[11px] text-muted">Generated {imageResult.width}×{imageResult.height}</span> : null}
+          </div>
+          {imageResult ? (
+            <div className="grid gap-2">
+              <img src={imageResult.url} alt={imageResult.altText} className="max-h-64 w-full rounded-lg object-cover" />
+              <p className="text-[11px] text-muted">Cloudinary: {imageResult.publicId}</p>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="grid gap-3 border-t border-border pt-4">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-primary">
+            <ImageIcon className="size-4 text-accent" />
+            Featured image (image-only)
+          </h3>
+          <p className="text-[11px] text-muted">Write a prompt below to generate a featured image independently of the article text.</p>
+          <label className="form-label text-xs">Image prompt
+            <textarea className={`${inputClass} min-h-24`} value={imagePrompt} onChange={(e) => setImagePrompt(e.target.value)} />
+          </label>
+          <label className="form-label text-xs">Alt text
+            <input className={inputClass} value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} />
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void runImageGeneration()}
+              disabled={imagePending || !imagePrompt.trim()}
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-[#001018] transition hover:opacity-90 disabled:opacity-60"
+            >
+              {imagePending ? <Loader2 className="size-3.5 animate-spin" /> : <ImageIcon className="size-3.5" />}
+              Generate featured image
+            </button>
+          </div>
+        </div>
+      )}
+
       {article ? (
         <div className="grid gap-4 border-t border-border pt-4">
           <div className="grid gap-3">
@@ -671,37 +730,6 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
               <div className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 text-xs">
                 <p className="font-semibold text-amber-300">Claims to verify</p>
                 <ul className="mt-1 list-disc pl-4 text-muted">{article.claimsToVerify.map((n, i) => <li key={i}>{n}</li>)}</ul>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="grid gap-3 border-t border-border pt-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-primary">
-              <ImageIcon className="size-4 text-accent" />
-              Featured image
-            </h3>
-            <label className="form-label text-xs">Image prompt
-              <textarea className={`${inputClass} min-h-24`} value={imagePrompt} onChange={(e) => setImagePrompt(e.target.value)} />
-            </label>
-            <label className="form-label text-xs">Alt text
-              <input className={inputClass} value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} />
-            </label>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void runImageGeneration()}
-                disabled={imagePending}
-                className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-[#001018] transition hover:opacity-90 disabled:opacity-60"
-              >
-                {imagePending ? <Loader2 className="size-3.5 animate-spin" /> : <ImageIcon className="size-3.5" />}
-                Generate featured image
-              </button>
-              {imageResult ? <span className="text-[11px] text-muted">Generated {imageResult.width}×{imageResult.height}</span> : null}
-            </div>
-            {imageResult ? (
-              <div className="grid gap-2">
-                <img src={imageResult.url} alt={imageResult.altText} className="max-h-64 w-full rounded-lg object-cover" />
-                <p className="text-[11px] text-muted">Cloudinary: {imageResult.publicId}</p>
               </div>
             ) : null}
           </div>
