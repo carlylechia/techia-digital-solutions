@@ -7,6 +7,7 @@ import { Logo } from "@/components/brand/Logo";
 import { isLocale, type Locale } from "@/content/site";
 import { authOptions } from "@/lib/auth";
 import { getPrisma } from "@/lib/prisma";
+import { getEditorialReconciliationStats } from "@/lib/ai/editorial-usage";
 import { requireAdmin } from "@/lib/admin/session";
 import { getErrorMessage, isPrismaSchemaDriftError } from "@/lib/prisma-errors";
 
@@ -89,6 +90,7 @@ export default async function AIUsagePage({
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
+  const editorialTypes = ["EDITORIAL_ARTICLE", "EDITORIAL_EDIT", "EDITORIAL_TRANSLATE", "EDITORIAL_REVIEW", "EDITORIAL_IMAGE"];
   const result = await (async () => {
     try {
       const data = await Promise.all([
@@ -100,8 +102,26 @@ export default async function AIUsagePage({
         prisma.aIUsage.aggregate({
           _sum: { totalTokens: true, estimatedCost: true },
           _count: { id: true },
+          where: { requestType: { in: editorialTypes }, createdAt: { gte: startOfDay } },
+        }),
+        prisma.aIUsage.aggregate({
+          _sum: { totalTokens: true, estimatedCost: true },
+          _count: { id: true },
           where: { requestType: "PUBLIC_AGENT", createdAt: { gte: startOfMonth } },
         }),
+        prisma.aIUsage.aggregate({
+          _sum: { totalTokens: true, estimatedCost: true },
+          _count: { id: true },
+          where: { requestType: { in: editorialTypes }, createdAt: { gte: startOfMonth } },
+        }),
+        prisma.aIUsage.count({ where: { costAvailable: false, requestType: "PUBLIC_AGENT", createdAt: { gte: startOfDay } } }),
+        prisma.aIUsage.count({ where: { costAvailable: false, requestType: { in: editorialTypes }, createdAt: { gte: startOfDay } } }),
+        prisma.aIUsage.count({ where: { costAvailable: false, requestType: "PUBLIC_AGENT", createdAt: { gte: startOfMonth } } }),
+        prisma.aIUsage.count({ where: { costAvailable: false, requestType: { in: editorialTypes }, createdAt: { gte: startOfMonth } } }),
+        prisma.aIUsage.count({ where: { status: "RESERVED" } }),
+        prisma.aIUsage.count({ where: { status: "PROVIDER_OUTCOME_UNKNOWN" } }),
+        prisma.aIUsage.count({ where: { status: "PROVIDER_SUCCEEDED_UPLOAD_FAILED" } }),
+        getEditorialReconciliationStats(),
         prisma.aIUsage.findMany({
           orderBy: { createdAt: "desc" },
           skip: (page - 1) * pageSize,
@@ -114,6 +134,8 @@ export default async function AIUsagePage({
             outputTokens: true,
             totalTokens: true,
             estimatedCost: true,
+            costAvailable: true,
+            status: true,
             requestType: true,
             createdAt: true,
           },
@@ -146,7 +168,7 @@ export default async function AIUsagePage({
     );
   }
 
-  const [todayStats, monthStats, recentRecords, total] = result.data;
+  const [todayStats, editorialTodayStats, monthStats, editorialMonthStats, publicUnknownToday, editorialUnknownToday, publicUnknownMonth, editorialUnknownMonth, reservedCount, unknownOutcomeCount, uploadFailedCount, reconciliationStats, recentRecords, total] = result.data;
 
   const totalPages = Math.ceil(total / pageSize);
   const baseHref = "/admin/ai-usage";
@@ -195,8 +217,107 @@ export default async function AIUsagePage({
               Est. month cost
             </p>
             <p className="mt-2 text-3xl font-bold text-primary">
-              ${(monthStats._sum.estimatedCost ?? 0).toFixed(4)}
+              {`$${(monthStats._sum.estimatedCost ?? 0).toFixed(4)}`}
             </p>
+            <p className="mt-1 text-xs text-muted">
+              Known subtotal; {publicUnknownMonth} public-agent request(s) have unknown cost.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Editorial today requests
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {editorialTodayStats._count.id.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Editorial month cost
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {`$${(editorialMonthStats._sum.estimatedCost ?? 0).toFixed(4)}`}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Known subtotal; {editorialUnknownMonth} editorial request(s) have unknown cost.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Unknown-cost requests (today, public)
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {publicUnknownToday.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Unknown-cost requests (today, editorial)
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {editorialUnknownToday.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Unknown-cost requests (month)
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {(publicUnknownMonth + editorialUnknownMonth).toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Unresolved reservations
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {reservedCount.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Ambiguous provider outcomes
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {unknownOutcomeCount.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Provider success / upload failure
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {uploadFailedCount.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Recovery tasks pending
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {reconciliationStats.pending.toLocaleString()}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Pending tasks are retried automatically on the next scheduled reconciliation run; generation is never re-invoked.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Recovery tasks exhausted
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {reconciliationStats.exhausted.toLocaleString()}
+            </p>
+            <p className="mt-1 text-xs text-muted">Retry limit reached; needs administrator review.</p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
+              Recovery tasks for manual review
+            </p>
+            <p className="mt-2 text-3xl font-bold text-primary">
+              {reconciliationStats.review.toLocaleString()}
+            </p>
+            <p className="mt-1 text-xs text-muted">Stale or unrecognized; no cost was assumed.</p>
           </div>
         </div>
 
@@ -235,8 +356,8 @@ export default async function AIUsagePage({
                   <td className="px-4 py-3 text-muted">{rec.inputTokens}</td>
                   <td className="px-4 py-3 text-muted">{rec.outputTokens}</td>
                   <td className="px-4 py-3 font-medium text-primary">{rec.totalTokens}</td>
-                  <td className="px-4 py-3 text-muted text-xs">${rec.estimatedCost.toFixed(6)}</td>
-                  <td className="px-4 py-3 text-xs text-muted">{rec.requestType}</td>
+                  <td className="px-4 py-3 text-muted text-xs">{rec.costAvailable && rec.estimatedCost !== null ? `$${rec.estimatedCost.toFixed(6)}` : "Unknown"}</td>
+                  <td className="px-4 py-3 text-xs text-muted">{rec.requestType} · {rec.status}</td>
                   <td className="px-4 py-3 text-xs text-muted">
                     {rec.createdAt.toLocaleString()}
                   </td>
