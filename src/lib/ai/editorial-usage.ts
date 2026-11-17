@@ -39,7 +39,10 @@ export async function reserveEditorialUsage(params: {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       return await prisma.$transaction(async (tx) => {
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${params.actorId}))`;
+        // pg_advisory_xact_lock returns void, which Prisma cannot deserialize
+        // through $queryRaw. $executeRaw discards the result, so the lock is
+        // still taken without tripping the void column error.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${params.actorId}))`;
         if (params.burstLimit) {
           const burstSince = new Date(Date.now() - 60_000);
           const burstCount = await tx.aIUsage.count({
