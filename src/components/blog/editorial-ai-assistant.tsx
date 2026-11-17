@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Loader2, Sparkles, Wand2, Image as ImageIcon, Languages, ClipboardCheck, Check, X } from "lucide-react";
+import { ProfessionalLoader } from "@/components/ui/professional-loader";
 import type { BlogLocale } from "@/lib/blog/constants";
 import { normalizeArticleHtml } from "@/lib/blog/sanitize";
 import type {
@@ -26,6 +28,49 @@ type Props = {
 };
 
 type ImageResult = { url: string; publicId: string; altText: string; width: number; height: number; model: string };
+
+type EditorialOperation = "generate" | "image" | "refine" | "translate" | "review";
+
+// Each editorial operation reports the phase it is in. The server runs the
+// work in one request, so these stages advance on a timer to tell the operator
+// what the assistant is doing instead of leaving a silent spinner.
+const operationStages: Record<EditorialOperation, readonly string[]> = {
+  generate: [
+    "Reading your brief and target audience…",
+    "Planning the article structure and outline…",
+    "Writing the full article draft…",
+    "Optimizing the SEO title and meta description…",
+    "Assembling the editorial package…",
+  ],
+  image: [
+    "Interpreting the visual brief…",
+    "Generating the featured image…",
+    "Optimizing the final asset…",
+  ],
+  refine: [
+    "Reviewing the selected copy…",
+    "Applying the editorial instruction…",
+    "Polishing clarity, tone, and flow…",
+  ],
+  translate: [
+    "Reading the source content…",
+    "Translating with editorial nuance…",
+    "Reviewing the translated copy…",
+  ],
+  review: [
+    "Auditing structure and readability…",
+    "Checking SEO and editorial standards…",
+    "Preparing the review report…",
+  ],
+};
+
+const operationHints: Record<EditorialOperation, string> = {
+  generate: "Building a complete draft with SEO metadata and editorial notes. This usually takes up to two minutes.",
+  image: "Creating a branded featured image and uploading it to Cloudinary.",
+  refine: "The proposed revision stays separate until you apply it.",
+  translate: "The translation stays separate until you apply it.",
+  review: "A structured review with issues, recommendations, and a checklist.",
+};
 
 const editActionLabels: Record<EditorialEditAction, string> = {
   improve_clarity: "Improve clarity",
@@ -112,6 +157,22 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
   const [reviewSummary, setReviewSummary] = useState<string | null>(null);
   const [reviewIssues, setReviewIssues] = useState<Array<{ category: string; severity: string; message: string; suggestion?: string }>>([]);
   const [reviewChecklist, setReviewChecklist] = useState<string[]>([]);
+
+  const busyOperation: EditorialOperation | null =
+    pending === "generate" ? "generate" : imagePending ? "image" : refinePending ? "refine" : translatePending ? "translate" : reviewPending ? "review" : null;
+  const [loaderProgress, setLoaderProgress] = useState<{ operation: EditorialOperation; stage: number } | null>(null);
+  const loaderStage = loaderProgress?.operation === busyOperation ? loaderProgress.stage : 0;
+
+  useEffect(() => {
+    if (!busyOperation) return;
+    const timer = window.setInterval(() => {
+      setLoaderProgress((current) => {
+        const nextStage = current?.operation === busyOperation ? current.stage + 1 : 1;
+        return { operation: busyOperation, stage: Math.min(nextStage, operationStages[busyOperation].length - 1) };
+      });
+    }, 6500);
+    return () => window.clearInterval(timer);
+  }, [busyOperation]);
 
   async function postJson<T>(url: string, body: unknown): Promise<T> {
     const response = await fetch(url, {
@@ -455,6 +516,35 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
           Hide
         </button>
       </div>
+
+      {busyOperation
+        ? createPortal(
+            <div
+              role="status"
+              aria-live="polite"
+              className="pointer-events-none fixed bottom-5 right-5 z-[80] w-[min(22rem,calc(100vw-2.5rem))] overflow-hidden rounded-2xl border border-accent/25 bg-background/95 p-4 shadow-[0_24px_60px_-24px_rgba(34,211,238,0.55)] backdrop-blur-md"
+            >
+              <p className="text-center text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
+                {busyOperation === "generate" ? "Generating article" : busyOperation === "image" ? "Generating featured image" : busyOperation === "refine" ? "Refining content" : busyOperation === "translate" ? "Translating content" : "Reviewing article"}
+              </p>
+              <ProfessionalLoader size="sm" label={operationStages[busyOperation][loaderStage]} />
+              <div className="mt-3 flex items-center justify-center gap-1.5" aria-hidden="true">
+                {operationStages[busyOperation].map((stage, index) => (
+                  <span
+                    key={stage}
+                    className={`h-1.5 rounded-full transition-all duration-500 ${
+                      index === loaderStage ? "w-8 bg-accent" : index < loaderStage ? "w-4 bg-accent/60" : "w-4 bg-border"
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="mt-2 text-center text-[11px] leading-5 text-muted">
+                Step {loaderStage + 1} of {operationStages[busyOperation].length} · {operationHints[busyOperation]}
+              </p>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {error ? <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</p> : null}
 
