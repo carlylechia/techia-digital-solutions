@@ -324,18 +324,6 @@ export default async function CoursesPage({
         ])}
       />
 
-      <div className="container pt-4 sm:pt-6">
-        <PageBreadcrumbs
-          items={[
-            {
-              label: locale === "fr" ? "Accueil" : "Home",
-              href: getPublicAppPath("/"),
-            },
-            { label: locale === "fr" ? "Cours" : "Courses" },
-          ]}
-        />
-      </div>
-
       <section className="relative isolate overflow-hidden">
         <div className="relative min-h-[78svh] w-full sm:min-h-[84svh] lg:min-h-[90svh]">
           <Image
@@ -394,6 +382,17 @@ export default async function CoursesPage({
       </section>
 
       <section id="catalog" className="container scroll-mt-24 py-4 sm:py-6">
+        <div className="mb-4">
+          <PageBreadcrumbs
+            items={[
+              {
+                label: locale === "fr" ? "Accueil" : "Home",
+                href: getPublicAppPath("/"),
+              },
+              { label: locale === "fr" ? "Cours" : "Courses" },
+            ]}
+          />
+        </div>
         <div className="gradient-border rounded-[1.95rem]">
           <div className="elevated-panel p-6 sm:p-7 md:p-8">
             <div className="max-w-3xl">
