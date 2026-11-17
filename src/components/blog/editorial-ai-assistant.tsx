@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Sparkles, Wand2, Image as ImageIcon, Languages, ClipboardCheck, Check, X } from "lucide-react";
+import { ChevronUp, Loader2, Sparkles, Wand2, Image as ImageIcon, Languages, ClipboardCheck, Check, X } from "lucide-react";
 import { ProfessionalLoader } from "@/components/ui/professional-loader";
 import type { BlogLocale } from "@/lib/blog/constants";
 import { normalizeArticleHtml } from "@/lib/blog/sanitize";
@@ -511,32 +511,35 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
           <Sparkles className="size-4 text-accent" />
           teChia AI Editorial Assistant
         </p>
-        <button type="button" onClick={() => setOpen(false)} className="text-xs text-muted hover:text-primary">
-          Hide
+        <button type="button" onClick={() => setOpen(false)} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-strong/60 px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/40 hover:text-primary">
+          <ChevronUp className="size-3.5" />
+          Collapse
         </button>
       </div>
 
       {busyOperation ? (
         <div
           role="status"
-          aria-live="polite"
-          className="overflow-hidden rounded-2xl border border-accent/25 bg-surface-strong/70 p-4"
+          aria-live="assertive"
+          className="pointer-events-none fixed left-1/2 top-4 z-[90] w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border-2 border-accent/40 bg-background/95 p-5 shadow-[0_24px_60px_-12px_rgba(34,211,238,0.5)] backdrop-blur-md"
         >
-          <p className="text-center text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
+          <p className="text-center text-xs font-bold uppercase tracking-[0.22em] text-accent">
             {busyOperation === "generate" ? "Generating article" : busyOperation === "image" ? "Generating featured image" : busyOperation === "refine" ? "Refining content" : busyOperation === "translate" ? "Translating content" : "Reviewing article"}
           </p>
-          <ProfessionalLoader size="sm" label={operationStages[busyOperation][loaderStage]} />
+          <div className="mt-2">
+            <ProfessionalLoader size="lg" label={operationStages[busyOperation][loaderStage]} />
+          </div>
           <div className="mt-3 flex items-center justify-center gap-1.5" aria-hidden="true">
             {operationStages[busyOperation].map((stage, index) => (
               <span
                 key={stage}
-                className={`h-1.5 rounded-full transition-all duration-500 ${
-                  index === loaderStage ? "w-8 bg-accent" : index < loaderStage ? "w-4 bg-accent/60" : "w-4 bg-border"
+                className={`h-2 rounded-full transition-all duration-500 ${
+                  index === loaderStage ? "w-10 bg-accent" : index < loaderStage ? "w-5 bg-accent/60" : "w-5 bg-border"
                 }`}
               />
             ))}
           </div>
-          <p className="mt-2 text-center text-[11px] leading-5 text-muted">
+          <p className="mt-2 text-center text-xs font-medium leading-5 text-primary">
             Step {loaderStage + 1} of {operationStages[busyOperation].length} · {operationHints[busyOperation]}
           </p>
         </div>
@@ -685,7 +688,7 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
                 type="button"
                 onClick={() => void runImageGeneration()}
                 disabled={imagePending}
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-primary transition hover:border-accent/40 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-[#001018] transition hover:opacity-90 disabled:opacity-60"
               >
                 {imagePending ? <Loader2 className="size-3.5 animate-spin" /> : <ImageIcon className="size-3.5" />}
                 Generate featured image

@@ -75,6 +75,10 @@ You generate a complete editorial article package as JSON with these exact keys:
 title, suggestedSlug, excerpt, articleContent, seoTitle, metaDescription, focusKeyword, secondaryKeywords, suggestedCategory, suggestedTags, suggestedInternalLinks, suggestedCallToAction, imagePrompt, imageAltText, editorialNotes, claimsToVerify.
 
 articleContent must be clean Markdown with H2/H3 headings, introduction, body sections, conclusion and CTA.
+- Weave the focus keyword and secondary keywords naturally into the title, H2/H3 headings, introduction, body and conclusion. Never keyword-stuff.
+- Include 2-4 internal Markdown links to relevant teChia services inside the body (use relative paths like /services#seo, /services#website-design-development, /services#business-automation, /services#ai-solutions, /services#digital-marketing, /services#custom-business-software). Only link to services that genuinely fit the topic.
+- The SEO title, meta description and excerpt must be optimized for the focus keyword and stay within their length limits.
+- suggestedInternalLinks must list the same service links you embedded, with anchor text and a short reason.
 imagePrompt must describe a clean, professional, text-free, logo-free editorial illustration suitable for a 16:9 featured image. No embedded text, no watermarks, no distorted faces or hands.
 suggestedSlug must be lowercase, URL-safe, hyphenated.
 Return JSON only.`;
