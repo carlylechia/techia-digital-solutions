@@ -518,11 +518,13 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
       </div>
 
       {busyOperation ? (
-        <div
-          role="status"
-          aria-live="assertive"
-          className="pointer-events-none fixed left-1/2 top-4 z-[90] w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border-2 border-accent/40 bg-background/95 p-5 shadow-[0_24px_60px_-12px_rgba(34,211,238,0.5)] backdrop-blur-md"
-        >
+        <>
+          <div className="pointer-events-none fixed inset-0 z-[85] bg-black/25 backdrop-blur-[2px]" aria-hidden="true" />
+          <div
+            role="status"
+            aria-live="assertive"
+            className="pointer-events-none fixed left-1/2 top-1/2 z-[90] w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border-2 border-accent/50 bg-background/95 p-7 shadow-[0_30px_80px_-12px_rgba(34,211,238,0.6)] backdrop-blur-lg"
+          >
           <p className="text-center text-xs font-bold uppercase tracking-[0.22em] text-accent">
             {busyOperation === "generate" ? "Generating article" : busyOperation === "image" ? "Generating featured image" : busyOperation === "refine" ? "Refining content" : busyOperation === "translate" ? "Translating content" : "Reviewing article"}
           </p>
@@ -543,6 +545,7 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
             Step {loaderStage + 1} of {operationStages[busyOperation].length} · {operationHints[busyOperation]}
           </p>
         </div>
+        </>
       ) : null}
 
       {error ? <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</p> : null}
