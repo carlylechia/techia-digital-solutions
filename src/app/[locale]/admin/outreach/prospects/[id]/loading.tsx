@@ -1,9 +1,5 @@
 import { ProfessionalLoader } from "@/components/ui/professional-loader";
 
 export default function Loading() {
-  return (
-    <div className="grid min-h-[40vh] place-items-center">
-      <ProfessionalLoader label="Loading prospect details…" size="lg" />
-    </div>
-  );
+  return <ProfessionalLoader label="Loading prospect details…" size="lg" variant="fullScreen" />;
 }

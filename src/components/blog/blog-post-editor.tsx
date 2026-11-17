@@ -336,6 +336,35 @@ export function BlogPostEditor({
       <input type="hidden" name="id" value={form.id} />
       <input type="hidden" name="locale" value={form.locale} />
       <input type="hidden" name="version" value={form.version} />
+      <div className="xl:col-span-2 sticky top-0 z-20 -mx-2 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background/95 px-4 py-3 shadow-sm backdrop-blur">
+        <div className="flex items-center gap-3 text-xs">
+          <span className={saveState === "failed" ? "text-red-400" : saveState === "saving" ? "text-muted" : saveState === "unsaved" ? "text-amber-400" : "text-emerald-400"}>
+            {saveState === "saving" ? "Saving…" : saveState === "unsaved" ? "Unsaved changes" : saveState === "failed" ? "Save failed" : "Saved"}
+          </span>
+          <span className="text-muted">Status: <strong className="text-primary">{form.status.replaceAll("_", " ")}</strong></span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="submit" className="btn-primary justify-center" disabled={!editable || isPending}>
+            <Save className="size-4" />{isPending ? "Saving…" : isNew ? "Create draft" : "Save draft"}
+          </button>
+          {form.id && !isNew ? <Link href={`${previewBase || `/${locale}/admin/blog/preview`}/${form.id}`} className="btn-secondary justify-center" target="_blank"><Eye className="size-4" />Preview</Link> : null}
+          {(form.status === "DRAFT" || form.status === "CHANGES_REQUESTED") ? (
+            <button type="button" className="btn-secondary justify-center" disabled={!editable || isPending || saveState !== "saved"} onClick={() => transition("SUBMIT")}>
+              <Send className="size-4" />Submit for review
+            </button>
+          ) : null}
+          {canPublish && form.status === "IN_REVIEW" ? (
+            <button type="button" className="btn-primary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("PUBLISH")}>
+              <Check className="size-4" />Publish now
+            </button>
+          ) : null}
+          {canPublish && form.status === "SCHEDULED" ? (
+            <button type="button" className="btn-primary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("PUBLISH")}>
+              <Check className="size-4" />Publish now
+            </button>
+          ) : null}
+        </div>
+      </div>
       <div className="grid gap-6">
         {canUseEditorialAi ? (
           <section className="premium-card grid gap-4 p-5 sm:p-7" aria-labelledby="editor-ai-title">
