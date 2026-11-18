@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { reviewOutreachMessage, translateOutreachMessage, setOutreachProspectStatus, instantSendOutreachMessage } from "@/app/[locale]/admin/outreach/actions";
+import { reviewOutreachMessage, translateOutreachMessage, setOutreachProspectStatus, instantSendOutreachMessage, regenerateOutreachMessage } from "@/app/[locale]/admin/outreach/actions";
 import { OUTREACH_SERVICE_LABELS } from "@/lib/outreach/constants";
 import { OutreachButton, OutreachField, OutreachPill, outreachInputClass } from "./outreach-ui";
 import { ProfessionalLoader } from "@/components/ui/professional-loader";
@@ -70,6 +70,19 @@ export function OutreachReviewQueue({
       setFeedback((current) => ({ ...current, [messageId]: result.error }));
     }
     setTranslating((current) => ({ ...current, [messageId]: false }));
+  }
+
+  async function regenerate(messageId: string) {
+    setFeedback((current) => {
+      const next = { ...current };
+      delete next[messageId];
+      return next;
+    });
+    startTransition(async () => {
+      const result = await regenerateOutreachMessage({ messageId });
+      setFeedback((current) => ({ ...current, [messageId]: result.ok ? result.message : result.error }));
+      if (result.ok) router.refresh();
+    });
   }
 
   function act(
@@ -224,6 +237,9 @@ export function OutreachReviewQueue({
                   <OutreachButton type="button" tone="quiet" disabled={pending || !canManage} onClick={() => void unhide(item.messageId, item.prospect.id)}>
                     Unhide draft
                   </OutreachButton>
+                  <OutreachButton type="button" tone="quiet" disabled={pending || !canManage} onClick={() => void regenerate(item.messageId)}>
+                    Regenerate
+                  </OutreachButton>
                   <OutreachButton type="button" tone="good" disabled={pending || !canManage} onClick={() => void sendNow(item.messageId, item.prospect.id)}>
                     Send now
                   </OutreachButton>
@@ -262,6 +278,9 @@ export function OutreachReviewQueue({
             </div>
 
             <div className="flex flex-wrap gap-2">
+              <OutreachButton type="button" tone="quiet" disabled={pending || !canManage} onClick={() => void regenerate(item.messageId)}>
+                Regenerate
+              </OutreachButton>
               <OutreachButton type="button" tone="good" disabled={pending || !canManage} onClick={() => void sendNow(item.messageId, item.prospect.id)}>
                 Send now
               </OutreachButton>

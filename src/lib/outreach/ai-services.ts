@@ -179,6 +179,22 @@ ${input.body}`,
   });
 }
 
+export async function runEmailRegeneration(input: {
+  business: string;
+  city: string;
+  industry: string;
+  currentSubject: string;
+  currentBody: string;
+}) {
+  return callOutreachAi({
+    system: EMAIL_SYSTEM_PROMPT,
+    user: "Regenerate a completely fresh outreach email for this prospect, improving clarity, relevance and conversion. Keep it professional and concise. Return JSON only: {\"subject\": \"...\", \"body\": \"...\"}.\n\nBusiness: " + input.business + "\nCity: " + input.city + "\nIndustry: " + input.industry + "\n\nPrevious subject: " + input.currentSubject + "\nPrevious body:\n" + input.currentBody,
+    schema: emailResultSchema,
+    requestType: OUTREACH_AI_USAGE_REQUEST_TYPE.email,
+    promptVersion: OUTREACH_PROMPTS.email,
+  });
+}
+
 export async function runReplyClassification(input: {
   business: string;
   ourLastSubject: string | null;

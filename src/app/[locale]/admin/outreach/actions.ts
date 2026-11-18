@@ -26,7 +26,7 @@ import {
 import { OUTREACH_CAMPAIGN_STATUSES, OUTREACH_PROSPECT_STATUSES } from "@/lib/outreach/constants";
 import { ZodError } from "zod";
 import { runAssessmentStage, runEmailGenerationStage } from "@/lib/outreach/pipeline";
-import { runEmailTranslation } from "@/lib/outreach/ai-services";
+import { runEmailTranslation, runEmailRegeneration } from "@/lib/outreach/ai-services";
 import { deliverOutreachMessage } from "@/lib/outreach/sending";
 
 /**
@@ -1067,6 +1067,44 @@ export async function translateOutreachMessage(input: { messageId: string; targe
     return { ok: true, message: `Translated to ${targetLanguage}.`, subject: result.data.subject, body: result.data.body };
   } catch (error) {
     return toResult(error) as { ok: false; error: string };
+  }
+}
+
+export async function regenerateOutreachMessage(input: { messageId: string }): Promise<OutreachActionResult> {
+  try {
+    const actor = await requireOutreachActor("outreach.manage");
+    const db = await requireOutreachDatabase();
+    const messageId = String(input.messageId ?? "").slice(0, 64);
+    const message = await db.outreachMessage.findUnique({
+      where: { id: messageId },
+      include: { prospect: { select: { id: true, businessName: true, city: true, industry: true } } },
+    });
+    if (!message) return { ok: false, error: "Message not found." };
+
+    const result = await runEmailRegeneration({
+      business: message.prospect.businessName,
+      city: message.prospect.city ?? "",
+      industry: message.prospect.industry ?? "",
+      currentSubject: message.subject,
+      currentBody: message.bodyText,
+    });
+
+    await db.outreachMessage.update({
+      where: { id: message.id },
+      data: {
+        subject: result.data.subject,
+        bodyText: result.data.body,
+        aiGenerated: true,
+        aiPromptVersion: result.promptVersion,
+        status: "PENDING_APPROVAL",
+      },
+    });
+
+    await auditOutreach({ actorId: actor.id, action: "outreach.message_regenerated", entityType: "OutreachMessage", entityId: message.id });
+    revalidateOutreach("/admin/outreach/review", "/admin/outreach/prospects/" + message.prospect.id);
+    return { ok: true, message: "Message regenerated." };
+  } catch (error) {
+    return toResult(error);
   }
 }
 
