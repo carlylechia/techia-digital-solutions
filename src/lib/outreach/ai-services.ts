@@ -160,6 +160,25 @@ export async function runEmailGeneration(input: {
   });
 }
 
+export async function runEmailTranslation(input: {
+  subject: string;
+  body: string;
+  targetLanguage: "French" | "English";
+}) {
+  return callOutreachAi({
+    system: `You are a professional translator for teChia Digital Solutions. Translate the outreach email to ${input.targetLanguage} while preserving tone, intent, formatting and calls to action. Do not invent facts. Return JSON only: {"subject": "...", "body": "..."}.`,
+    user: `Translate this email to ${input.targetLanguage}.
+
+Subject: ${input.subject}
+
+Body:
+${input.body}`,
+    schema: emailResultSchema,
+    requestType: OUTREACH_AI_USAGE_REQUEST_TYPE.email,
+    promptVersion: "OUTREACH_EMAIL_TRANSLATION_V1",
+  });
+}
+
 export async function runReplyClassification(input: {
   business: string;
   ourLastSubject: string | null;

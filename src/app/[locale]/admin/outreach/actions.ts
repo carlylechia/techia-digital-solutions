@@ -26,6 +26,7 @@ import {
 import { OUTREACH_CAMPAIGN_STATUSES, OUTREACH_PROSPECT_STATUSES } from "@/lib/outreach/constants";
 import { ZodError } from "zod";
 import { runAssessmentStage, runEmailGenerationStage } from "@/lib/outreach/pipeline";
+import { runEmailTranslation } from "@/lib/outreach/ai-services";
 import { deliverOutreachMessage } from "@/lib/outreach/sending";
 
 /**
@@ -1045,6 +1046,28 @@ export async function importOutreachProspectToCrmAction(input: { prospectId: str
 export async function importOutreachProspectToCrm(input: { prospectId: string; locale: string }) {
   const { importOutreachProspectToCrmAction } = await import("@/app/[locale]/admin/crm/actions");
   return importOutreachProspectToCrmAction({ prospectId: input.prospectId, locale: input.locale as "en" | "fr" });
+}
+
+export async function translateOutreachMessage(input: { messageId: string; targetLanguage: "French" | "English" }): Promise<
+  { ok: true; message: string; subject: string; body: string } | { ok: false; error: string }
+> {
+  try {
+    const actor = await requireOutreachActor("outreach.manage");
+    await requireOutreachDatabase();
+    const db = await requireOutreachDatabase();
+    const messageId = String(input.messageId ?? "").slice(0, 64);
+    const targetLanguage = input.targetLanguage === "French" ? "French" : "English";
+    const message = await db.outreachMessage.findUnique({ where: { id: messageId }, select: { id: true, subject: true, bodyText: true } });
+    if (!message) return { ok: false, error: "Message not found." };
+
+    const result = await runEmailTranslation({ subject: message.subject, body: message.bodyText, targetLanguage });
+
+    await auditOutreach({ actorId: actor.id, action: "outreach.message_translated", entityType: "OutreachMessage", entityId: message.id, metadata: { targetLanguage } });
+
+    return { ok: true, message: `Translated to ${targetLanguage}.`, subject: result.data.subject, body: result.data.body };
+  } catch (error) {
+    return toResult(error) as { ok: false; error: string };
+  }
 }
 
 export async function getOutreachSendingStatus() {

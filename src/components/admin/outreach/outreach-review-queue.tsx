@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { reviewOutreachMessage } from "@/app/[locale]/admin/outreach/actions";
+import { reviewOutreachMessage, translateOutreachMessage } from "@/app/[locale]/admin/outreach/actions";
 import { OUTREACH_SERVICE_LABELS } from "@/lib/outreach/constants";
 import { OutreachButton, OutreachField, OutreachPill, outreachInputClass } from "./outreach-ui";
 import { ProfessionalLoader } from "@/components/ui/professional-loader";
@@ -50,6 +50,27 @@ export function OutreachReviewQueue({
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<Record<string, { subject: string; bodyText: string }>>({});
+  const [translating, setTranslating] = useState<Record<string, boolean>>({});
+
+  async function translate(messageId: string, targetLanguage: "French" | "English") {
+    setTranslating((current) => ({ ...current, [messageId]: true }));
+    setFeedback((current) => {
+      const next = { ...current };
+      delete next[messageId];
+      return next;
+    });
+    const result = await translateOutreachMessage({ messageId, targetLanguage });
+    if (result.ok) {
+      setEditing((current) => ({
+        ...current,
+        [messageId]: { subject: result.subject, bodyText: result.body },
+      }));
+      setFeedback((current) => ({ ...current, [messageId]: result.message }));
+    } else {
+      setFeedback((current) => ({ ...current, [messageId]: result.error }));
+    }
+    setTranslating((current) => ({ ...current, [messageId]: false }));
+  }
 
   function act(
     messageId: string,
@@ -186,6 +207,14 @@ export function OutreachReviewQueue({
                       Save edits
                     </OutreachButton>
                   ) : null}
+                  <OutreachButton
+                    type="button"
+                    tone="quiet"
+                    disabled={pending || !canManage || translating[item.messageId]}
+                    onClick={() => void translate(item.messageId, "French")}
+                  >
+                    {translating[item.messageId] ? "Translating…" : "Translate to French"}
+                  </OutreachButton>
                   <OutreachButton type="button" tone="good" disabled={pending || !canManage} onClick={() => act(item.messageId, "APPROVE")}>
                     Approve and queue
                   </OutreachButton>

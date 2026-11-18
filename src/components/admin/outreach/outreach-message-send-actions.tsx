@@ -44,18 +44,20 @@ export function OutreachMessageSendActions({
     });
   }
 
-  if (!sendable) return null;
+  if (!sendable && !phone) return null;
 
   return (
     <div className="relative mt-2 flex flex-wrap items-center gap-2">
-      <OutreachButton
-        type="button"
-        tone="good"
-        disabled={pending || !canSend}
-        onClick={sendNow}
-      >
-        {pending ? "Sending…" : "📤 Send now"}
-      </OutreachButton>
+      {sendable ? (
+        <OutreachButton
+          type="button"
+          tone="good"
+          disabled={pending || !canSend}
+          onClick={sendNow}
+        >
+          {pending ? "Sending…" : "📤 Send now"}
+        </OutreachButton>
+      ) : null}
       {phone ? (
         <a
           href={whatsappLink(phone, body)}
