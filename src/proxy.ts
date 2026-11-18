@@ -77,6 +77,12 @@ function getPreferredLocale(request: NextRequest): Locale {
 }
 
 export function proxy(request: NextRequest) {
+  const host = request.headers.get("host") || request.nextUrl.host;
+  if (host.startsWith("www.")) {
+    const url = request.nextUrl.clone();
+    url.host = host.replace(/^www\./, "");
+    return NextResponse.redirect(url, 308);
+  }
   const { pathname } = request.nextUrl;
   if (
     pathname.startsWith("/_next") ||
