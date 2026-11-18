@@ -24,12 +24,12 @@ export async function FeaturedFullPack({
       ? {
           eyebrow: "La formule la plus complète",
           title: "Tous les cours. Un seul pack complet.",
-          body: "Le pack complet réunit les 16 cours dans une seule bibliothèque d’apprentissage, avec le bundle de bonus acheteur complet. Choisissez-le si vous voulez le parcours le plus large et l’achat le plus simple.",
+          body: "Le pack complet réunit les 15 cours dans une seule bibliothèque d’apprentissage, avec le bundle de bonus acheteur complet. Choisissez-le si vous voulez le parcours le plus large et l’achat le plus simple.",
           viewLabel: "Voir le pack complet",
           buyLabel: "Acheter le pack complet + bonus",
           separately: "Séparément",
           highlights: [
-            "16 cours",
+            "15 cours",
             "Une seule formule",
             "Bibliothèque complète",
             "Bundle bonus complet",
@@ -38,12 +38,12 @@ export async function FeaturedFullPack({
       : {
           eyebrow: "The most complete package",
           title: "Every course. One complete pack.",
-          body: "The Full Pack brings all 16 courses together in one learning library, with the complete buyer bonus bundle included. Choose it when you want the broadest learning path and the simplest way to buy.",
+          body: "The Full Pack brings all 15 courses together in one learning library, with the complete buyer bonus bundle included. Choose it when you want the broadest learning path and the simplest way to buy.",
           viewLabel: "View Full Pack",
           buyLabel: "Buy Full Pack + Bonus",
           separately: "Separately",
           highlights: [
-            "16 courses",
+            "15 courses",
             "One bundle price",
             "Complete learning library",
             "Complete bonus bundle",

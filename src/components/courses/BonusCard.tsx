@@ -146,7 +146,7 @@ export function BonusCard({
       <p className="mt-4 text-xs font-medium uppercase tracking-[0.16em] text-muted dark:text-slate-400">
         {item.eligibility === "full-pack"
           ? locale === "fr"
-            ? "Debloque avec le pack complet 16 cours"
+            ? "Debloque avec le pack complet 15 cours"
             : "Unlocked with the full 16-course pack"
           : locale === "fr"
             ? "Inclus avec tout achat officiel de pack"

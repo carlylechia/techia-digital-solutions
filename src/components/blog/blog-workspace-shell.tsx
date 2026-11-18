@@ -41,7 +41,7 @@ export function BlogWorkspaceShell({
   return (
     <main className="min-h-dvh bg-background text-primary">
       <div className="mx-auto flex max-w-[1600px] flex-col lg:flex-row">
-        <aside className="border-b border-border bg-surface-strong/50 p-4 lg:min-h-dvh lg:w-64 lg:border-b-0 lg:border-r lg:p-6">
+        <aside className="border-b border-border bg-surface-strong/50 p-4 lg:sticky lg:top-0 lg:h-dvh lg:w-64 lg:shrink-0 lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r lg:p-6 scroll-pane">
           <div className="flex items-center justify-between gap-3 lg:block"><Link href={base} className="flex items-center gap-2 text-lg font-semibold tracking-tight"><span className="grid size-9 place-items-center rounded-xl bg-cyan-400/10 text-accent"><BookOpen className="size-5" /></span>Editorial Studio</Link><div className="lg:hidden"><BlogSignOutButton callbackUrl={mode === "admin" ? `/${locale}/admin` : `/${locale}/writer`} /></div></div>
           <p className="mt-3 hidden text-xs leading-5 text-muted lg:block">teChia Digital Solutions<br />Digitalize. Simplify. Grow.</p>
           <nav className="mt-5 grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-1" aria-label="Editorial navigation">{links.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition hover:bg-accent/10 hover:text-primary"><Icon className="size-4" />{label}</Link>)}</nav>

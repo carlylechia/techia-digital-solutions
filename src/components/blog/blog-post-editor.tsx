@@ -136,6 +136,7 @@ export function BlogPostEditor({
   const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null);
   const [saveState, setSaveState] = useState<"saved" | "saving" | "unsaved" | "failed">("saved");
   const [isPending, startTransition] = useTransition();
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const skipNextAutosave = useRef(true);
   const latestRequest = useRef(0);
@@ -173,6 +174,14 @@ export function BlogPostEditor({
       data.set("id", form.id);
       data.set("content", form.content);
       data.set("version", String(form.version));
+      // Preserve fields that may be disabled in the UI (excluded from FormData)
+      // or populated by AI insert, so autosave never drops them.
+      data.set("featuredImageUrl", form.featuredImageUrl);
+      data.set("featuredImagePublicId", form.featuredImagePublicId);
+      data.set("featuredImageAlt", form.featuredImageAlt);
+      data.set("ogImageUrl", form.ogImageUrl);
+      data.set("ogImagePublicId", form.ogImagePublicId);
+      data.set("canonicalUrl", form.canonicalUrl);
       try {
         const response = await fetch(`/api/editorial/posts/${encodeURIComponent(form.id)}`, { method: "PATCH", body: data, credentials: "same-origin" });
         const result = (await response.json()) as { ok: boolean; slug?: string; version?: number; error?: string };
@@ -192,7 +201,7 @@ export function BlogPostEditor({
       }
     }, 1800);
     return () => window.clearTimeout(timer);
-  }, [autosaveSignature, editable, form.content, form.id, form.version, isNew]);
+  }, [autosaveSignature, editable, form.canonicalUrl, form.content, form.featuredImageAlt, form.featuredImagePublicId, form.featuredImageUrl, form.id, form.ogImagePublicId, form.ogImageUrl, form.version, isNew]);
 
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
@@ -217,26 +226,38 @@ export function BlogPostEditor({
     data.set("id", form.id);
     data.set("content", form.content);
     data.set("version", String(form.version));
+    // Preserve fields that may be disabled in the UI (excluded from FormData)
+    // or populated by AI insert, so autosave never drops them.
+    data.set("featuredImageUrl", form.featuredImageUrl);
+    data.set("featuredImagePublicId", form.featuredImagePublicId);
+    data.set("featuredImageAlt", form.featuredImageAlt);
+    data.set("ogImageUrl", form.ogImageUrl);
+    data.set("ogImagePublicId", form.ogImagePublicId);
+    data.set("canonicalUrl", form.canonicalUrl);
     return data;
   }
 
   async function saveDraft(event?: React.FormEvent<HTMLFormElement>) {
     event?.preventDefault();
+    setPendingAction("save");
     setSaveState("saving");
     setStatusMessage(null);
     const data = buildFormData();
     const result = isNew ? await createBlogPostAction(data) : await saveBlogPostAction(data);
     if (!result.ok) {
       setSaveState("failed");
+      setPendingAction(null);
       setStatusMessage({ kind: "error", text: valueOf(result), issues: result.issues });
       return;
     }
     if (isNew && result.ok && result.id) {
+      setPendingAction(null);
       window.location.assign(canManage ? `/${locale}/admin/blog/posts/${result.id}` : `/${locale}/writer/posts/${result.id}`);
       return;
     }
     if (result.slug || result.version) setForm((current) => ({ ...current, ...(result.slug ? { slug: result.slug } : {}), ...(result.version ? { version: result.version } : {}) }));
     setSaveState("saved");
+    setPendingAction(null);
     setStatusMessage({ kind: "success", text: result.message, issues: result.issues });
   }
 
@@ -269,6 +290,7 @@ export function BlogPostEditor({
       setStatusMessage({ kind: "error", text: "Wait for the latest changes to finish saving before changing publication status." });
       return;
     }
+    setPendingAction(action);
     const data = new FormData();
     data.set("postId", form.id);
     data.set("version", String(form.version));
@@ -279,16 +301,19 @@ export function BlogPostEditor({
       const result = await transitionBlogPostAction(data);
       if (!result.ok) {
         setStatusMessage({ kind: "error", text: result.error, issues: result.issues });
+        setPendingAction(null);
         return;
       }
       if (result.scheduledAt !== undefined) setScheduleDraft(toDateTimeLocalValue(result.scheduledAt));
       if (result.slug || result.version || result.scheduledAt !== undefined) setForm((current) => ({ ...current, ...(result.slug ? { slug: result.slug } : {}), ...(result.scheduledAt !== undefined ? { scheduledAt: result.scheduledAt || "" } : {}), ...(result.version ? { version: result.version } : {}), status: action === "SUBMIT" ? "IN_REVIEW" : action === "PUBLISH" ? "PUBLISHED" : action === "SCHEDULE" ? "SCHEDULED" : action === "REQUEST_CHANGES" ? "CHANGES_REQUESTED" : action === "ARCHIVE" ? "ARCHIVED" : "DRAFT" }));
       setStatusMessage({ kind: "success", text: result.message, issues: result.issues });
       setSaveState("saved");
+      setPendingAction(null);
     });
   }
 
   function handleAiInsert(article: EditorialArticlePackage, image?: { url: string; publicId: string; altText: string }) {
+    lastAutosaveSignature.current = null;
     setForm((current) => ({
       ...current,
       title: article.title,
@@ -319,11 +344,40 @@ export function BlogPostEditor({
       <input type="hidden" name="id" value={form.id} />
       <input type="hidden" name="locale" value={form.locale} />
       <input type="hidden" name="version" value={form.version} />
+      <div className="xl:col-span-2 sticky top-0 z-20 -mx-2 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background/95 px-4 py-3 shadow-sm backdrop-blur">
+        <div className="flex items-center gap-3 text-xs">
+          <span className={saveState === "failed" ? "text-red-400" : saveState === "saving" ? "text-muted" : saveState === "unsaved" ? "text-amber-400" : "text-emerald-400"}>
+            {saveState === "saving" ? "Saving…" : saveState === "unsaved" ? "Unsaved changes" : saveState === "failed" ? "Save failed" : "Saved"}
+          </span>
+          <span className="text-muted">Status: <strong className="text-primary">{form.status.replaceAll("_", " ")}</strong></span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="submit" className="btn-primary justify-center" disabled={!editable || isPending}>
+            <Save className="size-4" />{isPending && pendingAction === "save" ? "Saving…" : isNew ? "Create draft" : "Save draft"}
+          </button>
+          {form.id && !isNew ? <Link href={`${previewBase || `/${locale}/admin/blog/preview`}/${form.id}`} className="btn-secondary justify-center" target="_blank"><Eye className="size-4" />Preview</Link> : null}
+          {(form.status === "DRAFT" || form.status === "CHANGES_REQUESTED") ? (
+            <button type="button" className="btn-secondary justify-center" disabled={!editable || isPending || saveState !== "saved"} onClick={() => transition("SUBMIT")}>
+              <Send className="size-4" />Submit for review
+            </button>
+          ) : null}
+          {canPublish && form.status === "IN_REVIEW" ? (
+            <button type="button" className="btn-primary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("PUBLISH")}>
+              <Check className="size-4" />{isPending && pendingAction === "PUBLISH" ? "Publishing…" : "Publish now"}
+            </button>
+          ) : null}
+          {canPublish && form.status === "SCHEDULED" ? (
+            <button type="button" className="btn-primary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("PUBLISH")}>
+              <Check className="size-4" />{isPending && pendingAction === "PUBLISH" ? "Publishing…" : "Publish now"}
+            </button>
+          ) : null}
+        </div>
+      </div>
       <div className="grid gap-6">
         {canUseEditorialAi ? (
           <section className="premium-card grid gap-4 p-5 sm:p-7" aria-labelledby="editor-ai-title">
             <div><p className="eyebrow">AI assistant</p><h2 id="editor-ai-title" className="mt-2 text-2xl font-semibold text-primary">Generate with AI</h2><p className="mt-2 text-sm text-muted">SuperAdmin-only editorial assistant. Generated content is previewed before insertion.</p></div>
-            <EditorialAiAssistant locale={locale} disabled={!editable} hasExistingContent={normalizeRichTextSource(form.content).replace(/<[^>]+>/g, "").trim().length > 0} allowInsert={canUseEditorialAi && (form.status === "DRAFT" || form.status === "CHANGES_REQUESTED")} blockedInsertReason={canUseEditorialAi && form.status !== "DRAFT" && form.status !== "CHANGES_REQUESTED" ? "To use AI-generated content on this article, first create a draft copy. Your published article will remain unchanged." : undefined} onInsert={handleAiInsert} />
+            <EditorialAiAssistant locale={locale} disabled={!editable} hasExistingContent={normalizeRichTextSource(form.content).replace(/<[^>]+>/g, "").trim().length > 0} allowInsert={canUseEditorialAi && (form.status === "DRAFT" || form.status === "CHANGES_REQUESTED" || form.status === "IN_REVIEW")} blockedInsertReason={canUseEditorialAi && form.status !== "DRAFT" && form.status !== "CHANGES_REQUESTED" && form.status !== "IN_REVIEW" ? "To use AI-generated content on this article, first create a draft copy. Your published article will remain unchanged." : undefined} onInsert={handleAiInsert} />
           </section>
         ) : null}
         <section className="premium-card grid gap-5 p-5 sm:p-7" aria-labelledby="editor-basics-title">
@@ -371,12 +425,12 @@ export function BlogPostEditor({
         </section>
       </div>
 
-      <aside className="grid content-start gap-5 xl:sticky xl:top-6">
-        <section className="premium-card grid gap-4 p-5" aria-labelledby="editor-publish-title"><div className="flex items-center gap-2"><Settings2 className="size-4 text-accent" /><h2 id="editor-publish-title" className="font-semibold text-primary">Publishing</h2></div><div className="rounded-xl border border-border bg-surface-strong/60 p-3 text-xs leading-5 text-muted">Status: <strong className="text-primary">{form.status.replaceAll("_", " ")}</strong><br />Autosave: <strong className={saveState === "failed" ? "text-red-400" : "text-primary"}>{saveState === "saving" ? "Saving…" : saveState === "unsaved" ? "Unsaved changes" : saveState === "failed" ? "Save failed" : "Saved"}</strong></div><p className="text-[11px] leading-5 text-muted">Only an active author, active category, and unique title are required to publish. Word count, internal links, and featured image details are recommendations.</p>{statusMessage ? <div className={`rounded-xl p-3 text-xs leading-5 ${statusMessage.kind === "error" ? "bg-red-500/10 text-red-300" : "bg-emerald-500/10 text-emerald-300"}`} role={statusMessage.kind === "error" ? "alert" : "status"}><p>{statusMessage.text}</p>{statusMessage.issues?.length ? <div className="mt-3 border-t border-current/20 pt-3">{blockingIssues.length ? <div><p className="font-semibold">Blocking requirements:</p><IssueList issues={blockingIssues} /></div> : null}{recommendationIssues.length ? <div className="mt-3"><p className="font-semibold">Recommendations (these do not block publishing):</p><IssueList issues={recommendationIssues} /></div> : null}</div> : null}</div> : null}<div className="grid gap-2"><button type="submit" className="btn-primary justify-center" disabled={!editable || isPending}><Save className="size-4" />{isPending ? "Saving…" : isNew ? "Create draft" : "Save draft"}</button>{form.id && !isNew ? <Link href={`${previewBase || `/${locale}/admin/blog/preview`}/${form.id}`} className="btn-secondary justify-center" target="_blank"><Eye className="size-4" />Preview</Link> : null}</div>{form.status === "DRAFT" || form.status === "CHANGES_REQUESTED" ? <button type="button" className="btn-secondary justify-center" disabled={!editable || isPending || saveState !== "saved"} onClick={() => transition("SUBMIT")}><Send className="size-4" />Submit for review</button> : null}{canPublish && form.status === "IN_REVIEW" ? <><button type="button" className="btn-primary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("PUBLISH")}><Check className="size-4" />Publish now</button><div className="grid gap-2"><label className="form-label text-xs" htmlFor="editor-schedule-input">Schedule publication<input id="editor-schedule-input" type="datetime-local" className={inputClass} value={scheduleDraft} onChange={(event) => setScheduleDraft(event.target.value)} disabled={isPending} suppressHydrationWarning /><span className="text-xs text-muted">Uses your device timezone. The article stays private until the scheduled time.</span></label><button type="button" className="btn-secondary justify-center" disabled={isPending || !scheduleDraft || saveState !== "saved"} onClick={submitSchedule}>Schedule article</button></div><button type="button" className="btn-secondary justify-center text-amber-300" disabled={isPending} onClick={() => { const note = window.prompt("Review note for the writer"); if (note) transition("REQUEST_CHANGES", note); }}>Request changes</button></> : null}{canPublish && form.status === "SCHEDULED" ? <><div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs leading-5 text-muted">Scheduled publication: <time dateTime={form.scheduledAt} className="font-semibold text-primary" suppressHydrationWarning>{scheduledLabel}</time></div><div className="grid gap-2"><label className="form-label text-xs" htmlFor="editor-reschedule-input">Change publication time<input id="editor-reschedule-input" type="datetime-local" className={inputClass} value={scheduleDraft} onChange={(event) => setScheduleDraft(event.target.value)} disabled={isPending} suppressHydrationWarning /><span className="text-xs text-muted">Uses your device timezone. The article will publish on the next hourly schedule check.</span></label><button type="button" className="btn-secondary justify-center" disabled={isPending || !scheduleDraft || saveState !== "saved"} onClick={submitSchedule}>Update schedule</button><button type="button" className="btn-primary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("PUBLISH")}><Check className="size-4" />Publish now</button></div></> : null}{!canPublish && form.scheduledAt ? <p className="rounded-xl border border-border bg-surface-strong/60 p-3 text-xs leading-5 text-muted">Scheduled publication: <time dateTime={form.scheduledAt} className="font-semibold text-primary" suppressHydrationWarning>{scheduledLabel}</time></p> : null}{canPublish && form.status === "PUBLISHED" ? <button type="button" className="btn-secondary justify-center text-amber-300" disabled={isPending || saveState !== "saved"} onClick={() => transition("ARCHIVE")}>Unpublish and archive</button> : null}{canPublish && form.status === "ARCHIVED" ? <button type="button" className="btn-secondary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("RESTORE")}>Restore to draft</button> : null}</section>
-        <section className="premium-card grid gap-4 p-5"><h2 className="font-semibold text-primary">Organization</h2>{canManage ? <label className="form-label">Author<select id="editor-author" className={inputClass} name="authorId" value={form.authorId || ""} onChange={(event) => update("authorId", event.target.value)} disabled={!editable}><option value="">Select author</option>{authors.map((author) => <option key={author.id} value={author.id} disabled={author.isActive === false}>{author.displayName}{author.isActive === false ? " (inactive)" : ""}</option>)}</select></label> : <p className="text-sm text-muted">Byline: <strong className="text-primary">{form.authorName}</strong></p>}<label className="form-label">Category<select id="editor-category" className={inputClass} name="categoryId" value={form.categoryId || ""} onChange={(event) => update("categoryId", event.target.value)} disabled={!editable}><option value="">Select category</option>{categories.filter((category) => category.slug || category.name).map((category) => <option key={category.id} value={category.id} disabled={category.isActive === false}>{category.name}{category.isActive === false ? " (inactive)" : ""}</option>)}</select></label><fieldset><legend className="form-label">Tags</legend><div className="grid gap-2">{tags.map((tag) => <label key={tag.id} className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="tagIds" value={tag.id} checked={form.tagIds.includes(tag.id)} onChange={(event) => update("tagIds", event.target.checked ? [...form.tagIds, tag.id] : form.tagIds.filter((id) => id !== tag.id))} disabled={!editable} />{tag.name}</label>)}</div></fieldset>{canManage ? <label className="form-label">Related published article IDs <span className="text-xs text-muted">(comma-separated; optional override)</span><input className={inputClass} name="relatedPostIds" value={relatedDraft} onChange={(event) => { const next = event.target.value; setRelatedDraft(next); update("relatedPostIds", next.split(",").map((item) => item.trim()).filter(Boolean)); }} disabled={!editable} /></label> : null}</section>
-        {canManage ? <section className="premium-card grid gap-3 p-5"><h2 className="font-semibold text-primary">Indexing</h2><label className="flex items-center gap-2 text-sm text-muted"><input type="hidden" name="allowIndex" value="false" /><input type="checkbox" name="allowIndex" value="true" checked={form.allowIndex} onChange={(event) => update("allowIndex", event.target.checked)} disabled={!editable} />Allow search indexing</label><label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="nofollow" value="true" checked={form.nofollow} onChange={(event) => update("nofollow", event.target.checked)} disabled={!editable} />No-follow public links</label><label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="featured" value="true" checked={form.featured} onChange={(event) => update("featured", event.target.checked)} disabled={!editable} />Feature on blog homepage</label></section> : null}
-        {form.reviewNotes.length ? <section className="premium-card grid gap-3 p-5"><h2 className="font-semibold text-primary">Review notes</h2>{form.reviewNotes.map((note) => <div key={note.id} className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs leading-5 text-muted"><p>{note.body}</p><p className="mt-2 text-[10px] uppercase tracking-wider text-amber-300">{note.authorName} · {new Date(note.createdAt).toLocaleDateString()}</p></div>)}</section> : null}
-        {form.revisions.length ? <section className="premium-card grid gap-3 p-5"><h2 className="font-semibold text-primary">Revision checkpoints</h2><p className="text-xs leading-5 text-muted">Autosave protects against overwrites. Checkpoints are retained at workflow transitions.</p>{form.revisions.slice(0, 6).map((revision) => <div key={revision.id} className="flex items-center justify-between gap-3 border-t border-border pt-3 text-xs"><span className="min-w-0 truncate text-primary">v{revision.version} · {revision.title}</span><span className="shrink-0 text-muted">{new Date(revision.createdAt).toLocaleDateString()}</span></div>)}</section> : null}
+      <aside className="grid content-start gap-5 xl:sticky xl:top-6 xl:max-h-[calc(100dvh-2rem)] xl:overflow-y-auto xl:overscroll-contain xl:pr-1 xl:pb-6 scroll-pane">
+        <section className="premium-card grid gap-4 overflow-visible p-5" aria-labelledby="editor-publish-title"><div className="flex items-center gap-2"><Settings2 className="size-4 text-accent" /><h2 id="editor-publish-title" className="font-semibold text-primary">Publishing</h2></div><div className="rounded-xl border border-border bg-surface-strong/60 p-3 text-xs leading-5 text-muted">Status: <strong className="text-primary">{form.status.replaceAll("_", " ")}</strong><br />Autosave: <strong className={saveState === "failed" ? "text-red-400" : "text-primary"}>{saveState === "saving" ? "Saving…" : saveState === "unsaved" ? "Unsaved changes" : saveState === "failed" ? "Save failed" : "Saved"}</strong></div><p className="text-[11px] leading-5 text-muted">Only an active author, active category, and unique title are required to publish. Word count, internal links, and featured image details are recommendations.</p>{statusMessage ? <div className={`rounded-xl p-3 text-xs leading-5 ${statusMessage.kind === "error" ? "bg-red-500/10 text-red-300" : "bg-emerald-500/10 text-emerald-300"}`} role={statusMessage.kind === "error" ? "alert" : "status"}><p>{statusMessage.text}</p>{statusMessage.issues?.length ? <div className="mt-3 border-t border-current/20 pt-3">{blockingIssues.length ? <div><p className="font-semibold">Blocking requirements:</p><IssueList issues={blockingIssues} /></div> : null}{recommendationIssues.length ? <div className="mt-3"><p className="font-semibold">Recommendations (these do not block publishing):</p><IssueList issues={recommendationIssues} /></div> : null}</div> : null}</div> : null}<div className="grid gap-2"><button type="submit" className="btn-primary justify-center" disabled={!editable || isPending}><Save className="size-4" />{isPending && pendingAction === "save" ? "Saving…" : isNew ? "Create draft" : "Save draft"}</button>{form.id && !isNew ? <Link href={`${previewBase || `/${locale}/admin/blog/preview`}/${form.id}`} className="btn-secondary justify-center" target="_blank"><Eye className="size-4" />Preview</Link> : null}</div>{form.status === "DRAFT" || form.status === "CHANGES_REQUESTED" ? <button type="button" className="btn-secondary justify-center" disabled={!editable || isPending || saveState !== "saved"} onClick={() => transition("SUBMIT")}><Send className="size-4" />Submit for review</button> : null}{canPublish && form.status === "IN_REVIEW" ? <><button type="button" className="btn-primary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("PUBLISH")}><Check className="size-4" />{isPending && pendingAction === "PUBLISH" ? "Publishing…" : "Publish now"}</button><div className="grid gap-2"><label className="form-label text-xs" htmlFor="editor-schedule-input">Schedule publication<input id="editor-schedule-input" type="datetime-local" className={inputClass} value={scheduleDraft} onChange={(event) => setScheduleDraft(event.target.value)} disabled={isPending} suppressHydrationWarning /><span className="text-xs text-muted">Uses your device timezone. The article stays private until the scheduled time.</span></label><button type="button" className="btn-secondary justify-center" disabled={isPending || !scheduleDraft || saveState !== "saved"} onClick={submitSchedule}>Schedule article</button></div><button type="button" className="btn-secondary justify-center text-amber-300" disabled={isPending} onClick={() => { const note = window.prompt("Review note for the writer"); if (note) transition("REQUEST_CHANGES", note); }}>Request changes</button></> : null}{canPublish && form.status === "SCHEDULED" ? <><div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs leading-5 text-muted">Scheduled publication: <time dateTime={form.scheduledAt} className="font-semibold text-primary" suppressHydrationWarning>{scheduledLabel}</time></div><div className="grid gap-2"><label className="form-label text-xs" htmlFor="editor-reschedule-input">Change publication time<input id="editor-reschedule-input" type="datetime-local" className={inputClass} value={scheduleDraft} onChange={(event) => setScheduleDraft(event.target.value)} disabled={isPending} suppressHydrationWarning /><span className="text-xs text-muted">Uses your device timezone. The article will publish on the next hourly schedule check.</span></label><button type="button" className="btn-secondary justify-center" disabled={isPending || !scheduleDraft || saveState !== "saved"} onClick={submitSchedule}>Update schedule</button><button type="button" className="btn-primary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("PUBLISH")}><Check className="size-4" />{isPending && pendingAction === "PUBLISH" ? "Publishing…" : "Publish now"}</button></div></> : null}{!canPublish && form.scheduledAt ? <p className="rounded-xl border border-border bg-surface-strong/60 p-3 text-xs leading-5 text-muted">Scheduled publication: <time dateTime={form.scheduledAt} className="font-semibold text-primary" suppressHydrationWarning>{scheduledLabel}</time></p> : null}{canPublish && form.status === "PUBLISHED" ? <button type="button" className="btn-secondary justify-center text-amber-300" disabled={isPending || saveState !== "saved"} onClick={() => transition("ARCHIVE")}>Unpublish and archive</button> : null}{canPublish && form.status === "ARCHIVED" ? <button type="button" className="btn-secondary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("RESTORE")}>Restore to draft</button> : null}</section>
+        <section className="premium-card grid gap-4 overflow-visible p-5"><h2 className="font-semibold text-primary">Organization</h2>{canManage ? <label className="form-label">Author<select id="editor-author" className={inputClass} name="authorId" value={form.authorId || ""} onChange={(event) => update("authorId", event.target.value)} disabled={!editable}><option value="">Select author</option>{authors.map((author) => <option key={author.id} value={author.id} disabled={author.isActive === false}>{author.displayName}{author.isActive === false ? " (inactive)" : ""}</option>)}</select></label> : <p className="text-sm text-muted">Byline: <strong className="text-primary">{form.authorName}</strong></p>}<label className="form-label">Category<select id="editor-category" className={inputClass} name="categoryId" value={form.categoryId || ""} onChange={(event) => update("categoryId", event.target.value)} disabled={!editable}><option value="">Select category</option>{categories.filter((category) => category.slug || category.name).map((category) => <option key={category.id} value={category.id} disabled={category.isActive === false}>{category.name}{category.isActive === false ? " (inactive)" : ""}</option>)}</select></label><fieldset><legend className="form-label">Tags</legend><div className="grid gap-2">{tags.map((tag) => <label key={tag.id} className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="tagIds" value={tag.id} checked={form.tagIds.includes(tag.id)} onChange={(event) => update("tagIds", event.target.checked ? [...form.tagIds, tag.id] : form.tagIds.filter((id) => id !== tag.id))} disabled={!editable} />{tag.name}</label>)}</div></fieldset>{canManage ? <label className="form-label">Related published article IDs <span className="text-xs text-muted">(comma-separated; optional override)</span><input className={inputClass} name="relatedPostIds" value={relatedDraft} onChange={(event) => { const next = event.target.value; setRelatedDraft(next); update("relatedPostIds", next.split(",").map((item) => item.trim()).filter(Boolean)); }} disabled={!editable} /></label> : null}</section>
+        {canManage ? <section className="premium-card grid gap-3 overflow-visible p-5"><h2 className="font-semibold text-primary">Indexing</h2><label className="flex items-center gap-2 text-sm text-muted"><input type="hidden" name="allowIndex" value="false" /><input type="checkbox" name="allowIndex" value="true" checked={form.allowIndex} onChange={(event) => update("allowIndex", event.target.checked)} disabled={!editable} />Allow search indexing</label><label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="nofollow" value="true" checked={form.nofollow} onChange={(event) => update("nofollow", event.target.checked)} disabled={!editable} />No-follow public links</label><label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="featured" value="true" checked={form.featured} onChange={(event) => update("featured", event.target.checked)} disabled={!editable} />Feature on blog homepage</label></section> : null}
+        {form.reviewNotes.length ? <section className="premium-card grid gap-3 overflow-visible p-5"><h2 className="font-semibold text-primary">Review notes</h2>{form.reviewNotes.map((note) => <div key={note.id} className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs leading-5 text-muted"><p>{note.body}</p><p className="mt-2 text-[10px] uppercase tracking-wider text-amber-300">{note.authorName} · {new Date(note.createdAt).toLocaleDateString()}</p></div>)}</section> : null}
+        {form.revisions.length ? <section className="premium-card grid gap-3 overflow-visible p-5"><h2 className="font-semibold text-primary">Revision checkpoints</h2><p className="text-xs leading-5 text-muted">Autosave protects against overwrites. Checkpoints are retained at workflow transitions.</p>{form.revisions.slice(0, 6).map((revision) => <div key={revision.id} className="flex items-center justify-between gap-3 border-t border-border pt-3 text-xs"><span className="min-w-0 truncate text-primary">v{revision.version} · {revision.title}</span><span className="shrink-0 text-muted">{new Date(revision.createdAt).toLocaleDateString()}</span></div>)}</section> : null}
         {canManage && (form.status === "DRAFT" || form.status === "CHANGES_REQUESTED") ? <button type="button" className="btn-ghost justify-center text-xs text-red-300" onClick={deleteDraft} disabled={isPending}>Delete unpublished draft</button> : null}
         <p className="flex items-start gap-2 px-1 text-xs leading-5 text-muted"><AlertCircle className="mt-0.5 size-4 shrink-0 text-accent" />{canPublish ? "You can publish, schedule, archive, assign another author, or change indexing controls." : "An editorial manager must publish, schedule, archive, assign another author, or change indexing controls."}</p>
       </aside>

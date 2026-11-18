@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, Sparkles, Wand2, Image as ImageIcon, Languages, ClipboardCheck, Check, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronUp, Loader2, Sparkles, Wand2, Image as ImageIcon, Languages, ClipboardCheck, Check, X } from "lucide-react";
+import { ProfessionalLoader } from "@/components/ui/professional-loader";
 import type { BlogLocale } from "@/lib/blog/constants";
 import { normalizeArticleHtml } from "@/lib/blog/sanitize";
 import type {
@@ -26,6 +27,49 @@ type Props = {
 };
 
 type ImageResult = { url: string; publicId: string; altText: string; width: number; height: number; model: string };
+
+type EditorialOperation = "generate" | "image" | "refine" | "translate" | "review";
+
+// Each editorial operation reports the phase it is in. The server runs the
+// work in one request, so these stages advance on a timer to tell the operator
+// what the assistant is doing instead of leaving a silent spinner.
+const operationStages: Record<EditorialOperation, readonly string[]> = {
+  generate: [
+    "Reading your brief and target audience…",
+    "Planning the article structure and outline…",
+    "Writing the full article draft…",
+    "Optimizing the SEO title and meta description…",
+    "Assembling the editorial package…",
+  ],
+  image: [
+    "Interpreting the visual brief…",
+    "Generating the featured image…",
+    "Optimizing the final asset…",
+  ],
+  refine: [
+    "Reviewing the selected copy…",
+    "Applying the editorial instruction…",
+    "Polishing clarity, tone, and flow…",
+  ],
+  translate: [
+    "Reading the source content…",
+    "Translating with editorial nuance…",
+    "Reviewing the translated copy…",
+  ],
+  review: [
+    "Auditing structure and readability…",
+    "Checking SEO and editorial standards…",
+    "Preparing the review report…",
+  ],
+};
+
+const operationHints: Record<EditorialOperation, string> = {
+  generate: "Building a complete draft with SEO metadata and editorial notes. This usually takes up to two minutes.",
+  image: "Creating a branded featured image and uploading it to Cloudinary.",
+  refine: "The proposed revision stays separate until you apply it.",
+  translate: "The translation stays separate until you apply it.",
+  review: "A structured review with issues, recommendations, and a checklist.",
+};
 
 const editActionLabels: Record<EditorialEditAction, string> = {
   improve_clarity: "Improve clarity",
@@ -112,6 +156,22 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
   const [reviewSummary, setReviewSummary] = useState<string | null>(null);
   const [reviewIssues, setReviewIssues] = useState<Array<{ category: string; severity: string; message: string; suggestion?: string }>>([]);
   const [reviewChecklist, setReviewChecklist] = useState<string[]>([]);
+
+  const busyOperation: EditorialOperation | null =
+    pending === "generate" ? "generate" : imagePending ? "image" : refinePending ? "refine" : translatePending ? "translate" : reviewPending ? "review" : null;
+  const [loaderProgress, setLoaderProgress] = useState<{ operation: EditorialOperation; stage: number } | null>(null);
+  const loaderStage = loaderProgress?.operation === busyOperation ? loaderProgress.stage : 0;
+
+  useEffect(() => {
+    if (!busyOperation) return;
+    const timer = window.setInterval(() => {
+      setLoaderProgress((current) => {
+        const nextStage = current?.operation === busyOperation ? current.stage + 1 : 1;
+        return { operation: busyOperation, stage: Math.min(nextStage, operationStages[busyOperation].length - 1) };
+      });
+    }, 6500);
+    return () => window.clearInterval(timer);
+  }, [busyOperation]);
 
   async function postJson<T>(url: string, body: unknown): Promise<T> {
     const response = await fetch(url, {
@@ -434,9 +494,9 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
         type="button"
         onClick={() => setOpen(true)}
         disabled={disabled}
-        className="inline-flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition hover:bg-accent/20 disabled:opacity-50"
+        className="inline-flex items-center gap-2 rounded-lg border-2 border-accent/40 bg-accent/10 px-4 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/20 disabled:opacity-50"
       >
-        <Sparkles className="size-3.5" />
+        <Sparkles className="size-4" />
         Generate with AI
       </button>
     );
@@ -451,10 +511,42 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
           <Sparkles className="size-4 text-accent" />
           teChia AI Editorial Assistant
         </p>
-        <button type="button" onClick={() => setOpen(false)} className="text-xs text-muted hover:text-primary">
-          Hide
+        <button type="button" onClick={() => setOpen(false)} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-strong/60 px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-accent/40 hover:text-primary">
+          <ChevronUp className="size-3.5" />
+          Collapse
         </button>
       </div>
+
+      {busyOperation ? (
+        <>
+          <div className="pointer-events-none fixed inset-0 z-[85] bg-black/25 backdrop-blur-[2px]" aria-hidden="true" />
+          <div
+            role="status"
+            aria-live="assertive"
+            className="pointer-events-none fixed left-1/2 top-1/2 z-[90] w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border-2 border-accent/50 bg-background/95 p-7 shadow-[0_30px_80px_-12px_rgba(34,211,238,0.6)] backdrop-blur-lg"
+          >
+          <p className="text-center text-xs font-bold uppercase tracking-[0.22em] text-accent">
+            {busyOperation === "generate" ? "Generating article" : busyOperation === "image" ? "Generating featured image" : busyOperation === "refine" ? "Refining content" : busyOperation === "translate" ? "Translating content" : "Reviewing article"}
+          </p>
+          <div className="mt-2">
+            <ProfessionalLoader size="lg" label={operationStages[busyOperation][loaderStage]} />
+          </div>
+          <div className="mt-3 flex items-center justify-center gap-1.5" aria-hidden="true">
+            {operationStages[busyOperation].map((stage, index) => (
+              <span
+                key={stage}
+                className={`h-2 rounded-full transition-all duration-500 ${
+                  index === loaderStage ? "w-10 bg-accent" : index < loaderStage ? "w-5 bg-accent/60" : "w-5 bg-border"
+                }`}
+              />
+            ))}
+          </div>
+          <p className="mt-2 text-center text-xs font-medium leading-5 text-primary">
+            Step {loaderStage + 1} of {operationStages[busyOperation].length} · {operationHints[busyOperation]}
+          </p>
+        </div>
+        </>
+      ) : null}
 
       {error ? <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</p> : null}
 
@@ -526,6 +618,65 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
         {model ? <span className="text-[11px] text-muted">via {model}</span> : null}
       </div>
 
+      {imageResult ? (
+        <div className="grid gap-2 border-t border-border pt-4">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-primary">
+            <ImageIcon className="size-4 text-accent" />
+            Featured image (image-only)
+          </h3>
+          <p className="text-[11px] text-muted">Write a prompt below to regenerate or replace the featured image independently of the article text.</p>
+          <label className="form-label text-xs">Image prompt
+            <textarea className={`${inputClass} min-h-24`} value={imagePrompt} onChange={(e) => setImagePrompt(e.target.value)} />
+          </label>
+          <label className="form-label text-xs">Alt text
+            <input className={inputClass} value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} />
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void runImageGeneration()}
+              disabled={imagePending}
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-[#001018] transition hover:opacity-90 disabled:opacity-60"
+            >
+              {imagePending ? <Loader2 className="size-3.5 animate-spin" /> : <ImageIcon className="size-3.5" />}
+              {imageResult ? "Regenerate featured image" : "Generate featured image"}
+            </button>
+            {imageResult ? <span className="text-[11px] text-muted">Generated {imageResult.width}×{imageResult.height}</span> : null}
+          </div>
+          {imageResult ? (
+            <div className="grid gap-2">
+              <img src={imageResult.url} alt={imageResult.altText} className="max-h-64 w-full rounded-lg object-cover" />
+              <p className="text-[11px] text-muted">Cloudinary: {imageResult.publicId}</p>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="grid gap-3 border-t border-border pt-4">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-primary">
+            <ImageIcon className="size-4 text-accent" />
+            Featured image (image-only)
+          </h3>
+          <p className="text-[11px] text-muted">Write a prompt below to generate a featured image independently of the article text.</p>
+          <label className="form-label text-xs">Image prompt
+            <textarea className={`${inputClass} min-h-24`} value={imagePrompt} onChange={(e) => setImagePrompt(e.target.value)} />
+          </label>
+          <label className="form-label text-xs">Alt text
+            <input className={inputClass} value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} />
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void runImageGeneration()}
+              disabled={imagePending || !imagePrompt.trim()}
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-[#001018] transition hover:opacity-90 disabled:opacity-60"
+            >
+              {imagePending ? <Loader2 className="size-3.5 animate-spin" /> : <ImageIcon className="size-3.5" />}
+              Generate featured image
+            </button>
+          </div>
+        </div>
+      )}
+
       {article ? (
         <div className="grid gap-4 border-t border-border pt-4">
           <div className="grid gap-3">
@@ -579,37 +730,6 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
               <div className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 text-xs">
                 <p className="font-semibold text-amber-300">Claims to verify</p>
                 <ul className="mt-1 list-disc pl-4 text-muted">{article.claimsToVerify.map((n, i) => <li key={i}>{n}</li>)}</ul>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="grid gap-3 border-t border-border pt-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-primary">
-              <ImageIcon className="size-4 text-accent" />
-              Featured image
-            </h3>
-            <label className="form-label text-xs">Image prompt
-              <textarea className={`${inputClass} min-h-24`} value={imagePrompt} onChange={(e) => setImagePrompt(e.target.value)} />
-            </label>
-            <label className="form-label text-xs">Alt text
-              <input className={inputClass} value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} />
-            </label>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void runImageGeneration()}
-                disabled={imagePending}
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-primary transition hover:border-accent/40 disabled:opacity-60"
-              >
-                {imagePending ? <Loader2 className="size-3.5 animate-spin" /> : <ImageIcon className="size-3.5" />}
-                Generate featured image
-              </button>
-              {imageResult ? <span className="text-[11px] text-muted">Generated {imageResult.width}×{imageResult.height}</span> : null}
-            </div>
-            {imageResult ? (
-              <div className="grid gap-2">
-                <img src={imageResult.url} alt={imageResult.altText} className="max-h-64 w-full rounded-lg object-cover" />
-                <p className="text-[11px] text-muted">Cloudinary: {imageResult.publicId}</p>
               </div>
             ) : null}
           </div>

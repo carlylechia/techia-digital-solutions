@@ -1,9 +1,5 @@
 import { ProfessionalLoader } from "@/components/ui/professional-loader";
 
 export default function Loading() {
-  return (
-    <div className="grid min-h-[40vh] place-items-center">
-      <ProfessionalLoader label="Loading the review queue…" size="lg" />
-    </div>
-  );
+  return <ProfessionalLoader label="Loading the review queue…" size="lg" variant="fullScreen" />;
 }

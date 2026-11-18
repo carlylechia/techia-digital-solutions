@@ -74,7 +74,7 @@ export default async function CourseBonusesPage({
           heroSecondary: "Voir tous les packs",
           asideEyebrow: "Meilleure valeur",
           asideBody:
-            "Le pack complet reste l'offre la plus forte: 16 cours, le bundle bonus complet, et un meilleur accompagnement pour les questions d'acces et de reclamation.",
+            "Le pack complet reste l'offre la plus forte: 15 cours, le bundle bonus complet, et un meilleur accompagnement pour les questions d'acces et de reclamation.",
           claimBonus: "Reclamer le bonus acheteur",
           supportWhatsapp: "Envoyer sur WhatsApp",
           supportEmail: "Contacter le support",
@@ -103,7 +103,7 @@ export default async function CourseBonusesPage({
           heroSecondary: "View All Course Packs",
           asideEyebrow: "Best value",
           asideBody:
-            "The full pack remains the strongest offer: 16 courses, the complete bonus bundle, and better support for access and claim-related issues.",
+            "The full pack remains the strongest offer: 15 courses, the complete bonus bundle, and better support for access and claim-related issues.",
           claimBonus: "Claim Buyer Bonus",
           supportWhatsapp: "Send on WhatsApp",
           supportEmail: "Contact support",

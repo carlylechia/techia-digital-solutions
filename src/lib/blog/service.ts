@@ -6,7 +6,7 @@ import { writeAuditLog } from "@/lib/admin/session";
 import { hasPermission } from "@/lib/admin/permissions";
 import { getDictionary } from "@/content/site";
 import { getPrisma } from "@/lib/prisma";
-import type { BlogSessionUser } from "./auth";
+import { isSuperAdminUser, type BlogSessionUser } from "./auth";
 import { type BlogPostStatusValue, type BlogWorkflowAction } from "./constants";
 import { normalizeCanonicalUrl, normalizeCtaHref, slugify, type BlogLocale } from "./slug";
 import { countArticleInternalLinks } from "./sanitize";
@@ -42,6 +42,56 @@ function requireDatabase(): PrismaClient {
 function nullable(value: string | null | undefined) {
   const clean = value?.trim();
   return clean ? clean : null;
+}
+
+/**
+ * SuperAdmins are exempt from the "link your account to an author profile"
+ * setup step. The first time a SuperAdmin needs a byline, we provision (or
+ * reactivate) a profile linked to their account. Articles therefore keep a real
+ * author attribution and still satisfy the active-author publication rule,
+ * without requiring a separate manual setup step.
+ */
+async function ensureSuperAdminAuthor(prisma: PrismaClient, actor: BlogSessionUser): Promise<string> {
+  const linked = await prisma.blogAuthor.findUnique({ where: { userId: actor.id }, select: { id: true, isActive: true } });
+  if (linked) {
+    if (!linked.isActive) {
+      await prisma.blogAuthor.update({ where: { id: linked.id }, data: { isActive: true } });
+    }
+    return linked.id;
+  }
+
+  const rawName = actor.name.trim();
+  const displayName = rawName && !rawName.includes("@") ? rawName : actor.email.split("@")[0].replace(/[._-]+/g, " ").trim() || "teChia Editor";
+  const baseSlug = slugify(displayName) || "techia-editor";
+  let slug = baseSlug;
+  for (let attempt = 2; attempt <= 50; attempt += 1) {
+    const conflict = await prisma.blogAuthor.findUnique({ where: { slug }, select: { id: true } });
+    if (!conflict) break;
+    slug = `${baseSlug}-${attempt}`;
+  }
+  if (await prisma.blogAuthor.findUnique({ where: { slug }, select: { id: true } })) slug = `${baseSlug}-${Date.now()}`;
+
+  try {
+    const created = await prisma.blogAuthor.create({
+      data: {
+        userId: actor.id,
+        displayName,
+        slug,
+        bio: "SuperAdmin at teChia Digital Solutions, guiding editorial quality and publishing decisions.",
+        jobTitle: "SuperAdmin",
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    return created.id;
+  } catch (error) {
+    // A concurrent request may have provisioned the same profile first.
+    if ((error as { code?: string }).code === "P2002") {
+      const raced = await prisma.blogAuthor.findUnique({ where: { userId: actor.id }, select: { id: true } });
+      if (raced) return raced.id;
+    }
+    throw error;
+  }
 }
 
 function assertSafeImageUrl(value: string | null | undefined, field: string) {
@@ -88,8 +138,20 @@ async function validateRelations(
     ? nullable(payload.authorId) || options.authorId
     : options.authorId;
 
-  if (!authorId) throw new Error("Your account must be linked to an active author profile before creating an article.");
-  const author = await prisma.blogAuthor.findFirst({ where: { id: authorId, isActive: true }, select: { id: true } });
+  // SuperAdmins can create and publish without manually linking an author
+  // profile: the profile is provisioned on demand so the article still has a
+  // real byline and passes the active-author publication requirement.
+  let resolvedAuthorId = authorId;
+  if (!resolvedAuthorId && isSuperAdminUser(options.actor)) {
+    resolvedAuthorId = await ensureSuperAdminAuthor(prisma, options.actor);
+  }
+
+  if (!resolvedAuthorId) throw new Error("Your account must be linked to an active author profile before creating an article.");
+  let author = await prisma.blogAuthor.findFirst({ where: { id: resolvedAuthorId, isActive: true }, select: { id: true } });
+  if (!author && isSuperAdminUser(options.actor)) {
+    const ensuredId = await ensureSuperAdminAuthor(prisma, options.actor);
+    if (ensuredId === resolvedAuthorId) author = { id: ensuredId };
+  }
   if (!author) throw new Error("Select an active author profile.");
 
   let categoryId: string | null = null;
@@ -157,7 +219,7 @@ async function validateRelations(
     linkedSourcePostId = source.id;
   }
 
-  return { authorId, categoryId, tagIds, relatedPostIds, translationGroupId, linkedSourcePostId };
+  return { authorId: resolvedAuthorId, categoryId, tagIds, relatedPostIds, translationGroupId, linkedSourcePostId };
 }
 
 function normalizedPostData(
