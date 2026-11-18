@@ -305,13 +305,13 @@ function revalidatePostRelations(input: {
   void input.postId;
 }
 
-export async function createBlogPost(actor: BlogSessionUser, rawPayload: unknown) {
+export async function createBlogPost(actor: BlogSessionUser, rawPayload: unknown, options?: { existingTranslationGroupId?: string | null }) {
   const prisma = requireDatabase();
   if (!hasPermission(actor.permissions, "blog.posts.create") && !hasPermission(actor.permissions, "blog.posts.manage")) {
     throw new Error("You do not have permission to create articles.");
   }
   const payload = prepareBlogPostPayload(rawPayload);
-  const relations = await validateRelations(prisma, payload, { actor, authorId: actor.authorId });
+  const relations = await validateRelations(prisma, payload, { actor, authorId: actor.authorId, existingTranslationGroupId: options?.existingTranslationGroupId ?? null });
   const slug = await uniqueSlug(prisma, payload.locale as BlogLocale, payload.slug);
   const data = normalizedPostData({ ...payload, slug }, relations, actor);
   if (!hasPermission(actor.permissions, "blog.posts.publish")) Object.assign(data, { canonicalUrl: null, allowIndex: true, nofollow: false, featured: false });

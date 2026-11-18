@@ -619,3 +619,88 @@ CONTENT>>>`,
     throw error;
   }
 }
+
+
+export const editorialArticleTranslationSchema = z.object({
+  title: z.string().trim().min(5).max(180),
+  suggestedSlug: z.string().trim().min(3).max(180),
+  excerpt: z.string().trim().min(30).max(360),
+  articleContent: z.string().trim().min(200).max(60000),
+  seoTitle: z.string().trim().min(5).max(70),
+  metaDescription: z.string().trim().min(30).max(180),
+});
+
+export async function translateEditorialArticle(input: {
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  seoTitle?: string | null;
+  metaDescription?: string | null;
+}, actorId: string) {
+  if (!isEditorialAiEnabled()) throw new EditorialAiError("disabled", "Editorial AI is disabled.");
+  const model = getEditorialTextModel();
+  if (!model) throw new EditorialAiError("not_configured", "OPENAI_EDITORIAL_TEXT_MODEL (or OPENAI_MODEL) is not configured.");
+
+  const reservationId = await reserveEditorialUsage({
+    actorId,
+    requestType: "EDITORIAL_TRANSLATE",
+    limit: EDITORIAL_AI_CONFIG.maxArticleGenerationsPerDay * 3,
+    model,
+    burstLimit: 40,
+  });
+
+  try {
+    const result = await callOpenAiJson({
+      model,
+      system: `${SYSTEM_BRAND}
+
+You translate a complete blog article from English to French. Preserve meaning, tone, structure, headings, links, and SEO intent. Do not invent facts. Return JSON only with keys: title, suggestedSlug, excerpt, articleContent, seoTitle, metaDescription.`,
+      user: `Translate this article to French.
+
+Title: ${input.title}
+Slug: ${input.slug}
+Excerpt: ${input.excerpt}
+SEO title: ${input.seoTitle || input.title}
+Meta description: ${input.metaDescription || input.excerpt}
+
+Content:
+<<<CONTENT
+${input.content.slice(0, EDITORIAL_AI_CONFIG.maxInputChars)}
+CONTENT>>>`,
+      schema: editorialArticleTranslationSchema,
+      timeoutMs: EDITORIAL_AI_CONFIG.timeoutMs,
+      maxTokens: 4096,
+    });
+
+    const estimatedCost = estimateEditorialTextCost(model, result.inputTokens, result.outputTokens, result.cachedInputTokens);
+    await finalizeEditorialUsage(reservationId, {
+      model,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      estimatedCost,
+      costAvailable: estimatedCost !== null,
+      providerOutcome: "PROVIDER_SUCCEEDED",
+      reconciliationRequired: false,
+    });
+
+    return { ...result.data, model };
+  } catch (error) {
+    const ambiguous = error instanceof EditorialAiError && (error.providerState === "started" || error.providerState === "responded");
+    if (ambiguous) {
+      await finalizeEditorialUsage(reservationId, {
+        model,
+        inputTokens: 0,
+        outputTokens: 0,
+        estimatedCost: null,
+        costAvailable: false,
+        status: "PROVIDER_OUTCOME_UNKNOWN",
+        providerOutcome: "PROVIDER_OUTCOME_UNKNOWN",
+        reconciliationRequired: true,
+      });
+    } else {
+      await failEditorialUsage(reservationId);
+    }
+    throw error;
+  }
+}

@@ -12,6 +12,9 @@ import { requireBlogUser, BlogAuthorizationError } from "./auth";
 import { normalizeHomepagePicks } from "./public-feed";
 import { blogAuthorProfileSchema, blogCategorySchema, blogMediaMetadataSchema, blogPostPayloadSchema, blogTagSchema, blogTransitionSchema, writerInviteSchema, writerPasswordSchema, type BlogPostPayload } from "./validation";
 import { BlogConflictError, BlogPublicationError, createBlogPost, deleteUnpublishedBlogPost, invalidateBlogCache, transitionBlogPost, updateBlogPost } from "./service";
+import { translateEditorialArticle } from "@/lib/ai/editorial-service";
+import { isSuperAdminUser } from "./auth";
+
 import { slugify } from "./slug";
 
 export type BlogActionResult = { ok: true; message: string; id?: string; slug?: string; scheduledAt?: string | null; version?: number; issues?: Array<{ field: string; message: string; severity: "error" | "warning" }> } | { ok: false; error: string; issues?: Array<{ field: string; message: string; severity: "error" | "warning" }> };
@@ -68,6 +71,65 @@ function messageFromError(error: unknown): BlogActionResult {
   if (error instanceof BlogAuthorizationError) return { ok: false, error: error.message };
   if (error instanceof Error) return { ok: false, error: error.message };
   return { ok: false, error: "The editorial action could not be completed." };
+}
+
+export async function translateBlogPostToFrenchAction(postId: string): Promise<BlogActionResult> {
+  try {
+    const actor = await requireBlogUser("blog.posts.create");
+    const prisma = getPrisma();
+    if (!prisma) return { ok: false, error: "Editorial database is unavailable." };
+    const source = await prisma.blogPost.findUnique({ where: { id: postId } });
+    if (!source) return { ok: false, error: "Article not found." };
+    if (source.locale !== "en") return { ok: false, error: "Only English articles can be translated to French." };
+    if (!isSuperAdminUser(actor) && source.authorId !== actor.authorId) {
+      // allow managers
+    }
+
+    const translated = await translateEditorialArticle({
+      title: source.title,
+      slug: source.slug,
+      excerpt: source.excerpt,
+      content: source.content,
+      seoTitle: source.seoTitle,
+      metaDescription: source.seoDescription,
+    }, actor.id);
+
+    const payload = {
+      title: translated.title,
+      slug: translated.suggestedSlug,
+      excerpt: translated.excerpt,
+      content: translated.articleContent,
+      locale: "fr",
+      categoryId: source.categoryId || "",
+      authorId: source.authorId || "",
+      translationSourcePostId: "",
+      tagIds: [],
+      relatedPostIds: [],
+      seoTitle: translated.seoTitle,
+      seoDescription: translated.metaDescription,
+      focusKeyword: source.focusKeyword || "",
+      canonicalUrl: "",
+      featuredImageUrl: source.featuredImageUrl || "",
+      featuredImagePublicId: source.featuredImagePublicId || "",
+      featuredImageAlt: source.featuredImageAlt || "",
+      ogImageUrl: source.ogImageUrl || "",
+      ogImagePublicId: source.ogImagePublicId || "",
+      ctaTitle: source.ctaTitle || "",
+      ctaDescription: source.ctaDescription || "",
+      ctaHref: source.ctaHref || "",
+      ctaLabel: source.ctaLabel || "",
+      featured: false,
+      allowIndex: true,
+      nofollow: false,
+      version: 1,
+    };
+
+    const created = await createBlogPost(actor, payload, { existingTranslationGroupId: source.translationGroupId });
+    revalidatePath("/admin/blog");
+    return { ok: true, message: "French translation created as a draft.", id: created.id, slug: created.slug };
+  } catch (error) {
+    return messageFromError(error);
+  }
 }
 
 export async function createBlogPostAction(formData: FormData): Promise<BlogActionResult> {
