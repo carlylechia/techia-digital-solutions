@@ -4,13 +4,14 @@ import { z } from "zod";
 import fs from "node:fs";
 import path from "node:path";
 import { getPrisma } from "@/lib/prisma";
+import { getErrorMessage } from "@/lib/prisma-errors";
 import { getAbsoluteBlogPostUrl } from "@/lib/blog/slug";
 import { normalizeArticleHtml, htmlToPlainText } from "@/lib/blog/sanitize";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import { isEditorialAiEnabled, getEditorialTextModel, EDITORIAL_AI_CONFIG } from "./editorial-config";
 import { EditorialAiError, callOpenAiJson } from "./editorial-service";
 import { reserveEditorialUsage, finalizeEditorialUsage, failEditorialUsage, checkEditorialBurstLimit } from "./editorial-usage";
-import { estimateEditorialTextCost } from "./editorial-pricing";
+import { estimateEditorialTextCost, estimateEditorialImageCost } from "./editorial-pricing";
 import {
   socialCaptionGenerateInputSchema,
   facebookCaptionSchema,
@@ -25,8 +26,6 @@ import {
 } from "./social-share-types";
 
 const REQUEST_TYPE = "SOCIAL_SHARE_CAPTION";
-const GRAPHIC_FOLDER = "techia/social-share";
-
 export type SocialArticleSource = {
   id: string;
   title: string;
@@ -356,21 +355,6 @@ export async function updatePublishStatus(postId: string, platform: SocialPlatfo
 
 // ---- Graphics ----
 
-function readLogoSvg(): string {
-  const candidates = [
-    path.join(process.cwd(), "public", "brand", "logo-horizontal-white.svg"),
-    path.join(process.cwd(), "public", "brand", "logo-mark.svg"),
-  ];
-  for (const c of candidates) {
-    try {
-      if (fs.existsSync(c)) return fs.readFileSync(c, "utf8");
-    } catch {
-      // ignore
-    }
-  }
-  return "";
-}
-
 function escapeXml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -409,105 +393,237 @@ function shortenHeadline(title: string): string {
   return words.slice(0, 10).join(" ") + "…";
 }
 
-export async function generateSocialGraphic(postId: string, format: SocialGraphicFormat, actorId: string) {
+
+const LOGO_CHOICES: Record<string, string> = {
+  "logo-horizontal-white": "public/brand/logo-horizontal-white.svg",
+  "logo-horizontal-dark": "public/brand/logo-horizontal-dark.svg",
+  "logo-horizontal-light": "public/brand/logo-horizontal-light.svg",
+  "logo-horizontal-black": "public/brand/logo-horizontal-black.svg",
+  "logo-mark": "public/brand/logo-mark.svg",
+  "logo-full": "public/brand/logo-full.svg",
+};
+
+function resolveLogoPath(choice?: string): string {
+  const rel = (choice && LOGO_CHOICES[choice]) || LOGO_CHOICES["logo-horizontal-white"];
+  return path.join(process.cwd(), rel);
+}
+
+function readLogoSvg(choice?: string): string {
+  try {
+    const p = resolveLogoPath(choice);
+    if (fs.existsSync(p)) return fs.readFileSync(p, "utf8");
+  } catch {
+    // ignore
+  }
+  return readLogoSvgFallback();
+}
+
+function readLogoSvgFallback(): string {
+  const candidates = [
+    path.join(process.cwd(), "public", "brand", "logo-horizontal-white.svg"),
+    path.join(process.cwd(), "public", "brand", "logo-mark.svg"),
+  ];
+  for (const c of candidates) {
+    try {
+      if (fs.existsSync(c)) return fs.readFileSync(c, "utf8");
+    } catch {
+      // ignore
+    }
+  }
+  return "";
+}
+
+export async function generateSocialGraphic(
+  postId: string,
+  format: SocialGraphicFormat,
+  actorId: string,
+  prompt?: string,
+  logoChoice?: string,
+) {
   const article = await getSocialArticleSource(postId);
   if (!article) throw new EditorialAiError("invalid_input", "Article not found.");
+
+  if (!isEditorialAiEnabled()) throw new EditorialAiError("disabled", "Editorial AI is disabled.");
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new EditorialAiError("not_configured", "OPENAI_API_KEY is not configured.");
+
+  const model = process.env.OPENAI_EDITORIAL_IMAGE_MODEL?.trim() || "gpt-image-1.5";
+
+  await checkEditorialBurstLimit(actorId, 10);
+
+  const reservationId = await reserveEditorialUsage({
+    actorId,
+    requestType: "EDITORIAL_IMAGE",
+    limit: EDITORIAL_AI_CONFIG.maxImageGenerationsPerDay,
+    model,
+    imageCount: 1,
+    burstLimit: 10,
+  });
 
   const isSquare = format === "SQUARE";
   const width = 1080;
   const height = isSquare ? 1080 : 1920;
-  const headline = shortenHeadline(article.title);
-  const lines = wrapText(headline, isSquare ? 22 : 20, isSquare ? 4 : 5);
-  const logoSvg = readLogoSvg();
 
-  // Build logo element: inline svg scaled. If logo svg present, embed as image data uri.
-  const logoDataUri = logoSvg
-    ? `data:image/svg+xml;base64,${Buffer.from(logoSvg).toString("base64")}`
-    : "";
+  const finalPrompt =
+    (prompt && prompt.trim()) ||
+    `A premium, professional, human-designed editorial illustration for a social media post about: "${article.title}". ${article.excerpt}. Modern digital business, innovation, technology, growth, trust. Clean composition, rich visual detail, cinematic lighting, no text, no logos, no watermarks.`;
 
-  const lineHeight = isSquare ? 74 : 68;
-  const headlineStartY = isSquare ? 420 : 760;
-  const headlineSvg = lines
-    .map((line, i) => `<text x="80" y="${headlineStartY + i * lineHeight}" font-family="Manrope, Arial, sans-serif" font-size="${isSquare ? 62 : 58}" font-weight="700" fill="#f7fbff">${escapeXml(line)}</text>`)
-    .join("\n");
+  let providerGenerated = false;
+  let b64: string | null = null;
 
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), EDITORIAL_AI_CONFIG.imageTimeoutMs);
+    let response: Response;
+    try {
+      response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model,
+          prompt: `${finalPrompt}\n\nStyle: premium teChia brand aesthetic — deep navy, electric blue, cyan accents, modern, trustworthy, professional, no text, no logos, no watermarks, high resolution.`,
+          n: 1,
+          size: isSquare ? "1024x1024" : "1024x1536",
+          quality: "high",
+          output_format: "png",
+        }),
+      });
+    } catch (error) {
+      if (controller.signal.aborted) throw new EditorialAiError("timeout", "Image generation timed out.");
+      throw new EditorialAiError("api", `Image generation failed: ${getErrorMessage(error)}`);
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (!response.ok) {
+      if (response.status === 404) throw new EditorialAiError("model_unavailable", `Image model (${model}) is not available.`);
+      if (response.status === 429) throw new EditorialAiError("quota", "Image generation quota or rate limit reached.");
+      if (response.status === 401 || response.status === 403) throw new EditorialAiError("auth", "Image generation credentials were rejected.");
+      throw new EditorialAiError("api", `Image generation returned HTTP ${response.status}.`);
+    }
+
+    const payload = (await response.json()) as { data?: Array<{ b64_json?: string }> };
+    b64 = payload.data?.[0]?.b64_json || null;
+    if (!b64) throw new EditorialAiError("malformed_output", "The image model did not return image data.");
+
+    providerGenerated = true;
+
+    const imageBuffer = Buffer.from(b64, "base64");
+    const base64Image = imageBuffer.toString("base64");
+    const mimeType = "image/png";
+    const dataUri = `data:${mimeType};base64,${base64Image}`;
+
+    const logoSvg = readLogoSvg(logoChoice);
+    const logoDataUri = logoSvg ? `data:image/svg+xml;base64,${Buffer.from(logoSvg).toString("base64")}` : "";
+
+    const headline = shortenHeadline(article.title);
+    const lines = wrapText(headline, isSquare ? 20 : 18, isSquare ? 4 : 5);
+    const lineHeight = isSquare ? 70 : 62;
+    const headlineStartY = isSquare ? Math.round(height * 0.55) : Math.round(height * 0.62);
+    const headlineSvg = lines
+      .map((line, i) => `<text x="80" y="${headlineStartY + i * lineHeight}" font-family="Manrope, Arial, sans-serif" font-size="${isSquare ? 58 : 52}" font-weight="700" fill="#ffffff" style="text-shadow:0 2px 12px rgba(0,0,0,0.6)">${escapeXml(line)}</text>`)
+      .join("\n");
+
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#040812"/>
-      <stop offset="55%" stop-color="#081424"/>
-      <stop offset="100%" stop-color="#2563eb"/>
+    <linearGradient id="overlay" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(4,8,18,0.15)"/>
+      <stop offset="55%" stop-color="rgba(4,8,18,0.35)"/>
+      <stop offset="100%" stop-color="rgba(4,8,18,0.85)"/>
     </linearGradient>
-    <radialGradient id="glow" cx="80%" cy="20%" r="60%">
-      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.35"/>
-      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
-    </radialGradient>
   </defs>
-  <rect width="${width}" height="${height}" fill="url(#bg)"/>
-  <rect width="${width}" height="${height}" fill="url(#glow)"/>
-  <!-- grid -->
-  <g stroke="rgba(255,255,255,0.05)" stroke-width="1">
-    ${Array.from({ length: 12 }).map((_, i) => `<line x1="${i * 90}" y1="0" x2="${i * 90}" y2="${height}"/>`).join("")}
-  </g>
-  ${logoDataUri ? `<image href="${logoDataUri}" x="80" y="80" width="${isSquare ? 260 : 300}" height="60" preserveAspectRatio="xMinYMid meet"/>` : `<text x="80" y="120" font-family="Manrope, Arial, sans-serif" font-size="34" font-weight="700" fill="#22d3ee">teChia Digital Solutions</text>`}
-  <text x="80" y="${isSquare ? 200 : 220}" font-family="Manrope, Arial, sans-serif" font-size="22" font-weight="500" fill="#9db0c7" letter-spacing="4">DIGITALIZE · SIMPLIFY · GROW</text>
+  <image href="${dataUri}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice"/>
+  <rect width="${width}" height="${height}" fill="url(#overlay)"/>
+  ${logoDataUri ? `<image href="${logoDataUri}" x="80" y="70" width="${isSquare ? 260 : 300}" height="60" preserveAspectRatio="xMinYMid meet"/>` : `<text x="80" y="115" font-family="Manrope, Arial, sans-serif" font-size="34" font-weight="700" fill="#22d3ee">teChia Digital Solutions</text>`}
+  <text x="80" y="150" font-family="Manrope, Arial, sans-serif" font-size="20" font-weight="500" fill="#9db0c7" letter-spacing="3">DIGITALIZE · SIMPLIFY · GROW</text>
   ${headlineSvg}
-  <rect x="80" y="${height - 220}" width="120" height="4" fill="#22d3ee"/>
-  <text x="80" y="${height - 160}" font-family="Manrope, Arial, sans-serif" font-size="26" font-weight="600" fill="#f7fbff">Read the full article</text>
-  <text x="80" y="${height - 110}" font-family="Manrope, Arial, sans-serif" font-size="20" fill="#9db0c7">${escapeXml(article.canonicalUrl.replace(/^https?:\/\//, ""))}</text>
-  <text x="${width - 80}" y="${height - 60}" text-anchor="end" font-family="Manrope, Arial, sans-serif" font-size="18" fill="rgba(255,255,255,0.4)">techia-digital-solutions</text>
+  <rect x="80" y="${height - 200}" width="120" height="4" fill="#22d3ee"/>
+  <text x="80" y="${height - 145}" font-family="Manrope, Arial, sans-serif" font-size="24" font-weight="600" fill="#f7fbff">Read the full article</text>
+  <text x="80" y="${height - 105}" font-family="Manrope, Arial, sans-serif" font-size="18" fill="#9db0c7">${escapeXml(article.canonicalUrl.replace(/^https?:\/\//, ""))}</text>
 </svg>`;
 
-  const buffer = Buffer.from(svg, "utf8");
-  const filename = `${article.slug}-${format.toLowerCase()}.svg`;
-  const file = new File([new Uint8Array(buffer)], filename, { type: "image/svg+xml" });
+    const svgBuffer = Buffer.from(svg, "utf8");
+    const filename = `${article.slug}-${format.toLowerCase()}.svg`;
+    const file = new File([new Uint8Array(svgBuffer)], filename, { type: "image/svg+xml" });
 
-  const result = await uploadToCloudinary(file, GRAPHIC_FOLDER, { forceSigned: true });
+    const result = await uploadToCloudinary(file, "techia/social-share/graphics", { forceSigned: true });
 
-  const prisma = getPrisma();
-  if (!prisma) throw new EditorialAiError("not_configured", "Media storage is unavailable.");
+    const prisma = getPrisma();
+    if (!prisma) throw new EditorialAiError("not_configured", "Media storage is unavailable.");
 
-  const kit = await prisma.socialShareKit.upsert({
-    where: { postId: article.id },
-    create: { postId: article.id, createdById: actorId },
-    update: {},
-  });
+    const kit = await prisma.socialShareKit.upsert({
+      where: { postId: article.id },
+      create: { postId: article.id, createdById: actorId },
+      update: {},
+    });
 
-  const graphicFormat = format;
-  await prisma.socialShareGraphic.upsert({
-    where: { kitId_format: { kitId: kit.id, format: graphicFormat } },
-    create: {
-      kitId: kit.id,
-      format: graphicFormat,
+    await prisma.socialShareGraphic.upsert({
+      where: { kitId_format: { kitId: kit.id, format } },
+      create: {
+        kitId: kit.id,
+        format,
+        url: result.secure_url,
+        publicId: result.public_id,
+        width: result.width || width,
+        height: result.height || height,
+        bytes: result.bytes,
+        formatMime: "image/svg+xml",
+      },
+      update: {
+        url: result.secure_url,
+        publicId: result.public_id,
+        width: result.width || width,
+        height: result.height || height,
+        bytes: result.bytes,
+        formatMime: "image/svg+xml",
+      },
+    });
+
+    const estimatedCost = estimateEditorialImageCost(model, isSquare ? "1024x1024" : "1024x1536", "high");
+    await finalizeEditorialUsage(reservationId, {
+      model,
+      inputTokens: 0,
+      outputTokens: 0,
+      estimatedCost,
+      costAvailable: estimatedCost !== null,
+      imageCount: 1,
+      status: "SUCCEEDED",
+      providerOutcome: "PROVIDER_SUCCEEDED",
+      reconciliationRequired: false,
+    });
+
+    return {
       url: result.secure_url,
+      pngUrl: result.secure_url.replace("/upload/", "/upload/f_png/"),
       publicId: result.public_id,
       width: result.width || width,
       height: result.height || height,
-      bytes: result.bytes,
-      formatMime: "image/svg+xml",
-    },
-    update: {
-      url: result.secure_url,
-      publicId: result.public_id,
-      width: result.width || width,
-      height: result.height || height,
-      bytes: result.bytes,
-      formatMime: "image/svg+xml",
-    },
-  });
+      format,
+    };
+  } catch (error) {
+    if (providerGenerated) {
+      const estimatedCost = estimateEditorialImageCost(model, isSquare ? "1024x1024" : "1024x1536", "high");
+      await finalizeEditorialUsage(reservationId, {
+        model,
+        inputTokens: 0,
+        outputTokens: 0,
+        estimatedCost,
+        costAvailable: estimatedCost !== null,
+        imageCount: 1,
+        status: "PROVIDER_SUCCEEDED_UPLOAD_FAILED",
+        providerOutcome: "PROVIDER_SUCCEEDED",
+        reconciliationRequired: true,
+      });
+    } else {
 
-  // Return a PNG delivery URL when possible
-  const pngUrl = result.secure_url.replace("/upload/", "/upload/f_png/");
-
-  return {
-    url: result.secure_url,
-    pngUrl,
-    publicId: result.public_id,
-    width: result.width || width,
-    height: result.height || height,
-    format,
-  };
+      await failEditorialUsage(reservationId);
+    }
+    if (error instanceof EditorialAiError) throw error;
+    throw new EditorialAiError("api", `Graphic generation failed: ${getErrorMessage(error)}`);
+  }
 }
 
 export async function getSocialGraphics(postId: string) {

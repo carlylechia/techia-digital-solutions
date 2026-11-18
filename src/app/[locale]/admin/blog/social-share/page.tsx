@@ -3,6 +3,7 @@ import { SocialShareKit } from "@/components/blog/social-share-kit";
 import { getBlogSessionUser } from "@/lib/blog/auth";
 import { isSuperAdminUser } from "@/lib/blog/auth";
 import type { BlogLocale } from "@/lib/blog/constants";
+import { PageBreadcrumbs } from "@/components/ui/page-breadcrumbs";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export default async function SocialShareKitPage({ params }: { params: Promise<{
   if (!user || !isSuperAdminUser(user)) notFound();
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
+      <PageBreadcrumbs items={[{ label: "Admin", href: `/${locale}/admin` }, { label: "Blog", href: `/${locale}/admin/blog` }, { label: "Social Share Kit" }]} />
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-primary">Social Share Kit</h1>
         <p className="text-sm text-muted mt-1">

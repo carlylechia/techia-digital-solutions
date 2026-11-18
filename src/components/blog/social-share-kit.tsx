@@ -84,6 +84,8 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [graphicFormat, setGraphicFormat] = useState<SocialGraphicFormat>("SQUARE");
+  const [graphicPrompt, setGraphicPrompt] = useState("");
+  const [graphicLogo, setGraphicLogo] = useState("logo-horizontal-white");
   const [customRefinement, setCustomRefinement] = useState("");
 
   const loadPosts = useCallback(async () => {
@@ -220,7 +222,7 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId: selectedPostId, format }),
+        body: JSON.stringify({ postId: selectedPostId, format, prompt: graphicPrompt || undefined, logo: graphicLogo || undefined }),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "Graphic generation failed.");
@@ -513,6 +515,22 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
                     Vertical
                   </button>
                 </div>
+              </div>
+
+              <div className="grid gap-2">
+                <label className="form-label text-xs">Graphic prompt (optional)
+                  <textarea className="form-input text-sm min-h-20" value={graphicPrompt} onChange={(e) => setGraphicPrompt(e.target.value)} placeholder="Describe the image or edits you want..." />
+                </label>
+                <label className="form-label text-xs">Logo
+                  <select className="form-input text-sm" value={graphicLogo} onChange={(e) => setGraphicLogo(e.target.value)}>
+                    <option value="logo-horizontal-white">Horizontal white</option>
+                    <option value="logo-horizontal-dark">Horizontal dark</option>
+                    <option value="logo-horizontal-light">Horizontal light</option>
+                    <option value="logo-horizontal-black">Horizontal black</option>
+                    <option value="logo-mark">Mark only</option>
+                    <option value="logo-full">Full logo</option>
+                  </select>
+                </label>
               </div>
 
               {graphicFor(graphicFormat) ? (

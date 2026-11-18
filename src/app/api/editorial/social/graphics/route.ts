@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json({ ok: false, error: "Invalid graphic request.", issues: parsed.error.issues }, { status: 400, headers: { "Cache-Control": "no-store" } });
     }
-    const result = await generateSocialGraphic(parsed.data.postId, parsed.data.format, actor.id);
+    await generateSocialGraphic(parsed.data.postId, parsed.data.format, actor.id, parsed.data.prompt || undefined, parsed.data.logo || undefined);
     return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof BlogAuthorizationError) {

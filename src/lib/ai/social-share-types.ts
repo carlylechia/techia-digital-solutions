@@ -52,6 +52,8 @@ export const socialRefinementInputSchema = z.object({
 export const socialGraphicGenerateInputSchema = z.object({
   postId: z.string().min(1),
   format: z.enum(socialGraphicFormatOptions),
+  prompt: z.string().trim().max(2000).optional().or(z.literal("")),
+  logo: z.string().trim().max(80).optional().or(z.literal("")),
 });
 
 export const socialCaptionEditInputSchema = z.object({

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, FilePlus2, FolderKanban, Images, LayoutTemplate, Settings, Sparkles, Users } from "lucide-react";
 import { notFound } from "next/navigation";
 import { BlogWorkspaceShell } from "@/components/blog/blog-workspace-shell";
+import { PageBreadcrumbs } from "@/components/ui/page-breadcrumbs";
 import { getBlogDashboard } from "@/lib/blog/admin-data";
 import { getBlogSessionUser } from "@/lib/blog/auth";
 import { hasPermission } from "@/lib/admin/permissions";
@@ -31,6 +32,7 @@ export default async function AdminBlogDashboardPage({ params }: { params: Promi
       title={isBlogOnly ? "Blog editor workspace" : "Editorial command center"}
       description="Review submissions, publish useful work, and keep the teChia knowledge base aligned with real business needs."
     >
+      <PageBreadcrumbs items={[{ label: "Admin", href: `/${locale}/admin` }, { label: "Blog", href: `/${locale}/admin/blog` }]} />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <Stat label="Total" value={data.counts.total} />
         <Stat label="Drafts" value={data.counts.DRAFT} />

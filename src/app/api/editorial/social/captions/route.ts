@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json({ ok: false, error: "Invalid caption request.", issues: parsed.error.issues }, { status: 400, headers: { "Cache-Control": "no-store" } });
     }
-    const result = await generateSocialCaption(parsed.data, actor.id);
+    await generateSocialCaption(parsed.data, actor.id);
     return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof BlogAuthorizationError) {
