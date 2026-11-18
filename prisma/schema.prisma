@@ -101,6 +101,23 @@ enum BonusDeliveryPreference {
   BOTH
 }
 
+enum SocialPlatform {
+  FACEBOOK
+  INSTAGRAM
+  WHATSAPP
+}
+
+enum SocialGraphicFormat {
+  SQUARE
+  VERTICAL
+}
+
+enum SocialPublishStatus {
+  NOT_STARTED
+  READY
+  PUBLISHED
+}
+
 model Lead {
   id                String           @id @default(cuid())
   name              String
@@ -241,6 +258,7 @@ model BlogPost {
   reviewNotes      BlogReviewNote[]
   revisions        BlogPostRevision[]
   slugRedirects    BlogSlugRedirect[]
+  socialShareKits  SocialShareKit[] @relation("SocialShareKits")
 
   @@unique([locale, slug])
   @@index([locale, published])
@@ -498,6 +516,8 @@ model AdminUser {
   blogMedia                BlogMedia[]                @relation("BlogMediaUploader")
   blogReviewNotes          BlogReviewNote[]           @relation("BlogReviewNoteAuthor")
   blogRevisions            BlogPostRevision[]         @relation("BlogRevisionCreator")
+  socialShareKitsCreated   SocialShareKit[]           @relation("SocialShareKitCreator")
+  socialShareVariantsPublished SocialShareVariant[]    @relation("SocialShareVariantPublisher")
   outreachMessagesApproved OutreachMessage[]          @relation("OutreachMessageApprover")
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
@@ -2200,4 +2220,60 @@ model AcademyPaymentSettings {
   monerooEnabled Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+
+model SocialShareKit {
+  id          String               @id @default(cuid())
+  postId      String?              @unique
+  post        BlogPost?            @relation("SocialShareKits", fields: [postId], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   AdminUser?           @relation("SocialShareKitCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  variants    SocialShareVariant[]
+  graphics    SocialShareGraphic[]
+
+  @@index([createdById])
+}
+
+model SocialShareVariant {
+  id              String              @id @default(cuid())
+  kitId           String
+  kit             SocialShareKit      @relation(fields: [kitId], references: [id], onDelete: Cascade)
+  platform        SocialPlatform
+  generatedCaption String             @db.Text
+  editedCaption   String?             @db.Text
+  shortCaption    String?             @db.Text
+  statusCaption   String?             @db.Text
+  directCaption   String?             @db.Text
+  refinementNote  String?
+  publishStatus   SocialPublishStatus @default(NOT_STARTED)
+  publishedAt     DateTime?
+  publishedById   String?
+  publishedBy     AdminUser?          @relation("SocialShareVariantPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@unique([kitId, platform])
+  @@index([kitId])
+  @@index([publishedById])
+}
+
+model SocialShareGraphic {
+  id        String             @id @default(cuid())
+  kitId     String
+  kit       SocialShareKit     @relation(fields: [kitId], references: [id], onDelete: Cascade)
+  format    SocialGraphicFormat
+  url       String
+  publicId  String             @unique
+  width     Int
+  height    Int
+  bytes     Int
+  formatMime String
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@unique([kitId, format])
+  @@index([kitId])
 }

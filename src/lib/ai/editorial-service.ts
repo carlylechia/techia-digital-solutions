@@ -127,7 +127,7 @@ function extractJson(raw: string): unknown {
   throw new EditorialAiError("malformed_output", "The model did not return a parsable JSON object.");
 }
 
-async function callOpenAiJson<T extends z.ZodTypeAny>(params: {
+export async function callOpenAiJson<T extends z.ZodTypeAny>(params: {
   model: string;
   system: string;
   user: string;

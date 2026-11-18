@@ -10,6 +10,20 @@ jobs:
   ci:
     name: Lint, Typecheck & Test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: techiad_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U ci -d techiad_ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
 
     steps:
       - name: Checkout
@@ -29,10 +43,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Require test database
+        run: |
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "DATABASE_URL is required for the test job." >&2
+            exit 1
+          fi
+        env:
+          DATABASE_URL: postgresql://ci:ci-password@localhost:5432/techiad_ci
+
       - name: Generate Prisma Client
         run: pnpm prisma:generate
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder' }}
+          DATABASE_URL: postgresql://ci:ci-password@localhost:5432/techiad_ci
+
+      - name: Apply migrations to disposable PostgreSQL
+        run: pnpm prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://ci:ci-password@localhost:5432/techiad_ci
 
       - name: Lint
         run: pnpm run lint
@@ -42,6 +70,9 @@ jobs:
 
       - name: Test
         run: pnpm run test
+        env:
+          DATABASE_URL: postgresql://ci:ci-password@localhost:5432/techiad_ci
+          OPENAI_API_KEY: "ci-test-key"
 
   migration:
     name: Validate Prisma migrations

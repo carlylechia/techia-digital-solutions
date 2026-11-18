@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DiscoveryProviderError, isFallbackEligible, type DiscoveredBusiness, type DiscoveryCriteria } from "@/lib/outreach/providers/types";
 import { classifyGoogleFailure } from "@/lib/outreach/providers/google-places-provider";
 import { GooglePlacesError } from "@/lib/outreach/google-places";
+import { getPrisma } from "@/lib/prisma";
 
 /**
  * Provider selection, failure classification and the fallback contract.
@@ -142,6 +143,13 @@ describe("Google failure classification", () => {
 });
 
 describe("provider mode behaviour", () => {
+  beforeEach(async () => {
+    const prisma = getPrisma();
+    if (prisma) {
+      await prisma.outreachProviderHealth.deleteMany({ where: { provider: "GOOGLE_PLACES" } }).catch(() => undefined);
+      await prisma.outreachProviderHealth.deleteMany({ where: { provider: "OPENSTREETMAP" } }).catch(() => undefined);
+    }
+  });
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -281,6 +289,13 @@ describe("Google key is optional (STEP 25 / 26)", () => {
 });
 
 describe("transient retry before fallback", () => {
+  beforeEach(async () => {
+    const prisma = getPrisma();
+    if (prisma) {
+      await prisma.outreachProviderHealth.deleteMany({ where: { provider: "GOOGLE_PLACES" } }).catch(() => undefined);
+    }
+  });
+
   it("TEST 5: retries a temporary failure a bounded number of times, then falls back", async () => {
     const harness = createHarness({ google: { configured: true, behaviour: "ok" }, osm: { behaviour: "ok" } });
     let googleCalls = 0;
