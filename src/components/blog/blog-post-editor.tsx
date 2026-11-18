@@ -7,6 +7,7 @@ import { getBlogPostPath, type BlogLocale } from "@/lib/blog/slug";
 import type { BlogPostStatusValue } from "@/lib/blog/constants";
 import { createBlogPostAction, deleteBlogPostAction, saveBlogPostAction, transitionBlogPostAction, translateBlogPostToFrenchAction, type BlogActionResult } from "@/lib/blog/actions";
 import { RichTextEditor } from "./rich-text-editor";
+import { ProfessionalLoader } from "@/components/ui/professional-loader";
 import { normalizeRichTextSource } from "@/lib/blog/rich-text";
 import dynamic from "next/dynamic";
 import { BlogMediaUploader } from "./blog-media-uploader";
@@ -356,6 +357,8 @@ export function BlogPostEditor({
 
   const inputClass = "form-input";
   return (
+    <>
+      {isTranslating ? <ProfessionalLoader variant="fullScreen" label="Translating article…" /> : null}
     <form ref={formRef} onSubmit={saveDraft} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
       <input type="hidden" name="id" value={form.id} />
       <input type="hidden" name="locale" value={form.locale} />
@@ -453,5 +456,6 @@ export function BlogPostEditor({
         <p className="flex items-start gap-2 px-1 text-xs leading-5 text-muted"><AlertCircle className="mt-0.5 size-4 shrink-0 text-accent" />{canPublish ? "You can publish, schedule, archive, assign another author, or change indexing controls." : "An editorial manager must publish, schedule, archive, assign another author, or change indexing controls."}</p>
       </aside>
     </form>
+    </>
   );
 }
