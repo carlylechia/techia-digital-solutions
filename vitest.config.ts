@@ -14,5 +14,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     include: ["tests/**/*.test.{ts,tsx}"],
+    testTimeout: 30000,
+    fileParallelism: false,
   },
 });
