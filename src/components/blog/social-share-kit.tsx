@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Copy, Check, Download, Share2, Sparkles, RefreshCw, Link as LinkIcon } from "lucide-react";
+import { ProfessionalLoader } from "@/components/ui/professional-loader";
 import type { BlogLocale } from "@/lib/blog/constants";
 import type { SocialPlatform, SocialGraphicFormat } from "@/lib/ai/social-share-types";
 
@@ -340,6 +341,7 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
         <button type="button" onClick={() => void loadPosts()} disabled={postsLoading} className="btn-secondary text-xs">
           {postsLoading ? <Loader2 className="size-3.5 animate-spin" /> : "Refresh"}
         </button>
+        {postsLoading ? <ProfessionalLoader label="Loading articles" size="sm" /> : null}
         <div className="grid gap-2 max-h-[60vh] overflow-auto">
           {posts.map((p) => (
             <button
@@ -360,6 +362,7 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
       <section className="grid gap-4">
         {error ? <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</p> : null}
         {notice ? <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">{notice}</p> : null}
+        {busy ? <ProfessionalLoader label="Processing social share task" size="md" /> : null}
 
         {!selectedPostId ? (
           <div className="premium-card p-8 text-center text-sm text-muted">Select an article to begin.</div>
