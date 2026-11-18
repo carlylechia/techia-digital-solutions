@@ -54,6 +54,15 @@ export const socialGraphicGenerateInputSchema = z.object({
   format: z.enum(socialGraphicFormatOptions),
 });
 
+export const socialCaptionEditInputSchema = z.object({
+  postId: z.string().min(1),
+  platform: z.enum(socialPlatformOptions),
+  editedCaption: z.string().trim().min(1).max(6000),
+  shortCaption: z.string().trim().max(1000).optional().or(z.literal("")),
+  statusCaption: z.string().trim().max(2000).optional().or(z.literal("")),
+  directCaption: z.string().trim().max(6000).optional().or(z.literal("")),
+});
+
 export const socialPublishStatusInputSchema = z.object({
   postId: z.string().min(1),
   platform: z.enum(socialPlatformOptions),

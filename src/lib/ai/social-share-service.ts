@@ -275,6 +275,9 @@ export async function generateSocialCaption(input: z.infer<typeof socialCaptionG
       statusCaption,
       directCaption,
       editedCaption: null,
+      publishStatus: "NOT_STARTED",
+      publishedAt: null,
+      publishedById: null,
     },
   });
 
@@ -291,14 +294,36 @@ export async function getSocialKit(postId: string) {
   return kit;
 }
 
-export async function saveEditedCaption(postId: string, platform: SocialPlatform, editedCaption: string) {
+export type SocialCaptionEditInput = {
+  postId: string;
+  platform: SocialPlatform;
+  editedCaption: string;
+  shortCaption?: string;
+  statusCaption?: string;
+  directCaption?: string;
+};
+
+export async function saveEditedCaption(input: SocialCaptionEditInput) {
   const prisma = getPrisma();
   if (!prisma) throw new Error("Database unavailable.");
-  const kit = await prisma.socialShareKit.findUnique({ where: { postId } });
+  const kit = await prisma.socialShareKit.findUnique({ where: { postId: input.postId } });
   if (!kit) throw new Error("Social kit not found.");
+
+  const data: Record<string, unknown> = { editedCaption: input.editedCaption };
+  if (input.platform === "INSTAGRAM") {
+    if (input.shortCaption !== undefined) data.shortCaption = input.shortCaption || null;
+  }
+  if (input.platform === "WHATSAPP") {
+    if (input.statusCaption !== undefined) data.statusCaption = input.statusCaption || null;
+    if (input.directCaption !== undefined) {
+      data.directCaption = input.directCaption || null;
+      data.editedCaption = input.directCaption || input.editedCaption;
+    }
+  }
+
   await prisma.socialShareVariant.update({
-    where: { kitId_platform: { kitId: kit.id, platform } },
-    data: { editedCaption },
+    where: { kitId_platform: { kitId: kit.id, platform: input.platform } },
+    data,
   });
   return { ok: true };
 }

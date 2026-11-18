@@ -184,15 +184,22 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
     setBusy(`save-${platform}`);
     setError(null);
     try {
-      let edited = captionDrafts[platform];
-      if (platform === "INSTAGRAM" && shortDraft) {
-        edited = captionDrafts.INSTAGRAM;
+      const body: Record<string, unknown> = {
+        postId: selectedPostId,
+        platform,
+        editedCaption: captionDrafts[platform],
+      };
+      if (platform === "INSTAGRAM") body.shortCaption = shortDraft;
+      if (platform === "WHATSAPP") {
+        body.statusCaption = statusDraft;
+        body.directCaption = directDraft;
+        body.editedCaption = directDraft || captionDrafts[platform];
       }
       const res = await fetch("/api/editorial/social/captions/edit", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId: selectedPostId, platform, editedCaption: edited }),
+        body: JSON.stringify(body),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "Save failed.");
