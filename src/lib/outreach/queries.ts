@@ -487,7 +487,7 @@ export async function loadOutreachProspectDetail(db: Db, prospectId: string) {
   };
 }
 
-const ACTIONABLE_PROSPECT_STATUSES = ["QUALIFIED", "APPROVED"] as const;
+const ACTIONABLE_PROSPECT_STATUSES = ["QUALIFIED", "APPROVED", "READY_FOR_REVIEW", "OUTREACH_ACTIVE", "REPLIED", "INTERESTED", "MEETING_BOOKED", "PROPOSAL"] as const;
 
 /**
  * Messages the review page can actually act on: pending approval and attached
