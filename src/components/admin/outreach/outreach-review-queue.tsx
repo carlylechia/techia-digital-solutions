@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { reviewOutreachMessage, translateOutreachMessage } from "@/app/[locale]/admin/outreach/actions";
+import { reviewOutreachMessage, translateOutreachMessage, setOutreachProspectStatus, instantSendOutreachMessage } from "@/app/[locale]/admin/outreach/actions";
 import { OUTREACH_SERVICE_LABELS } from "@/lib/outreach/constants";
 import { OutreachButton, OutreachField, OutreachPill, outreachInputClass } from "./outreach-ui";
 import { ProfessionalLoader } from "@/components/ui/professional-loader";
@@ -84,6 +84,32 @@ export function OutreachReviewQueue({
     });
     startTransition(async () => {
       const result = await reviewOutreachMessage({ messageId, action, ...overrides });
+      setFeedback((current) => ({ ...current, [messageId]: result.ok ? result.message : result.error }));
+      if (result.ok) router.refresh();
+    });
+  }
+
+  async function unhide(messageId: string, prospectId: string) {
+    setFeedback((current) => {
+      const next = { ...current };
+      delete next[messageId];
+      return next;
+    });
+    startTransition(async () => {
+      const result = await setOutreachProspectStatus({ prospectId, status: "QUALIFIED", reason: "Unhidden from review queue by an administrator." });
+      setFeedback((current) => ({ ...current, [messageId]: result.ok ? "Draft unhidden. Refreshing…" : result.error }));
+      if (result.ok) router.refresh();
+    });
+  }
+
+  async function sendNow(messageId: string, prospectId: string) {
+    setFeedback((current) => {
+      const next = { ...current };
+      delete next[messageId];
+      return next;
+    });
+    startTransition(async () => {
+      const result = await instantSendOutreachMessage({ prospectId, messageId });
       setFeedback((current) => ({ ...current, [messageId]: result.ok ? result.message : result.error }));
       if (result.ok) router.refresh();
     });
@@ -191,10 +217,17 @@ export function OutreachReviewQueue({
 
             <div className="flex flex-wrap gap-2">
               {readOnly ? (
-                <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                  Read-only: this draft is hidden because the prospect is currently {item.prospect.status.replace(/_/g, " ")}.
-                  Open the prospect to requalify it before approving any message.
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                    Read-only: this draft is hidden because the prospect is currently {item.prospect.status.replace(/_/g, " ")}.
+                  </p>
+                  <OutreachButton type="button" tone="quiet" disabled={pending || !canManage} onClick={() => void unhide(item.messageId, item.prospect.id)}>
+                    Unhide draft
+                  </OutreachButton>
+                  <OutreachButton type="button" tone="good" disabled={pending || !canManage} onClick={() => void sendNow(item.messageId, item.prospect.id)}>
+                    Send now
+                  </OutreachButton>
+                </div>
               ) : (
                 <>
                   {dirty ? (
@@ -228,6 +261,11 @@ export function OutreachReviewQueue({
               )}
             </div>
 
+            <div className="flex flex-wrap gap-2">
+              <OutreachButton type="button" tone="good" disabled={pending || !canManage} onClick={() => void sendNow(item.messageId, item.prospect.id)}>
+                Send now
+              </OutreachButton>
+            </div>
             {feedback[item.messageId] ? <p className="text-xs text-muted">{feedback[item.messageId]}</p> : null}
           </li>
         );
