@@ -72,9 +72,7 @@ jobs:
         run: pnpm run test
         env:
           DATABASE_URL: postgresql://ci:ci-password@localhost:5432/techiad_ci
-          EDITORIAL_AI_ENABLED: "true"
           OPENAI_API_KEY: "ci-test-key"
-          OPENAI_EDITORIAL_TEXT_MODEL: "gpt-4o-mini"
 
   migration:
     name: Validate Prisma migrations
