@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, FilePlus2, FolderKanban, Images, LayoutTemplate, Settings, Users } from "lucide-react";
+import { ArrowRight, FilePlus2, FolderKanban, Images, LayoutTemplate, Settings, Sparkles, Users } from "lucide-react";
 import { notFound } from "next/navigation";
 import { BlogWorkspaceShell } from "@/components/blog/blog-workspace-shell";
 import { getBlogDashboard } from "@/lib/blog/admin-data";
@@ -73,6 +73,7 @@ export default async function AdminBlogDashboardPage({ params }: { params: Promi
           {canWriters ? <QuickLink href={`/${locale}/admin/blog/writers`} icon={Users} title="Writer access" body="Invite writers, review activity, and revoke access." /> : null}
           {canCategories ? <QuickLink href={`/${locale}/admin/blog/categories`} icon={FolderKanban} title="Taxonomy" body="Keep categories focused and useful." /> : null}
           {canMedia ? <QuickLink href={`/${locale}/admin/blog/media`} icon={Images} title="Media library" body="Manage alt text and editorial images." /> : null}
+          {user.role === "super_admin" || user.roleLevel >= 100 ? <QuickLink href={`/${locale}/admin/blog/social-share`} icon={Sparkles} title="Social Share Kit" body="Generate captions and branded graphics from articles." /> : null}
           {canAudit ? <QuickLink href={`/${locale}/admin/blog/audit`} icon={Settings} title="Editorial audit" body="Review changes across the blog workspace." /> : null}
         </aside>
       </div>

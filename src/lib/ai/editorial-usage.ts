@@ -4,12 +4,13 @@ import { getPrisma } from "@/lib/prisma";
 import { getErrorMessage } from "@/lib/prisma-errors";
 import { EditorialAiError } from "./editorial-service";
 
-const EDITORIAL_BURST_REQUEST_TYPES = [
+export const EDITORIAL_BURST_REQUEST_TYPES = [
   "EDITORIAL_ARTICLE",
   "EDITORIAL_EDIT",
   "EDITORIAL_TRANSLATE",
   "EDITORIAL_REVIEW",
   "EDITORIAL_IMAGE",
+  "SOCIAL_SHARE_CAPTION",
 ];
 
 const NON_TERMINAL_USAGE_STATUSES = ["RESERVED", "PROVIDER_OUTCOME_UNKNOWN", "PROVIDER_SUCCEEDED_UPLOAD_FAILED"] as const;
@@ -40,9 +41,8 @@ export async function reserveEditorialUsage(params: {
     try {
       return await prisma.$transaction(async (tx) => {
         // pg_advisory_xact_lock returns void, which Prisma cannot deserialize
-        // through $queryRaw. $executeRaw discards the result, so the lock is
-        // still taken without tripping the void column error.
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${params.actorId}))`;
+        // through $queryRaw unless the result is cast to a supported type.
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${params.actorId}))::text`;
         if (params.burstLimit) {
           const burstSince = new Date(Date.now() - 60_000);
           const burstCount = await tx.aIUsage.count({
