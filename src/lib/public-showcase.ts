@@ -193,7 +193,8 @@ export type PublicProjectDetail = {
 export async function loadPortfolioProject(locale: Locale, slug: string): Promise<PublicProjectDetail | null> {
   const prisma = getPrisma();
   if (!prisma) return null;
-  let project: any = null;
+  type ProjectRow = NonNullable<Awaited<ReturnType<typeof prisma.clientProject.findFirst>>>;
+  let project: ProjectRow | null = null;
   try {
     project = await prisma.clientProject.findFirst({
       where: { OR: [{ publicSlug: slug }, { slug }] },
@@ -204,7 +205,17 @@ export async function loadPortfolioProject(locale: Locale, slug: string): Promis
   }
   if (!project) return null;
 
-  const fallback = (getDictionary(locale).caseStudies.find((item) => item.slug === slug) || null) as any;
+  const fallback = (getDictionary(locale).caseStudies.find((item) => item.slug === slug) || null) as {
+    title?: string;
+    description?: string;
+    eyebrow?: string;
+    problem?: string;
+    solution?: string;
+    role?: string;
+    businessValue?: string;
+    techStack?: string[];
+    features?: string[];
+  } | null;
   return {
     slug: project.publicSlug || project.slug,
     title: fromLocale(locale, project.publicTitleEn, project.publicTitleFr) || fallback?.title || project.title,
