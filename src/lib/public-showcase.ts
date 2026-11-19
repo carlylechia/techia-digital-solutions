@@ -196,9 +196,10 @@ export async function loadPortfolioProject(locale: Locale, slug: string): Promis
   type ProjectRow = NonNullable<Awaited<ReturnType<typeof prisma.clientProject.findFirst>>>;
   let project: ProjectRow | null = null;
   try {
-    project = await prisma.clientProject.findFirst({
-      where: { OR: [{ publicSlug: slug }, { slug }] },
-    });
+    project = await prisma.clientProject.findFirst({ where: { publicSlug: slug } });
+    if (!project) {
+      project = await prisma.clientProject.findFirst({ where: { slug } });
+    }
   } catch (error) {
     console.error("[public-showcase] project detail query failed", { slug, message: error instanceof Error ? error.message : error });
     return null;

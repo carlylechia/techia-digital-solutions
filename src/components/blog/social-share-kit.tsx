@@ -354,8 +354,6 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
     const a = document.createElement("a");
     a.href = downloadUrl;
     a.download = `${article?.slug || "article"}-${platform.toLowerCase()}-${graphic.format.toLowerCase()}.png`;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
     document.body.appendChild(a);
     a.click();
     a.remove();

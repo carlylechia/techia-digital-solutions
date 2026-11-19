@@ -15,6 +15,8 @@ import { loadPortfolioCards, loadPortfolioProject } from "@/lib/public-showcase"
 import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
 import { JsonLd } from "@/components/ui/json-ld";
 
+export const dynamic = "force-dynamic";
+
 export function generateStaticParams() {
   return locales.flatMap((locale) =>
     getDictionary(locale).caseStudies.map((item) => ({

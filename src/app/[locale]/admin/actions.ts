@@ -390,6 +390,7 @@ function revalidatePublicShowcase() {
   for (const locale of ["en", "fr"] as const) {
     revalidatePath(`/${locale}`);
     revalidatePath(`/${locale}/portfolio`);
+    revalidatePath(`/${locale}/portfolio/[slug]`, "page");
     revalidatePath(`/${locale}/founder`);
   }
   revalidateTag("homepage", { expire: 0 });
