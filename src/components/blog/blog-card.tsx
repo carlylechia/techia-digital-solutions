@@ -38,6 +38,7 @@ export function BlogCard({ post, featured = false }: { post: PublicBlogListPost;
       <div className={`flex flex-1 flex-col ${featured ? "justify-center p-6 sm:p-8 lg:p-10" : "p-5 sm:p-6"}`}>
         <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-accent">
           {post.category ? <span>{post.category.name}</span> : null}
+          {post.translationGroupId ? <span className="status-pill">Translated</span> : null}
           <span className="text-muted/50">•</span>
           <span className="inline-flex items-center gap-1.5 normal-case tracking-normal text-muted"><Clock3 className="size-3.5" />{post.readingTime} min</span>
         </div>

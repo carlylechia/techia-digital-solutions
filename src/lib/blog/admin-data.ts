@@ -66,7 +66,7 @@ export async function getBlogPostsForList(user: BlogSessionUser, locale: BlogLoc
     ...(query ? { OR: [{ title: { contains: query, mode: "insensitive" } }, { excerpt: { contains: query, mode: "insensitive" } }, { slug: { contains: query, mode: "insensitive" } }, { contentText: { contains: query, mode: "insensitive" } }] } : {}),
   };
   const [posts, total] = await Promise.all([
-    prisma.blogPost.findMany({ where, select: { id: true, title: true, slug: true, status: true, updatedAt: true, publishedAt: true, scheduledAt: true, author: { select: { displayName: true, slug: true } }, category: { select: { name: true } } }, orderBy: { updatedAt: "desc" }, skip: (page - 1) * BLOG_ADMIN_PAGE_SIZE, take: BLOG_ADMIN_PAGE_SIZE }),
+    prisma.blogPost.findMany({ where, select: { id: true, title: true, slug: true, status: true, updatedAt: true, publishedAt: true, scheduledAt: true, translationGroupId: true, author: { select: { displayName: true, slug: true } }, category: { select: { name: true } } }, orderBy: { updatedAt: "desc" }, skip: (page - 1) * BLOG_ADMIN_PAGE_SIZE, take: BLOG_ADMIN_PAGE_SIZE }),
     prisma.blogPost.count({ where }),
   ]);
   return { posts, total, page, pageCount: Math.max(1, Math.ceil(total / BLOG_ADMIN_PAGE_SIZE)) };

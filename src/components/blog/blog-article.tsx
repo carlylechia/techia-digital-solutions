@@ -75,6 +75,7 @@ export function BlogArticle({
             <header className="max-w-4xl">
               <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-accent">
                 {post.category ? <Link href={getBlogCategoryPath(locale, post.category.slug)} className="hover:underline">{post.category.name}</Link> : <span>Insights</span>}
+                {post.translationGroup?.posts?.some((item) => item.locale !== locale) ? <span className="status-pill">Translated</span> : null}
                 <span className="text-muted/50">•</span>
                 <span className="inline-flex items-center gap-1.5 normal-case tracking-normal text-muted"><Clock3 className="size-3.5" />{post.readingTime} min read</span>
               </div>

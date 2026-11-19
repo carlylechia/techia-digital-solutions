@@ -169,6 +169,9 @@ export async function translateBlogPostToFrenchAction(
 ): Promise<BlogActionResult> {
   try {
     const actor = await requireBlogUser("blog.posts.create");
+    if (!isSuperAdminUser(actor)) {
+      return { ok: false, error: "Premium access is required to translate articles." };
+    }
     const prisma = getPrisma();
     if (!prisma) return { ok: false, error: "Editorial database is unavailable." };
 
@@ -187,16 +190,16 @@ export async function translateBlogPostToFrenchAction(
       return { ok: false, error: "You can only translate your own articles." };
     }
 
-    if (source.translationGroupId) {
-      const existing = await findExistingFrenchTranslation(prisma, source.translationGroupId);
-      if (existing) {
-        return {
-          ok: true,
-          message: "A French version is already linked to this article. Opening it instead of creating a duplicate.",
-          id: existing.id,
-          slug: existing.slug,
-        };
-      }
+    const existingFrench = source.translationGroupId
+      ? await findExistingFrenchTranslation(prisma, source.translationGroupId)
+      : null;
+    if (existingFrench) {
+      return {
+        ok: true,
+        message: "A French version is already linked to this article. Opening it instead of creating a duplicate.",
+        id: existingFrench.id,
+        slug: existingFrench.slug,
+      };
     }
 
     const imageMode: TranslationImageMode = isTranslationImageMode(options?.imageMode) ? options.imageMode : "reuse";

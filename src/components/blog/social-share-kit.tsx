@@ -346,23 +346,19 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
     }
   }
 
-  async function downloadGraphic(graphic: Graphic, platform: SocialPlatform) {
-    const pngUrl = graphic.url.replace("/upload/", "/upload/f_png/");
-    try {
-      const res = await fetch(pngUrl);
-      if (!res.ok) throw new Error("Download failed.");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${article?.slug || "article"}-${platform.toLowerCase()}-${graphic.format.toLowerCase()}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Download failed.");
-    }
+  function downloadGraphic(graphic: Graphic, platform: SocialPlatform) {
+    // Cloudinary's `fl_attachment` flag forces a download response, so the
+    // browser can save the file directly from a user click instead of going
+    // through an async fetch that loses the user-gesture context.
+    const downloadUrl = graphic.url.replace("/upload/", "/upload/fl_attachment,f_png/");
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = `${article?.slug || "article"}-${platform.toLowerCase()}-${graphic.format.toLowerCase()}.png`;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   }
 
   async function shareNative(platform: SocialPlatform) {
@@ -441,6 +437,7 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
         {error ? <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</p> : null}
         {notice ? <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">{notice}</p> : null}
         {busy ? <ProfessionalLoader label="Processing social share task" size="md" /> : null}
+        {busy?.startsWith("graphic-") ? <ProfessionalLoader label="Regenerating graphic" variant="fullScreen" /> : null}
 
         {!selectedPostId ? (
           <div className="premium-card p-8 text-center text-sm text-muted">Select an article to begin.</div>

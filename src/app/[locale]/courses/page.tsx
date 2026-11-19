@@ -339,11 +339,10 @@ export default async function CoursesPage({
                 ? "Professionnelle noire travaillant sur tablette le long d'une baie de serveurs"
                 : "Black professional working on a tablet beside a data-center corridor"
             }
-            width={2400}
-            height={1602}
+            fill
             priority
             sizes="100vw"
-            className="h-full w-full object-cover object-[68%_center] sm:object-center"
+            className="object-cover object-[68%_center] sm:object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/20" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
