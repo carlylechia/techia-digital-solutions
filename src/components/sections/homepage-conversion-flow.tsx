@@ -914,9 +914,10 @@ export function HomepageConversionFlow({
                       <Image
                         src={item.imageUrl}
                         alt={item.imageAlt || item.title}
-                        fill
+                        width={1200}
+                        height={675}
                         sizes="(min-width: 1024px) 33vw, 100vw"
-                        className="object-cover transition duration-500 group-hover:scale-105"
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       />
                     ) : (
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(6,182,212,0.22),transparent_45%),linear-gradient(135deg,rgba(6,182,212,0.14),rgba(59,130,246,0.08))]" />

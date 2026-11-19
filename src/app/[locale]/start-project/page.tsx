@@ -10,21 +10,32 @@ import {
   type Locale,
 } from "@/content/site";
 import { createMetadata } from "@/lib/seo";
+import { getPublicAppPath } from "@/lib/site-routes";
 import { notFound } from "next/navigation";
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ context?: string }>;
 }): Promise<Metadata> {
   const { locale: rawLocale } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : "en";
   const dict = getDictionary(locale);
+  const { context } = await searchParams;
+  const cleanContext =
+    typeof context === "string" && /^[a-z0-9-]{1,80}$/i.test(context)
+      ? context
+      : "";
+  const query = cleanContext
+    ? `?${new URLSearchParams({ context: cleanContext }).toString()}`
+    : "";
   return createMetadata({
     locale,
     title: dict.pages.startProject.metaTitle,
     description: dict.pages.startProject.metaDescription,
-    path: "/start-project",
+    canonicalPath: `${getPublicAppPath("/start-project")}${query}`,
   });
 }
 export default async function StartProjectPage({

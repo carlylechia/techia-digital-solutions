@@ -209,6 +209,7 @@ export function Logo({
       )}
       aria-label="teChia Digital Solutions home"
     >
+      <span className="sr-only">teChia Digital Solutions</span>
       {interactive ? (
         <>
           <span aria-hidden="true" className="logo-orbit logo-orbit-one" />

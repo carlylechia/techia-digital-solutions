@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { detectImageMime, isAllowedBlogImageMime } from "@/lib/blog/media-validation";
 import { hasPermission, BLOG_EDITOR_PERMISSIONS, BLOG_WRITER_PERMISSIONS, DEFAULT_ADMIN_ROLES } from "@/lib/admin/permissions";
-import { normalizeArticleHtml, sanitizeArticleHtml, htmlToPlainText, countArticleInternalLinks, calculateReadingTime } from "@/lib/blog/sanitize";
+import { normalizeArticleHtml, normalizeArticleHeadingHierarchy, sanitizeArticleHtml, htmlToPlainText, countArticleInternalLinks, calculateReadingTime } from "@/lib/blog/sanitize";
 import { markdownToHtml, normalizeRichTextSource } from "@/lib/blog/rich-text";
 import { getBlogPostPath, getBlogCategoryPath, getBlogAuthorPath, normalizeCtaHref, slugify } from "@/lib/blog/slug";
 import { buildPublicPostWhere, homepagePostVisibility, normalizeHomepagePicks, normalizePublicSearch, publicPostVisibility, PUBLIC_SEARCH_MAX_LENGTH } from "@/lib/blog/public-feed";
@@ -130,6 +130,22 @@ const post = {
   it("keeps Markdown conversion deterministic and readable", () => {
     expect(markdownToHtml("## Section\n\nPlain text")).toBe("<h3>Section</h3><p>Plain text</p>");
     expect(sanitizeArticleHtml("<div><p>Nested <strong>safe</strong></p></div>")).toContain("<strong>safe</strong>");
+  });
+
+  it("normalizes article heading levels so the page never skips a heading", () => {
+    expect(
+      normalizeArticleHeadingHierarchy(
+        "<h3>Introduction</h3><p>Text</p><h3>Next section</h3><h4>Detail</h4>",
+      ),
+    ).toBe(
+      "<h2>Introduction</h2><p>Text</p><h2>Next section</h2><h3>Detail</h3>",
+    );
+    expect(
+      normalizeArticleHeadingHierarchy('<h2 class="lead">Start</h2><h4>Too deep</h4>'),
+    ).toBe('<h2 class="lead">Start</h2><h3>Too deep</h3>');
+    expect(normalizeArticleHeadingHierarchy("<p>No headings</p>")).toBe(
+      "<p>No headings</p>",
+    );
   });
 
   it("calculates readable text and internal-link signals", () => {

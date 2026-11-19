@@ -1,16 +1,8 @@
 import type { Metadata } from "next";
 import { logoAssets } from "@/components/brand/logo-assets";
 import { type Locale, siteConfig } from "@/content/site";
+import { fitDescription, fitTitle } from "@/lib/metadata-text";
 import { getPublicAppPath } from "@/lib/site-routes";
-
-function fitDescription(description: string, max = 155) {
-  const clean = description.trim().replace(/\s+/g, " ");
-  if (clean.length <= max) return clean;
-  const slice = clean.slice(0, max + 1);
-  const lastSpace = slice.lastIndexOf(" ");
-  if (lastSpace > 60) return `${slice.slice(0, lastSpace).trim()}…`;
-  return `${clean.slice(0, max - 1).trim()}…`;
-}
 
 export function createMetadata({
   locale,
@@ -33,17 +25,18 @@ export function createMetadata({
   const canonical = canonicalPath
     ? `${siteConfig.url}${canonicalPath}`
     : `${siteConfig.url}${getPublicAppPath(cleanPath)}`;
+  const normalizedTitle = fitTitle(title);
   const normalizedDescription = fitDescription(description);
   return {
     metadataBase: new URL(siteConfig.url),
-    title,
+    title: normalizedTitle,
     description: normalizedDescription,
     robots,
     alternates: {
       canonical,
     },
     openGraph: {
-      title,
+      title: normalizedTitle,
       description: normalizedDescription,
       url: canonical,
       siteName: siteConfig.name,
@@ -60,7 +53,7 @@ export function createMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: normalizedTitle,
       description: normalizedDescription,
       images: [image],
     },

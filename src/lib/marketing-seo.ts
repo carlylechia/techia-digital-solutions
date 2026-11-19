@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { siteConfig } from "@/content/site";
+import { fitDescription, fitTitle } from "@/lib/metadata-text";
 
 type SeoInput = {
   title: string;
@@ -8,15 +9,6 @@ type SeoInput = {
   image?: string;
   noIndex?: boolean;
 };
-
-function fitDescription(description: string, max = 155) {
-  const clean = description.trim().replace(/\s+/g, " ");
-  if (clean.length <= max) return clean;
-  const slice = clean.slice(0, max + 1);
-  const lastSpace = slice.lastIndexOf(" ");
-  if (lastSpace > 60) return `${slice.slice(0, lastSpace).trim()}…`;
-  return `${clean.slice(0, max - 1).trim()}…`;
-}
 
 export function createMarketingMetadata({
   title,
@@ -27,24 +19,25 @@ export function createMarketingMetadata({
 }: SeoInput): Metadata {
   const cleanPath = path ? `/${path.replace(/^\//, "")}` : "";
   const canonical = `${siteConfig.url}${cleanPath}`;
+  const normalizedTitle = fitTitle(title);
   const normalizedDescription = fitDescription(description);
 
   return {
-    title,
+    title: normalizedTitle,
     description: normalizedDescription,
     alternates: { canonical },
     robots: noIndex ? { index: false, follow: false } : undefined,
     openGraph: {
-      title,
+      title: normalizedTitle,
       description: normalizedDescription,
       url: canonical,
       siteName: siteConfig.name,
       type: "website",
-      images: [{ url: image, width: 1200, height: 630, alt: `${title} preview` }]
+      images: [{ url: image, width: 1200, height: 630, alt: `${normalizedTitle} preview` }]
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: normalizedTitle,
       description: normalizedDescription,
       images: [image]
     }

@@ -45,11 +45,17 @@ import { getPublicAppPath } from "@/lib/site-routes";
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ view?: string }>;
 }): Promise<Metadata> {
   const { locale: rawLocale } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : "en";
+  const { view } = await searchParams;
+  const canonicalPath = `${getPublicAppPath("/courses")}${
+    view === "packs" ? "?view=packs" : ""
+  }`;
 
   return createMetadata({
     locale,
@@ -61,7 +67,7 @@ export async function generateMetadata({
       locale === "fr"
         ? "Trouvez le bon cours ou pack digital, apprenez des compétences pratiques et achetez en toute confiance sur teChia Digital Academy."
         : "Find the right digital course or pack, learn practical skills, and buy with confidence on teChia Digital Academy.",
-    path: "/courses",
+    canonicalPath,
   });
 }
 
@@ -333,10 +339,11 @@ export default async function CoursesPage({
                 ? "Professionnelle noire travaillant sur tablette le long d'une baie de serveurs"
                 : "Black professional working on a tablet beside a data-center corridor"
             }
-            fill
+            width={2400}
+            height={1602}
             priority
             sizes="100vw"
-            className="object-cover object-[68%_center] sm:object-center"
+            className="h-full w-full object-cover object-[68%_center] sm:object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/20" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />

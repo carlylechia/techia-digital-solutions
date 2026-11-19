@@ -1,8 +1,11 @@
 import Image from "next/image";
-import { normalizeArticleHtml } from "@/lib/blog/sanitize";
+import {
+  normalizeArticleHeadingHierarchy,
+  normalizeArticleHtml,
+} from "@/lib/blog/sanitize";
 
 export function ArticleBody({ html }: { html: string }) {
-  const safeHtml = normalizeArticleHtml(html);
+  const safeHtml = normalizeArticleHeadingHierarchy(normalizeArticleHtml(html));
   return (
     <div
       className="blog-prose max-w-none text-base leading-8 text-muted sm:text-lg"

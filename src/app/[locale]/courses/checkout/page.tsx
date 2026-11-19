@@ -28,19 +28,46 @@ function parseItem(value: string | undefined) {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ item?: string }>;
 }): Promise<Metadata> {
   const { locale: rawLocale } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : "en";
+  const { item: itemParam } = await searchParams;
+  const parsed = parseItem(itemParam);
+  const checkoutPath = getPublicAppPath("/courses/checkout");
+
+  let item: Awaited<ReturnType<typeof resolveCheckoutItem>> = null;
+  if (parsed) {
+    try {
+      item = await resolveCheckoutItem(locale, parsed.type, parsed.slug);
+    } catch {
+      item = null;
+    }
+  }
+
+  const fallbackTitle = locale === "fr" ? "Paiement sécurisé" : "Secure checkout";
+  const itemTitle = item?.title.replace(/^Complete Training in\s+/i, "") || "";
+  const title = item
+    ? `${itemTitle} — ${fallbackTitle} | teChia`
+    : fallbackTitle;
+  const description = item
+    ? locale === "fr"
+      ? `Finalisez l’achat de ${item.title} sur teChia Digital Academy via un paiement sécurisé.`
+      : `Complete your purchase of ${item.title} on teChia Digital Academy through secure checkout.`
+    : locale === "fr"
+      ? "Finalisez votre achat teChia Digital Academy via un paiement sécurisé."
+      : "Complete your teChia Digital Academy purchase through secure checkout.";
+  const query = parsed
+    ? `?item=${encodeURIComponent(`${parsed.type}:${parsed.slug}`)}`
+    : "";
   return createMetadata({
     locale,
-    title: locale === "fr" ? "Paiement sécurisé" : "Secure checkout",
-    description:
-      locale === "fr"
-        ? "Finalisez votre achat teChia Digital Academy via un paiement sécurisé."
-        : "Complete your teChia Digital Academy purchase through secure checkout.",
-    path: "/courses/checkout",
+    title,
+    description,
+    canonicalPath: `${checkoutPath}${query}`,
   });
 }
 

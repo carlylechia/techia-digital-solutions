@@ -185,6 +185,41 @@ export function normalizeArticleHtml(value: string) {
   return sanitizeArticleHtml(normalizeRichTextSource(value));
 }
 
+/**
+ * Article pages render their title as the page h1, so body headings must start
+ * at h2. This shifts the authored heading levels up when needed and caps any
+ * jump at one level so crawlers never see a skipped heading level.
+ */
+export function normalizeArticleHeadingHierarchy(html: string) {
+  const pattern = /<(\/?)h([1-4])(\b[^>]*)>/gi;
+  const targets: number[] = [];
+  let firstLevel: number | null = null;
+  let previousTarget = 1;
+
+  for (const match of html.matchAll(pattern)) {
+    if (match[1]) continue;
+    const level = Number(match[2]);
+    if (firstLevel === null) firstLevel = level;
+    const shifted = Math.max(2, level - (firstLevel - 2));
+    const target = Math.min(4, shifted, previousTarget + 1);
+    targets.push(target);
+    previousTarget = target;
+  }
+
+  if (!targets.length) return html;
+
+  let openIndex = 0;
+  let closeIndex = 0;
+  return html.replace(pattern, (full, closing: string, level: string, attrs: string) => {
+    if (closing) {
+      const target = targets[closeIndex++] ?? Math.max(2, Number(level));
+      return `</h${target}>`;
+    }
+    const target = targets[openIndex++] ?? Math.max(2, Number(level));
+    return `<h${target}${attrs}>`;
+  });
+}
+
 function decodeEntities(value: string) {
   return value
     .replace(/&amp;/g, "&")

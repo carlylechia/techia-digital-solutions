@@ -13,15 +13,19 @@ function firstValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] || "" : value || "";
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: SearchParams }): Promise<Metadata> {
   const { locale: rawLocale } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : "en";
   const dict = getDictionary(locale);
+  const queryParams = await searchParams;
+  const pageValue = Number.parseInt(firstValue(queryParams.page), 10);
+  const page = Number.isFinite(pageValue) && pageValue > 1 ? pageValue : 1;
+  const canonicalPath = `${getBlogIndexPath(locale)}${page > 1 ? `?page=${page}` : ""}`;
   const base = createMetadata({
     locale,
     title: dict.pages.blog.metaTitle,
     description: dict.pages.blog.metaDescription,
-    canonicalPath: getBlogIndexPath(locale),
+    canonicalPath,
   });
   return {
     ...base,

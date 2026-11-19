@@ -19,16 +19,19 @@ function firstValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] || "" : value || "";
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string; slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ locale: string; slug: string }>; searchParams: SearchParams }): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
   const locale = isLocale(rawLocale) ? rawLocale : "en";
   const author = await getPublishedAuthor(locale, slug);
   if (!author) return { ...createMetadata({ locale, title: "Author not found — teChia", description: "The requested author profile could not be found.", canonicalPath: getBlogIndexPath(locale) }), robots: { index: false, follow: false } };
+  const queryParams = await searchParams;
+  const parsedPage = Number.parseInt(firstValue(queryParams.page), 10);
+  const page = Number.isFinite(parsedPage) && parsedPage > 1 ? parsedPage : 1;
   const description =
     author.bio.slice(0, 160).length >= 70
       ? author.bio.slice(0, 160)
       : `${author.bio} Read teChia Digital Solutions insights and articles by ${author.displayName}.`.slice(0, 160);
-  return createMetadata({ locale, title: `${author.displayName} — teChia Insights`, description, canonicalPath: getBlogAuthorPath(locale, author.slug) });
+  return createMetadata({ locale, title: `${author.displayName} — teChia Insights`, description, canonicalPath: `${getBlogAuthorPath(locale, author.slug)}${page > 1 ? `?page=${page}` : ""}` });
 }
 
 export default async function BlogAuthorPage({ params, searchParams }: { params: Promise<{ locale: string; slug: string }>; searchParams: SearchParams }) {

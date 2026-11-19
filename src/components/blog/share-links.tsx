@@ -24,9 +24,9 @@ export function ShareLinks({ url, title, locale }: { url: string; title: string;
   return (
     <div className="flex flex-wrap items-center gap-2" aria-label={shareText}>
       <span className="mr-1 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-muted"><Share2 className="size-3.5" />{shareText}</span>
-      <a className="icon-button" href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><AtSign className="size-4" /></a>
-      <a className="icon-button" href={`https://x.com/intent/post?url=${encodedUrl}&text=${encodedTitle}`} target="_blank" rel="noopener noreferrer" aria-label="X"><span className="text-xs font-bold">X</span></a>
-      <a className="icon-button" href={`mailto:?subject=${encodedTitle}&body=${encodedUrl}`} aria-label="Email"><Mail className="size-4" /></a>
+      <a className="icon-button" href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><AtSign className="size-4" /><span className="sr-only">LinkedIn</span></a>
+      <a className="icon-button" href={`https://x.com/intent/post?url=${encodedUrl}&text=${encodedTitle}`} target="_blank" rel="noopener noreferrer" aria-label="X"><span className="text-xs font-bold">X</span><span className="sr-only">X</span></a>
+      <a className="icon-button" href={`mailto:?subject=${encodedTitle}&body=${encodedUrl}`} aria-label="Email"><Mail className="size-4" /><span className="sr-only">Email</span></a>
       <button type="button" className="icon-button" onClick={copyLink} aria-label={copied ? "Link copied" : "Copy link"}>
         {copied ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
       </button>

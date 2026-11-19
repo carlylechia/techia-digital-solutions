@@ -107,8 +107,9 @@ function HeroSection({
                   <Image
                     src={section.imageUrl}
                     alt={section.heading}
-                    fill
-                    className="object-cover"
+                    width={1600}
+                    height={1000}
+                    className="h-full w-full object-cover"
                     sizes="(max-width: 1024px) 100vw, 48vw"
                   />
                 </div>
@@ -166,8 +167,9 @@ function CardsSection({
                   <Image
                     src={item.imageUrl}
                     alt={item.title}
-                    fill
-                    className="object-cover"
+                    width={1600}
+                    height={900}
+                    className="h-full w-full object-cover"
                     sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
                   />
                 </div>

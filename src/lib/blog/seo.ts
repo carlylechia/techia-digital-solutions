@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { logoAssets } from "@/components/brand/logo-assets";
 import { siteConfig, type Locale } from "@/content/site";
+import { fitDescription, fitTitle } from "@/lib/metadata-text";
 import { getBlogAuthorPath, getBlogCategoryPath, getBlogPostPath, type BlogLocale } from "./slug";
 
 type PublicPost = {
@@ -56,20 +57,11 @@ function articleCanonicalUrl(locale: BlogLocale, post: Pick<PublicPost, "canonic
   }
 }
 
-function fitDescription(description: string, max = 155) {
-  const clean = description.trim().replace(/\s+/g, " ");
-  if (clean.length <= max) return clean;
-  const slice = clean.slice(0, max + 1);
-  const lastSpace = slice.lastIndexOf(" ");
-  if (lastSpace > 60) return `${slice.slice(0, lastSpace).trim()}…`;
-  return `${clean.slice(0, max - 1).trim()}…`;
-}
-
 export function buildArticleMetadata(locale: Locale, post: PublicPost): Metadata {
   const blogLocale: BlogLocale = locale;
   const canonical = articleCanonicalUrl(blogLocale, post);
   const description = fitDescription(post.seoDescription?.trim() || post.excerpt);
-  const title = post.seoTitle?.trim() || post.title;
+  const title = fitTitle(post.seoTitle?.trim() || post.title);
   const image = post.ogImageUrl || post.featuredImageUrl || "/og/og-default.svg";
   const translations = post.translationGroup?.posts.length
     ? post.translationGroup.posts

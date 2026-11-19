@@ -20,13 +20,15 @@ export function BlogCard({ post, featured = false }: { post: PublicBlogListPost;
   return (
     <article className={`group premium-card overflow-hidden ${featured ? "md:grid md:grid-cols-[1.08fr_0.92fr]" : "flex h-full flex-col"}`}>
       <Link href={href} className={`relative block overflow-hidden bg-surface-strong ${featured ? "min-h-72 md:min-h-full" : "aspect-[16/9]"}`} aria-label={post.title}>
+        <span className="sr-only">{post.title}</span>
         {post.featuredImageUrl ? (
           <Image
             src={post.featuredImageUrl}
             alt={post.featuredImageAlt || post.title}
-            fill
+            width={1200}
+            height={675}
             sizes={featured ? "(min-width: 768px) 52vw, 100vw" : "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"}
-            className="object-cover transition duration-500 group-hover:scale-105"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(6,182,212,0.22),transparent_45%),linear-gradient(135deg,rgba(6,182,212,0.14),rgba(59,130,246,0.08))]" />
