@@ -394,30 +394,6 @@ function shortenHeadline(title: string): string {
 }
 
 
-const LOGO_CHOICES: Record<string, string> = {
-  "logo-horizontal-white": "public/brand/logo-horizontal-white.svg",
-  "logo-horizontal-dark": "public/brand/logo-horizontal-dark.svg",
-  "logo-horizontal-light": "public/brand/logo-horizontal-light.svg",
-  "logo-horizontal-black": "public/brand/logo-horizontal-black.svg",
-  "logo-mark": "public/brand/logo-mark.svg",
-  "logo-full": "public/brand/logo-full.svg",
-};
-
-function resolveLogoPath(choice?: string): string {
-  const rel = (choice && LOGO_CHOICES[choice]) || LOGO_CHOICES["logo-horizontal-white"];
-  return path.join(process.cwd(), rel);
-}
-
-function readLogoSvg(choice?: string): string {
-  try {
-    const p = resolveLogoPath(choice);
-    if (fs.existsSync(p)) return fs.readFileSync(p, "utf8");
-  } catch {
-    // ignore
-  }
-  return readLogoSvgFallback();
-}
-
 function readLogoSvgFallback(): string {
   const candidates = [
     path.join(process.cwd(), "public", "brand", "logo-horizontal-white.svg"),
@@ -433,12 +409,49 @@ function readLogoSvgFallback(): string {
   return "";
 }
 
+/**
+ * Resolve the logo the SuperAdmin actually uploaded. The English brand asset is
+ * used only as a safe fallback when no logo is selected or the stored asset can
+ * no longer be fetched, so a graphic generation never fails because of a logo.
+ */
+async function resolveLogoDataUri(logoId?: string): Promise<string> {
+  if (logoId) {
+    const prisma = getPrisma();
+    const logo = prisma
+      ? await prisma.socialShareLogo.findFirst({
+          where: { id: logoId, isActive: true },
+          select: { url: true, mimeType: true },
+        })
+      : null;
+    if (logo) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15_000);
+      try {
+        const response = await fetch(logo.url, { signal: controller.signal, redirect: "follow" });
+        if (response.ok) {
+          const buffer = Buffer.from(await response.arrayBuffer());
+          if (buffer.byteLength > 0 && buffer.byteLength <= 8 * 1024 * 1024) {
+            return `data:${logo.mimeType};base64,${buffer.toString("base64")}`;
+          }
+        }
+      } catch {
+        // Fall through to the official brand asset.
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+  }
+
+  const logoSvg = readLogoSvgFallback();
+  return logoSvg ? `data:image/svg+xml;base64,${Buffer.from(logoSvg).toString("base64")}` : "";
+}
+
 export async function generateSocialGraphic(
   postId: string,
   format: SocialGraphicFormat,
   actorId: string,
   prompt?: string,
-  logoChoice?: string,
+  logoId?: string,
 ) {
   const article = await getSocialArticleSource(postId);
   if (!article) throw new EditorialAiError("invalid_input", "Article not found.");
@@ -515,8 +528,7 @@ export async function generateSocialGraphic(
     const mimeType = "image/png";
     const dataUri = `data:${mimeType};base64,${base64Image}`;
 
-    const logoSvg = readLogoSvg(logoChoice);
-    const logoDataUri = logoSvg ? `data:image/svg+xml;base64,${Buffer.from(logoSvg).toString("base64")}` : "";
+    const logoDataUri = await resolveLogoDataUri(logoId);
 
     const headline = shortenHeadline(article.title);
     const lines = wrapText(headline, isSquare ? 20 : 18, isSquare ? 4 : 5);

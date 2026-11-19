@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, ArrowUpRight, Check, Eye, Save, Send, Settings2 } from "lucide-react";
+import { AlertCircle, ArrowUpRight, Check, Eye, Languages, Loader2, Save, Send, Settings2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { getBlogPostPath, type BlogLocale } from "@/lib/blog/slug";
 import type { BlogPostStatusValue } from "@/lib/blog/constants";
+import type { TranslationImageMode } from "@/lib/blog/translation-types";
 import { createBlogPostAction, deleteBlogPostAction, saveBlogPostAction, transitionBlogPostAction, translateBlogPostToFrenchAction, type BlogActionResult } from "@/lib/blog/actions";
 import { RichTextEditor } from "./rich-text-editor";
 import { ProfessionalLoader } from "@/components/ui/professional-loader";
@@ -57,7 +58,7 @@ type Option = { id: string; name: string; slug?: string; displayName?: string; u
 type TranslationCandidate = { id: string; title: string; slug: string; locale: BlogLocale; publishedAt: string | null; authorName: string };
 type LinkedTranslation = { id: string; title: string; slug: string; locale: BlogLocale; status: string; authorName: string };
 type EditorIssue = { field: string; message: string; severity: "error" | "warning" };
-type StatusMessage = { kind: "success" | "error"; text: string; issues?: EditorIssue[] };
+type StatusMessage = { kind: "success" | "warning" | "error"; text: string; issues?: EditorIssue[] };
 
 const issueLabels: Record<string, string> = {
   authorId: "Author",
@@ -138,6 +139,9 @@ export function BlogPostEditor({
   const [saveState, setSaveState] = useState<"saved" | "saving" | "unsaved" | "failed">("saved");
   const [isPending, startTransition] = useTransition();
   const [isTranslating, setIsTranslating] = useState(false);
+  const [translationDialogOpen, setTranslationDialogOpen] = useState(false);
+  const [translationImageMode, setTranslationImageMode] = useState<TranslationImageMode>("reuse");
+  const [translationError, setTranslationError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const skipNextAutosave = useRef(true);
@@ -212,6 +216,23 @@ export function BlogPostEditor({
     window.addEventListener("beforeunload", beforeUnload);
     return () => window.removeEventListener("beforeunload", beforeUnload);
   }, [saveState]);
+
+  // The translation action redirects to the new French draft. A fallback image
+  // warning crosses that navigation through sessionStorage so the editor can
+  // show why the English image was kept.
+  useEffect(() => {
+    if (!post.id) return;
+    const key = `techia:translation-warning:${post.id}`;
+    try {
+      const warning = window.sessionStorage.getItem(key);
+      if (!warning) return;
+      window.sessionStorage.removeItem(key);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStatusMessage({ kind: "warning", text: warning });
+    } catch {
+      // Private browsing can block sessionStorage; the draft is still usable.
+    }
+  }, [post.id]);
 
   function update<K extends keyof EditorPost>(key: K, value: EditorPost[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -340,20 +361,57 @@ export function BlogPostEditor({
     setStatusMessage({ kind: "success", text: "AI content inserted into the editor. Review before publishing." });
   }
 
-  async function handleTranslateToFrench() {
+  function openTranslationDialog() {
+    setTranslationError(null);
+    setTranslationImageMode(form.featuredImageUrl && canUseEditorialAi ? "reuse" : canUseEditorialAi ? "generate" : "reuse");
+    setTranslationDialogOpen(true);
+  }
+
+  async function handleTranslateToFrench(mode: TranslationImageMode) {
     if (!form.id) return;
     setIsTranslating(true);
+    setTranslationError(null);
     try {
-      const result = await translateBlogPostToFrenchAction(form.id);
+      const result = await translateBlogPostToFrenchAction(form.id, { imageMode: mode });
       if (result.ok && result.id) {
+        if (result.warning) {
+          try {
+            window.sessionStorage.setItem(`techia:translation-warning:${result.id}`, result.warning);
+          } catch {
+            // The warning is helpful but must never block the redirect.
+          }
+        }
         window.location.href = `/fr/admin/blog/posts/${result.id}`;
-      } else if (!result.ok) {
-        setStatusMessage({ kind: "error", text: result.error || "Translation failed." });
+        return;
       }
+      setTranslationError(result.ok ? "The French draft could not be opened." : result.error || "Translation failed.");
+    } catch {
+      setTranslationError("Translation failed. Check your connection and try again.");
     } finally {
       setIsTranslating(false);
     }
   }
+
+  const translationImageOptions: Array<{ value: TranslationImageMode; title: string; description: string; disabled: boolean }> = [
+    {
+      value: "reuse",
+      title: "Reuse the English image",
+      description: "Keep exactly the same featured image and only translate its alt text.",
+      disabled: false,
+    },
+    {
+      value: "translate",
+      title: "Translate the text on the image",
+      description: "AI edits the English image, translating any visible headline, label, or caption into French while preserving the composition.",
+      disabled: !form.featuredImageUrl || !canUseEditorialAi,
+    },
+    {
+      value: "generate",
+      title: "Generate a new French image",
+      description: "AI creates a completely new featured image for the French article.",
+      disabled: !canUseEditorialAi,
+    },
+  ];
 
   const inputClass = "form-input";
   return (
@@ -375,7 +433,7 @@ export function BlogPostEditor({
             <Save className="size-4" />{isPending && pendingAction === "save" ? "Saving…" : isNew ? "Create draft" : "Save draft"}
           </button>
           {form.id && !isNew ? <Link href={`${previewBase || `/${locale}/admin/blog/preview`}/${form.id}`} className="btn-secondary justify-center" target="_blank"><Eye className="size-4" />Preview</Link> : null}
-{form.id && !isNew && locale === "en" ? <button type="button" className="btn-secondary justify-center" disabled={isTranslating} onClick={() => void handleTranslateToFrench()}>{isTranslating ? "Translating…" : "Translate to French"}</button> : null}
+{form.id && !isNew && locale === "en" ? <button type="button" className="btn-secondary justify-center" disabled={isTranslating} onClick={openTranslationDialog}>{isTranslating ? "Translating…" : "Translate to French"}</button> : null}
           {(form.status === "DRAFT" || form.status === "CHANGES_REQUESTED") ? (
             <button type="button" className="btn-secondary justify-center" disabled={!editable || isPending || saveState !== "saved"} onClick={() => transition("SUBMIT")}>
               <Send className="size-4" />Submit for review
@@ -446,8 +504,8 @@ export function BlogPostEditor({
       </div>
 
       <aside className="grid content-start gap-5 xl:sticky xl:top-6 xl:max-h-[calc(100dvh-2rem)] xl:overflow-y-auto xl:overscroll-contain xl:pr-1 xl:pb-6 scroll-pane">
-        <section className="premium-card grid gap-4 overflow-visible p-5" aria-labelledby="editor-publish-title"><div className="flex items-center gap-2"><Settings2 className="size-4 text-accent" /><h2 id="editor-publish-title" className="font-semibold text-primary">Publishing</h2></div><div className="rounded-xl border border-border bg-surface-strong/60 p-3 text-xs leading-5 text-muted">Status: <strong className="text-primary">{form.status.replaceAll("_", " ")}</strong><br />Autosave: <strong className={saveState === "failed" ? "text-red-400" : "text-primary"}>{saveState === "saving" ? "Saving…" : saveState === "unsaved" ? "Unsaved changes" : saveState === "failed" ? "Save failed" : "Saved"}</strong></div><p className="text-[11px] leading-5 text-muted">Only an active author, active category, and unique title are required to publish. Word count, internal links, and featured image details are recommendations.</p>{statusMessage ? <div className={`rounded-xl p-3 text-xs leading-5 ${statusMessage.kind === "error" ? "bg-red-500/10 text-red-300" : "bg-emerald-500/10 text-emerald-300"}`} role={statusMessage.kind === "error" ? "alert" : "status"}><p>{statusMessage.text}</p>{statusMessage.issues?.length ? <div className="mt-3 border-t border-current/20 pt-3">{blockingIssues.length ? <div><p className="font-semibold">Blocking requirements:</p><IssueList issues={blockingIssues} /></div> : null}{recommendationIssues.length ? <div className="mt-3"><p className="font-semibold">Recommendations (these do not block publishing):</p><IssueList issues={recommendationIssues} /></div> : null}</div> : null}</div> : null}<div className="grid gap-2"><button type="submit" className="btn-primary justify-center" disabled={!editable || isPending}><Save className="size-4" />{isPending && pendingAction === "save" ? "Saving…" : isNew ? "Create draft" : "Save draft"}</button>{form.id && !isNew ? <Link href={`${previewBase || `/${locale}/admin/blog/preview`}/${form.id}`} className="btn-secondary justify-center" target="_blank"><Eye className="size-4" />Preview</Link> : null}
-{form.id && !isNew && locale === "en" ? <button type="button" className="btn-secondary justify-center" disabled={isTranslating} onClick={() => void handleTranslateToFrench()}>{isTranslating ? "Translating…" : "Translate to French"}</button> : null}</div>{form.status === "DRAFT" || form.status === "CHANGES_REQUESTED" ? <button type="button" className="btn-secondary justify-center" disabled={!editable || isPending || saveState !== "saved"} onClick={() => transition("SUBMIT")}><Send className="size-4" />Submit for review</button> : null}{canPublish && form.status === "IN_REVIEW" ? <><button type="button" className="btn-primary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("PUBLISH")}><Check className="size-4" />{isPending && pendingAction === "PUBLISH" ? "Publishing…" : "Publish now"}</button><div className="grid gap-2"><label className="form-label text-xs" htmlFor="editor-schedule-input">Schedule publication<input id="editor-schedule-input" type="datetime-local" className={inputClass} value={scheduleDraft} onChange={(event) => setScheduleDraft(event.target.value)} disabled={isPending} suppressHydrationWarning /><span className="text-xs text-muted">Uses your device timezone. The article stays private until the scheduled time.</span></label><button type="button" className="btn-secondary justify-center" disabled={isPending || !scheduleDraft || saveState !== "saved"} onClick={submitSchedule}>Schedule article</button></div><button type="button" className="btn-secondary justify-center text-amber-300" disabled={isPending} onClick={() => { const note = window.prompt("Review note for the writer"); if (note) transition("REQUEST_CHANGES", note); }}>Request changes</button></> : null}{canPublish && form.status === "SCHEDULED" ? <><div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs leading-5 text-muted">Scheduled publication: <time dateTime={form.scheduledAt} className="font-semibold text-primary" suppressHydrationWarning>{scheduledLabel}</time></div><div className="grid gap-2"><label className="form-label text-xs" htmlFor="editor-reschedule-input">Change publication time<input id="editor-reschedule-input" type="datetime-local" className={inputClass} value={scheduleDraft} onChange={(event) => setScheduleDraft(event.target.value)} disabled={isPending} suppressHydrationWarning /><span className="text-xs text-muted">Uses your device timezone. The article will publish on the next hourly schedule check.</span></label><button type="button" className="btn-secondary justify-center" disabled={isPending || !scheduleDraft || saveState !== "saved"} onClick={submitSchedule}>Update schedule</button><button type="button" className="btn-primary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("PUBLISH")}><Check className="size-4" />{isPending && pendingAction === "PUBLISH" ? "Publishing…" : "Publish now"}</button></div></> : null}{!canPublish && form.scheduledAt ? <p className="rounded-xl border border-border bg-surface-strong/60 p-3 text-xs leading-5 text-muted">Scheduled publication: <time dateTime={form.scheduledAt} className="font-semibold text-primary" suppressHydrationWarning>{scheduledLabel}</time></p> : null}{canPublish && form.status === "PUBLISHED" ? <button type="button" className="btn-secondary justify-center text-amber-300" disabled={isPending || saveState !== "saved"} onClick={() => transition("ARCHIVE")}>Unpublish and archive</button> : null}{canPublish && form.status === "ARCHIVED" ? <button type="button" className="btn-secondary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("RESTORE")}>Restore to draft</button> : null}</section>
+        <section className="premium-card grid gap-4 overflow-visible p-5" aria-labelledby="editor-publish-title"><div className="flex items-center gap-2"><Settings2 className="size-4 text-accent" /><h2 id="editor-publish-title" className="font-semibold text-primary">Publishing</h2></div><div className="rounded-xl border border-border bg-surface-strong/60 p-3 text-xs leading-5 text-muted">Status: <strong className="text-primary">{form.status.replaceAll("_", " ")}</strong><br />Autosave: <strong className={saveState === "failed" ? "text-red-400" : "text-primary"}>{saveState === "saving" ? "Saving…" : saveState === "unsaved" ? "Unsaved changes" : saveState === "failed" ? "Save failed" : "Saved"}</strong></div><p className="text-[11px] leading-5 text-muted">Only an active author, active category, and unique title are required to publish. Word count, internal links, and featured image details are recommendations.</p>{statusMessage ? <div className={`rounded-xl p-3 text-xs leading-5 ${statusMessage.kind === "error" ? "bg-red-500/10 text-red-300" : statusMessage.kind === "warning" ? "bg-amber-500/10 text-amber-200" : "bg-emerald-500/10 text-emerald-300"}`} role={statusMessage.kind === "error" ? "alert" : "status"}><p>{statusMessage.text}</p>{statusMessage.issues?.length ? <div className="mt-3 border-t border-current/20 pt-3">{blockingIssues.length ? <div><p className="font-semibold">Blocking requirements:</p><IssueList issues={blockingIssues} /></div> : null}{recommendationIssues.length ? <div className="mt-3"><p className="font-semibold">Recommendations (these do not block publishing):</p><IssueList issues={recommendationIssues} /></div> : null}</div> : null}</div> : null}<div className="grid gap-2"><button type="submit" className="btn-primary justify-center" disabled={!editable || isPending}><Save className="size-4" />{isPending && pendingAction === "save" ? "Saving…" : isNew ? "Create draft" : "Save draft"}</button>{form.id && !isNew ? <Link href={`${previewBase || `/${locale}/admin/blog/preview`}/${form.id}`} className="btn-secondary justify-center" target="_blank"><Eye className="size-4" />Preview</Link> : null}
+{form.id && !isNew && locale === "en" ? <button type="button" className="btn-secondary justify-center" disabled={isTranslating} onClick={openTranslationDialog}>{isTranslating ? "Translating…" : "Translate to French"}</button> : null}</div>{form.status === "DRAFT" || form.status === "CHANGES_REQUESTED" ? <button type="button" className="btn-secondary justify-center" disabled={!editable || isPending || saveState !== "saved"} onClick={() => transition("SUBMIT")}><Send className="size-4" />Submit for review</button> : null}{canPublish && form.status === "IN_REVIEW" ? <><button type="button" className="btn-primary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("PUBLISH")}><Check className="size-4" />{isPending && pendingAction === "PUBLISH" ? "Publishing…" : "Publish now"}</button><div className="grid gap-2"><label className="form-label text-xs" htmlFor="editor-schedule-input">Schedule publication<input id="editor-schedule-input" type="datetime-local" className={inputClass} value={scheduleDraft} onChange={(event) => setScheduleDraft(event.target.value)} disabled={isPending} suppressHydrationWarning /><span className="text-xs text-muted">Uses your device timezone. The article stays private until the scheduled time.</span></label><button type="button" className="btn-secondary justify-center" disabled={isPending || !scheduleDraft || saveState !== "saved"} onClick={submitSchedule}>Schedule article</button></div><button type="button" className="btn-secondary justify-center text-amber-300" disabled={isPending} onClick={() => { const note = window.prompt("Review note for the writer"); if (note) transition("REQUEST_CHANGES", note); }}>Request changes</button></> : null}{canPublish && form.status === "SCHEDULED" ? <><div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs leading-5 text-muted">Scheduled publication: <time dateTime={form.scheduledAt} className="font-semibold text-primary" suppressHydrationWarning>{scheduledLabel}</time></div><div className="grid gap-2"><label className="form-label text-xs" htmlFor="editor-reschedule-input">Change publication time<input id="editor-reschedule-input" type="datetime-local" className={inputClass} value={scheduleDraft} onChange={(event) => setScheduleDraft(event.target.value)} disabled={isPending} suppressHydrationWarning /><span className="text-xs text-muted">Uses your device timezone. The article will publish on the next hourly schedule check.</span></label><button type="button" className="btn-secondary justify-center" disabled={isPending || !scheduleDraft || saveState !== "saved"} onClick={submitSchedule}>Update schedule</button><button type="button" className="btn-primary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("PUBLISH")}><Check className="size-4" />{isPending && pendingAction === "PUBLISH" ? "Publishing…" : "Publish now"}</button></div></> : null}{!canPublish && form.scheduledAt ? <p className="rounded-xl border border-border bg-surface-strong/60 p-3 text-xs leading-5 text-muted">Scheduled publication: <time dateTime={form.scheduledAt} className="font-semibold text-primary" suppressHydrationWarning>{scheduledLabel}</time></p> : null}{canPublish && form.status === "PUBLISHED" ? <button type="button" className="btn-secondary justify-center text-amber-300" disabled={isPending || saveState !== "saved"} onClick={() => transition("ARCHIVE")}>Unpublish and archive</button> : null}{canPublish && form.status === "ARCHIVED" ? <button type="button" className="btn-secondary justify-center" disabled={isPending || saveState !== "saved"} onClick={() => transition("RESTORE")}>Restore to draft</button> : null}</section>
         <section className="premium-card grid gap-4 overflow-visible p-5"><h2 className="font-semibold text-primary">Organization</h2>{canManage ? <label className="form-label">Author<select id="editor-author" className={inputClass} name="authorId" value={form.authorId || ""} onChange={(event) => update("authorId", event.target.value)} disabled={!editable}><option value="">Select author</option>{authors.map((author) => <option key={author.id} value={author.id} disabled={author.isActive === false}>{author.displayName}{author.isActive === false ? " (inactive)" : ""}</option>)}</select></label> : <p className="text-sm text-muted">Byline: <strong className="text-primary">{form.authorName}</strong></p>}<label className="form-label">Category<select id="editor-category" className={inputClass} name="categoryId" value={form.categoryId || ""} onChange={(event) => update("categoryId", event.target.value)} disabled={!editable}><option value="">Select category</option>{categories.filter((category) => category.slug || category.name).map((category) => <option key={category.id} value={category.id} disabled={category.isActive === false}>{category.name}{category.isActive === false ? " (inactive)" : ""}</option>)}</select></label><fieldset><legend className="form-label">Tags</legend><div className="grid gap-2">{tags.map((tag) => <label key={tag.id} className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="tagIds" value={tag.id} checked={form.tagIds.includes(tag.id)} onChange={(event) => update("tagIds", event.target.checked ? [...form.tagIds, tag.id] : form.tagIds.filter((id) => id !== tag.id))} disabled={!editable} />{tag.name}</label>)}</div></fieldset>{canManage ? <label className="form-label">Related published article IDs <span className="text-xs text-muted">(comma-separated; optional override)</span><input className={inputClass} name="relatedPostIds" value={relatedDraft} onChange={(event) => { const next = event.target.value; setRelatedDraft(next); update("relatedPostIds", next.split(",").map((item) => item.trim()).filter(Boolean)); }} disabled={!editable} /></label> : null}</section>
         {canManage ? <section className="premium-card grid gap-3 overflow-visible p-5"><h2 className="font-semibold text-primary">Indexing</h2><label className="flex items-center gap-2 text-sm text-muted"><input type="hidden" name="allowIndex" value="false" /><input type="checkbox" name="allowIndex" value="true" checked={form.allowIndex} onChange={(event) => update("allowIndex", event.target.checked)} disabled={!editable} />Allow search indexing</label><label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="nofollow" value="true" checked={form.nofollow} onChange={(event) => update("nofollow", event.target.checked)} disabled={!editable} />No-follow public links</label><label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="featured" value="true" checked={form.featured} onChange={(event) => update("featured", event.target.checked)} disabled={!editable} />Feature on blog homepage</label></section> : null}
         {form.reviewNotes.length ? <section className="premium-card grid gap-3 overflow-visible p-5"><h2 className="font-semibold text-primary">Review notes</h2>{form.reviewNotes.map((note) => <div key={note.id} className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs leading-5 text-muted"><p>{note.body}</p><p className="mt-2 text-[10px] uppercase tracking-wider text-amber-300">{note.authorName} · {new Date(note.createdAt).toLocaleDateString()}</p></div>)}</section> : null}
@@ -456,6 +514,91 @@ export function BlogPostEditor({
         <p className="flex items-start gap-2 px-1 text-xs leading-5 text-muted"><AlertCircle className="mt-0.5 size-4 shrink-0 text-accent" />{canPublish ? "You can publish, schedule, archive, assign another author, or change indexing controls." : "An editorial manager must publish, schedule, archive, assign another author, or change indexing controls."}</p>
       </aside>
     </form>
+    {translationDialogOpen ? (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !isTranslating) setTranslationDialogOpen(false);
+        }}
+      >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="translation-dialog-title"
+          className="premium-card grid max-h-[90dvh] w-full max-w-xl gap-4 overflow-y-auto p-5 sm:p-6"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="eyebrow">French workspace</p>
+              <h2 id="translation-dialog-title" className="mt-1 text-xl font-semibold text-primary">Create the French version</h2>
+            </div>
+            <button type="button" className="btn-ghost p-1" onClick={() => setTranslationDialogOpen(false)} disabled={isTranslating} aria-label="Close translation options">
+              <X className="size-4" />
+            </button>
+          </div>
+          <p className="text-sm leading-6 text-muted">
+            The full article, SEO fields, focus keyword, category, tags, CTA, and image alt text are translated and linked to this English article. The French version opens as a draft in the French workspace.
+          </p>
+
+          <fieldset className="grid gap-2">
+            <legend className="form-label">Featured image</legend>
+            <div className="grid gap-2">
+              {translationImageOptions.map((option) => (
+                <label
+                  key={option.value}
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${translationImageMode === option.value ? "border-accent bg-accent/10" : "border-border hover:border-accent/40"} ${option.disabled ? "cursor-not-allowed opacity-50" : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="translationImageMode"
+                    value={option.value}
+                    checked={translationImageMode === option.value}
+                    onChange={() => setTranslationImageMode(option.value)}
+                    disabled={option.disabled || isTranslating}
+                    className="mt-1"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-primary">{option.title}</span>
+                    <span className="mt-0.5 block text-xs leading-5 text-muted">{option.description}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          {!form.featuredImageUrl ? (
+            <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-200">
+              This article has no featured image yet. Reusing keeps the French draft without one; a SuperAdmin can generate a new image from the translated brief.
+            </p>
+          ) : null}
+          {!canUseEditorialAi ? (
+            <p className="text-xs leading-5 text-muted">Your role keeps the English featured image. A SuperAdmin can choose the AI image options.</p>
+          ) : null}
+          {saveState !== "saved" ? (
+            <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-200">
+              Save your latest changes first so the French draft uses the current article content.
+            </p>
+          ) : null}
+          {translationError ? (
+            <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-300" role="alert">{translationError}</p>
+          ) : null}
+
+          <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+            <button type="button" className="btn-secondary" onClick={() => setTranslationDialogOpen(false)} disabled={isTranslating}>Cancel</button>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => void handleTranslateToFrench(translationImageMode)}
+              disabled={isTranslating || saveState !== "saved"}
+            >
+              {isTranslating ? <Loader2 className="size-4 animate-spin" /> : <Languages className="size-4" />}
+              {isTranslating ? "Translating…" : "Create French draft"}
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null}
     </>
   );
 }

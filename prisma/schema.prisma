@@ -518,6 +518,7 @@ model AdminUser {
   blogRevisions            BlogPostRevision[]         @relation("BlogRevisionCreator")
   socialShareKitsCreated   SocialShareKit[]           @relation("SocialShareKitCreator")
   socialShareVariantsPublished SocialShareVariant[]    @relation("SocialShareVariantPublisher")
+  socialShareLogosCreated  SocialShareLogo[]          @relation("SocialShareLogoCreator")
   outreachMessagesApproved OutreachMessage[]          @relation("OutreachMessageApprover")
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
@@ -2276,4 +2277,27 @@ model SocialShareGraphic {
 
   @@unique([kitId, format])
   @@index([kitId])
+}
+
+// Admin-uploaded brand logos used when stamping the social share graphics.
+// Keeping the assets in the database means the dropdown is fed by what the
+// SuperAdmin actually uploaded instead of a hardcoded list in the source code.
+model SocialShareLogo {
+  id          String    @id @default(cuid())
+  name        String
+  url         String
+  publicId    String    @unique
+  format      String
+  mimeType    String
+  width       Int?
+  height      Int?
+  bytes       Int
+  isActive    Boolean   @default(true)
+  createdById String?
+  createdBy   AdminUser? @relation("SocialShareLogoCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([createdById])
+  @@index([isActive, createdAt])
 }

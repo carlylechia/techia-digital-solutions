@@ -628,7 +628,17 @@ export const editorialArticleTranslationSchema = z.object({
   articleContent: z.string().trim().min(200).max(60000),
   seoTitle: z.string().trim().min(5).max(70),
   metaDescription: z.string().trim().min(30).max(180),
+  focusKeyword: z.string().trim().min(2).max(120),
+  imagePrompt: z.string().trim().min(20).max(1200),
+  imageAltText: z.string().trim().min(5).max(200),
+  suggestedCategory: z.string().trim().min(2).max(100),
+  suggestedTags: z.array(z.string().trim().min(1).max(40)).max(12),
+  ctaTitle: z.string().trim().max(140),
+  ctaDescription: z.string().trim().max(400),
+  ctaLabel: z.string().trim().max(80),
 });
+
+export type EditorialArticleTranslation = z.infer<typeof editorialArticleTranslationSchema>;
 
 export async function translateEditorialArticle(input: {
   title: string;
@@ -637,6 +647,13 @@ export async function translateEditorialArticle(input: {
   content: string;
   seoTitle?: string | null;
   metaDescription?: string | null;
+  focusKeyword?: string | null;
+  categoryName?: string | null;
+  tags?: string[];
+  imageAltText?: string | null;
+  ctaTitle?: string | null;
+  ctaDescription?: string | null;
+  ctaLabel?: string | null;
 }, actorId: string) {
   if (!isEditorialAiEnabled()) throw new EditorialAiError("disabled", "Editorial AI is disabled.");
   const model = getEditorialTextModel();
@@ -655,14 +672,34 @@ export async function translateEditorialArticle(input: {
       model,
       system: `${SYSTEM_BRAND}
 
-You translate a complete blog article from English to French. Preserve meaning, tone, structure, headings, links, and SEO intent. Do not invent facts. Return JSON only with keys: title, suggestedSlug, excerpt, articleContent, seoTitle, metaDescription.`,
-      user: `Translate this article to French.
+You translate a complete blog article from English to French for a professional B2B digital solutions company. Produce a faithful, publication-ready French version, not a summary.
+
+Translation rules:
+- Preserve every section, paragraph, heading, list, table, image, link, HTML tag and Markdown structure from the source.
+- Keep URLs, product names and proper nouns that should not be translated unchanged.
+- Translate all human-readable text, including headings, image alt text, CTA copy and SEO fields.
+- Keep the same tone and intent. Do not invent facts, statistics, sources or capabilities.
+- suggestedCategory is a concise, natural French category name that mirrors the source category.
+- suggestedTags is 3-8 concise French tags that describe the article. They must be natural French, not English words.
+- focusKeyword is the French focus topic or keyword phrase, not a direct word-for-word calque.
+- imagePrompt must be written in English and describe a clean, professional, text-free, logo-free 16:9 editorial illustration for the French article. No embedded text, no watermarks, no distorted faces or hands.
+- ctaTitle, ctaDescription and ctaLabel translate the source CTA. Return an empty string for any CTA field that has no source value.
+- suggestedSlug must be lowercase, URL-safe, hyphenated, and based on the French title.
+- Return JSON only with exactly these keys: title, suggestedSlug, excerpt, articleContent, seoTitle, metaDescription, focusKeyword, imagePrompt, imageAltText, suggestedCategory, suggestedTags, ctaTitle, ctaDescription, ctaLabel.`,
+      user: `Translate this complete article to French.
 
 Title: ${input.title}
 Slug: ${input.slug}
 Excerpt: ${input.excerpt}
 SEO title: ${input.seoTitle || input.title}
 Meta description: ${input.metaDescription || input.excerpt}
+Focus keyword: ${input.focusKeyword || "(none)"}
+Category: ${input.categoryName || "(none)"}
+Tags: ${input.tags?.length ? input.tags.join(", ") : "(none)"}
+Featured image alt text: ${input.imageAltText || "(none)"}
+CTA title: ${input.ctaTitle || "(none)"}
+CTA description: ${input.ctaDescription || "(none)"}
+CTA label: ${input.ctaLabel || "(none)"}
 
 Content:
 <<<CONTENT
@@ -670,7 +707,7 @@ ${input.content.slice(0, EDITORIAL_AI_CONFIG.maxInputChars)}
 CONTENT>>>`,
       schema: editorialArticleTranslationSchema,
       timeoutMs: EDITORIAL_AI_CONFIG.timeoutMs,
-      maxTokens: 4096,
+      maxTokens: Math.min(16000, Math.max(6000, Math.ceil(input.content.length / 2) + 2500)),
     });
 
     const estimatedCost = estimateEditorialTextCost(model, result.inputTokens, result.outputTokens, result.cachedInputTokens);

@@ -53,7 +53,9 @@ export const socialGraphicGenerateInputSchema = z.object({
   postId: z.string().min(1),
   format: z.enum(socialGraphicFormatOptions),
   prompt: z.string().trim().max(2000).optional().or(z.literal("")),
-  logo: z.string().trim().max(80).optional().or(z.literal("")),
+  // Uploaded SocialShareLogo id. The old hardcoded `logo` key is intentionally
+  // no longer accepted: the dropdown is fed by the admin's real uploads.
+  logoId: z.string().trim().max(64).optional().or(z.literal("")),
 });
 
 export const socialCaptionEditInputSchema = z.object({

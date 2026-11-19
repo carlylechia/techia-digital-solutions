@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Loader2, Copy, Check, Download, Share2, Sparkles, RefreshCw, Link as LinkIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Loader2, Copy, Check, Download, ImagePlus, Share2, Sparkles, RefreshCw, Link as LinkIcon, Trash2, UploadCloud } from "lucide-react";
 import { ProfessionalLoader } from "@/components/ui/professional-loader";
 import type { BlogLocale } from "@/lib/blog/constants";
 import type { SocialPlatform, SocialGraphicFormat } from "@/lib/ai/social-share-types";
@@ -38,6 +38,18 @@ type Graphic = {
   bytes: number;
 };
 
+type Logo = {
+  id: string;
+  name: string;
+  url: string;
+  publicId: string;
+  format: string;
+  mimeType: string;
+  width: number | null;
+  height: number | null;
+  bytes: number;
+  createdAt: string;
+};
 type Kit = {
   id: string;
   postId: string;
@@ -86,8 +98,14 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
   const [copied, setCopied] = useState<string | null>(null);
   const [graphicFormat, setGraphicFormat] = useState<SocialGraphicFormat>("SQUARE");
   const [graphicPrompt, setGraphicPrompt] = useState("");
-  const [graphicLogo, setGraphicLogo] = useState("logo-horizontal-white");
+  const [graphicLogo, setGraphicLogo] = useState("");
+  const [logos, setLogos] = useState<Logo[]>([]);
+  const [logosLoading, setLogosLoading] = useState(false);
+  const [logoManagerOpen, setLogoManagerOpen] = useState(false);
+  const [logoUploadName, setLogoUploadName] = useState("");
+  const [logoUploading, setLogoUploading] = useState(false);
   const [customRefinement, setCustomRefinement] = useState("");
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const loadPosts = useCallback(async () => {
     setPostsLoading(true);
@@ -112,6 +130,25 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadPosts();
   }, [loadPosts]);
+
+  const loadLogos = useCallback(async () => {
+    setLogosLoading(true);
+    try {
+      const res = await fetch("/api/editorial/social/logos", { credentials: "same-origin" });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error || "Failed to load uploaded logos.");
+      setLogos(json.logos || []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load uploaded logos.");
+    } finally {
+      setLogosLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadLogos();
+  }, [loadLogos]);
 
   const selectPost = useCallback(async (postId: string) => {
     setSelectedPostId(postId);
@@ -223,7 +260,7 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId: selectedPostId, format, prompt: graphicPrompt || undefined, logo: graphicLogo || undefined }),
+        body: JSON.stringify({ postId: selectedPostId, format, prompt: graphicPrompt || undefined, logoId: graphicLogo || undefined }),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "Graphic generation failed.");
@@ -233,6 +270,47 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
       setError(e instanceof Error ? e.message : "Graphic generation failed.");
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function uploadLogo(file: File) {
+    setLogoUploading(true);
+    setError(null);
+    setNotice(null);
+    const data = new FormData();
+    data.set("file", file);
+    if (logoUploadName.trim()) data.set("name", logoUploadName.trim());
+    try {
+      const res = await fetch("/api/editorial/social/logos", { method: "POST", credentials: "same-origin", body: data });
+      const json = await res.json();
+      if (!res.ok || !json.ok || !json.logo) throw new Error(json.error || "Logo upload failed.");
+      setLogos((current) => [json.logo, ...current]);
+      setGraphicLogo(json.logo.id);
+      setLogoUploadName("");
+      setNotice(`Logo “${json.logo.name}” uploaded and selected.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Logo upload failed.");
+    } finally {
+      setLogoUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  }
+
+  async function deleteLogo(logo: Logo) {
+    if (!window.confirm(`Delete the logo “${logo.name}”? Graphics already generated with it keep their embedded copy, but it will no longer be available for new graphics.`)) return;
+    setLogoUploading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/editorial/social/logos?id=${encodeURIComponent(logo.id)}`, { method: "DELETE", credentials: "same-origin" });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error || "Logo deletion failed.");
+      setLogos((current) => current.filter((item) => item.id !== logo.id));
+      if (graphicLogo === logo.id) setGraphicLogo("");
+      setNotice(`Logo “${logo.name}” deleted.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Logo deletion failed.");
+    } finally {
+      setLogoUploading(false);
     }
   }
 
@@ -524,17 +602,88 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
                 <label className="form-label text-xs">Graphic prompt (optional)
                   <textarea className="form-input text-sm min-h-20" value={graphicPrompt} onChange={(e) => setGraphicPrompt(e.target.value)} placeholder="Describe the image or edits you want..." />
                 </label>
-                <label className="form-label text-xs">Logo
-                  <select className="form-input text-sm" value={graphicLogo} onChange={(e) => setGraphicLogo(e.target.value)}>
-                    <option value="logo-horizontal-white">Horizontal white</option>
-                    <option value="logo-horizontal-dark">Horizontal dark</option>
-                    <option value="logo-horizontal-light">Horizontal light</option>
-                    <option value="logo-horizontal-black">Horizontal black</option>
-                    <option value="logo-mark">Mark only</option>
-                    <option value="logo-full">Full logo</option>
+                <div className="grid gap-1">
+                  <span className="text-xs font-semibold text-primary">Logo</span>
+                  <select className="form-input text-sm" value={graphicLogo} onChange={(e) => setGraphicLogo(e.target.value)} disabled={logosLoading}>
+                    <option value="">teChia official logo (default)</option>
+                    {logos.map((logo) => (
+                      <option key={logo.id} value={logo.id}>{logo.name}</option>
+                    ))}
                   </select>
-                </label>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-[11px] text-muted">
+                      {logosLoading ? "Loading uploaded logos…" : logos.length ? `${logos.length} uploaded logo${logos.length === 1 ? "" : "s"} available.` : "No uploaded logos yet."}
+                    </span>
+                    <button type="button" className="btn-secondary text-[11px]" onClick={() => setLogoManagerOpen((current) => !current)}>
+                      {logoManagerOpen ? "Hide logo manager" : "Manage / upload logos"}
+                    </button>
+                  </div>
+                </div>
               </div>
+
+              {logoManagerOpen ? (
+                <div className="rounded-xl border border-border bg-surface-strong/40 p-3 grid gap-3">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                    <ImagePlus className="size-4 text-accent" /> Uploaded logos
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      className="form-input text-sm flex-1 min-w-48"
+                      placeholder="Logo name (for example: teChia horizontal white)"
+                      value={logoUploadName}
+                      onChange={(e) => setLogoUploadName(e.target.value)}
+                      disabled={logoUploading}
+                    />
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void uploadLogo(file);
+                      }}
+                    />
+                    <button type="button" className="btn-secondary text-xs" onClick={() => logoInputRef.current?.click()} disabled={logoUploading}>
+                      {logoUploading ? <Loader2 className="size-3.5 animate-spin" /> : <UploadCloud className="size-3.5" />} Upload logo
+                    </button>
+                  </div>
+                  <p className="text-[11px] leading-5 text-muted">
+                    PNG or WebP with transparency works best. Maximum 5 MB. Uploaded logos become available in the dropdown immediately and are stored in Cloudinary.
+                  </p>
+                  {logosLoading ? (
+                    <div className="flex items-center gap-2 text-xs text-muted"><Loader2 className="size-3.5 animate-spin" /> Loading logos…</div>
+                  ) : logos.length ? (
+                    <div className="grid gap-2">
+                      {logos.map((logo) => (
+                        <div key={logo.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface/40 p-2">
+                          <span className="flex h-9 w-20 shrink-0 items-center justify-center rounded bg-white/95 p-1">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={logo.url} alt="" className="max-h-7 max-w-full object-contain" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-xs font-semibold text-primary">{logo.name}</span>
+                            <span className="block text-[10px] text-muted">
+                              {logo.width && logo.height ? `${logo.width}×${logo.height}` : "Image"} · {(logo.bytes / 1024).toFixed(0)} KB
+                            </span>
+                          </span>
+                          <button
+                            type="button"
+                            className="btn-ghost p-1 text-red-300"
+                            onClick={() => void deleteLogo(logo)}
+                            disabled={logoUploading}
+                            aria-label={`Delete ${logo.name}`}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted">No logos uploaded yet. Add the first official logo above.</p>
+                  )}
+                </div>
+              ) : null}
 
               {graphicFor(graphicFormat) ? (
                 <div className="grid gap-2">

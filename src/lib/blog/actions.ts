@@ -8,16 +8,27 @@ import { writeAuditLog } from "@/lib/admin/session";
 import { getPrisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { sendWriterInviteEmail, sendWriterPasswordResetEmail } from "@/lib/email";
-import { requireBlogUser, BlogAuthorizationError } from "./auth";
+import { requireBlogUser, BlogAuthorizationError, isSuperAdminUser, type BlogSessionUser } from "./auth";
+import { hasPermission } from "@/lib/admin/permissions";
 import { normalizeHomepagePicks } from "./public-feed";
 import { blogAuthorProfileSchema, blogCategorySchema, blogMediaMetadataSchema, blogPostPayloadSchema, blogTagSchema, blogTransitionSchema, writerInviteSchema, writerPasswordSchema, type BlogPostPayload } from "./validation";
 import { BlogConflictError, BlogPublicationError, createBlogPost, deleteUnpublishedBlogPost, invalidateBlogCache, transitionBlogPost, updateBlogPost } from "./service";
-import { translateEditorialArticle } from "@/lib/ai/editorial-service";
-import { isSuperAdminUser } from "./auth";
+import { translateEditorialArticle, type EditorialArticleTranslation } from "@/lib/ai/editorial-service";
+import { editEditorialImage, generateEditorialImage } from "@/lib/ai/editorial-image-service";
+import {
+  ensureTranslationGroupForSource,
+  findExistingFrenchTranslation,
+  resolveActiveAuthorId,
+  resolveFrenchCategory,
+  resolveFrenchRelatedPostIds,
+  resolveFrenchTags,
+  uniqueTranslationSlug,
+} from "./translation";
+import { isTranslationImageMode, type TranslationImageMode } from "./translation-types";
 
 import { slugify } from "./slug";
 
-export type BlogActionResult = { ok: true; message: string; id?: string; slug?: string; scheduledAt?: string | null; version?: number; issues?: Array<{ field: string; message: string; severity: "error" | "warning" }> } | { ok: false; error: string; issues?: Array<{ field: string; message: string; severity: "error" | "warning" }> };
+export type BlogActionResult = { ok: true; message: string; warning?: string; id?: string; slug?: string; scheduledAt?: string | null; version?: number; issues?: Array<{ field: string; message: string; severity: "error" | "warning" }> } | { ok: false; error: string; issues?: Array<{ field: string; message: string; severity: "error" | "warning" }> };
 
 function value(formData: FormData, key: string) {
   const entry = formData.get(key);
@@ -73,17 +84,123 @@ function messageFromError(error: unknown): BlogActionResult {
   return { ok: false, error: "The editorial action could not be completed." };
 }
 
-export async function translateBlogPostToFrenchAction(postId: string): Promise<BlogActionResult> {
+type TranslationSourceImage = {
+  featuredImageUrl: string;
+  featuredImagePublicId: string;
+  ogImageUrl: string;
+  ogImagePublicId: string;
+};
+
+type ResolvedTranslationImage = TranslationSourceImage & {
+  featuredImageAlt: string;
+  warning?: string;
+};
+
+/**
+ * Resolve the French featured image according to the editor's choice. Any AI
+ * failure degrades to the English image instead of blocking the draft, and the
+ * reason travels back to the editor as a visible warning.
+ */
+async function resolveTranslationImage(input: {
+  actor: BlogSessionUser;
+  source: TranslationSourceImage & { featuredImageUrl: string; featuredImageAlt: string | null };
+  translated: EditorialArticleTranslation;
+  mode: TranslationImageMode;
+}): Promise<ResolvedTranslationImage> {
+  const fallbackAlt = input.translated.imageAltText || input.source.featuredImageAlt || "";
+  const reused: ResolvedTranslationImage = {
+    featuredImageUrl: input.source.featuredImageUrl,
+    featuredImagePublicId: input.source.featuredImagePublicId,
+    featuredImageAlt: fallbackAlt,
+    ogImageUrl: input.source.ogImageUrl,
+    ogImagePublicId: input.source.ogImagePublicId,
+  };
+
+  if (input.mode === "reuse") return reused;
+
+  if (!isSuperAdminUser(input.actor)) {
+    return {
+      ...reused,
+      warning: "Only a SuperAdmin can run editorial image AI. The English featured image was reused unchanged.",
+    };
+  }
+
+  const effectiveMode: "translate" | "generate" = input.mode === "translate" && input.source.featuredImageUrl ? "translate" : "generate";
+  const fallbackNote = input.source.featuredImageUrl
+    ? "The English featured image was reused instead."
+    : "The draft has no featured image yet; add one before publishing.";
+
+  try {
+    const image = effectiveMode === "translate"
+      ? await editEditorialImage({
+          sourceImageUrl: input.source.featuredImageUrl,
+          articleTitle: input.translated.title,
+          altText: fallbackAlt,
+          imagePrompt: input.translated.imagePrompt,
+        }, input.actor.id)
+      : await generateEditorialImage({
+          imagePrompt: input.translated.imagePrompt,
+          altText: fallbackAlt,
+          articleTitle: input.translated.title,
+        }, input.actor.id);
+
+    return {
+      featuredImageUrl: image.url,
+      featuredImagePublicId: image.publicId,
+      featuredImageAlt: image.altText || fallbackAlt,
+      ogImageUrl: image.url,
+      ogImagePublicId: image.publicId,
+    };
+  } catch (error) {
+    const attempted = effectiveMode === "translate"
+      ? "translate the text in the English featured image"
+      : "generate a new French featured image";
+    const reason = error instanceof Error && error.message ? ` ${error.message}` : "";
+    return {
+      ...reused,
+      warning: `We could not ${attempted}.${reason} ${fallbackNote}`,
+    };
+  }
+}
+
+export async function translateBlogPostToFrenchAction(
+  postId: string,
+  options: { imageMode?: TranslationImageMode } = {},
+): Promise<BlogActionResult> {
   try {
     const actor = await requireBlogUser("blog.posts.create");
     const prisma = getPrisma();
     if (!prisma) return { ok: false, error: "Editorial database is unavailable." };
-    const source = await prisma.blogPost.findUnique({ where: { id: postId } });
+
+    const source = await prisma.blogPost.findUnique({
+      where: { id: postId },
+      include: {
+        category: { select: { name: true, slug: true } },
+        tags: { select: { tag: { select: { name: true } } } },
+      },
+    });
     if (!source) return { ok: false, error: "Article not found." };
     if (source.locale !== "en") return { ok: false, error: "Only English articles can be translated to French." };
-    if (!isSuperAdminUser(actor) && source.authorId !== actor.authorId) {
-      // allow managers
+
+    const canManage = hasPermission(actor.permissions, "blog.posts.manage");
+    if (!canManage && source.authorId !== actor.authorId) {
+      return { ok: false, error: "You can only translate your own articles." };
     }
+
+    if (source.translationGroupId) {
+      const existing = await findExistingFrenchTranslation(prisma, source.translationGroupId);
+      if (existing) {
+        return {
+          ok: true,
+          message: "A French version is already linked to this article. Opening it instead of creating a duplicate.",
+          id: existing.id,
+          slug: existing.slug,
+        };
+      }
+    }
+
+    const imageMode: TranslationImageMode = isTranslationImageMode(options?.imageMode) ? options.imageMode : "reuse";
+    const warnings: string[] = [];
 
     const translated = await translateEditorialArticle({
       title: source.title,
@@ -92,41 +209,96 @@ export async function translateBlogPostToFrenchAction(postId: string): Promise<B
       content: source.content,
       seoTitle: source.seoTitle,
       metaDescription: source.seoDescription,
+      focusKeyword: source.focusKeyword,
+      categoryName: source.category?.name,
+      tags: source.tags.map(({ tag }) => tag.name),
+      imageAltText: source.featuredImageAlt,
+      ctaTitle: source.ctaTitle,
+      ctaDescription: source.ctaDescription,
+      ctaLabel: source.ctaLabel,
     }, actor.id);
+
+    const [categoryId, tagResult, relatedPostIds, authorId, image, slug, translationGroupId] = await Promise.all([
+      resolveFrenchCategory(prisma, source.category, translated.suggestedCategory),
+      resolveFrenchTags(prisma, translated.suggestedTags),
+      resolveFrenchRelatedPostIds(prisma, source.id),
+      resolveActiveAuthorId(prisma, source.authorId, actor.authorId),
+      resolveTranslationImage({
+        actor,
+        source: {
+          featuredImageUrl: source.featuredImageUrl || "",
+          featuredImagePublicId: source.featuredImagePublicId || "",
+          featuredImageAlt: source.featuredImageAlt,
+          ogImageUrl: source.ogImageUrl || "",
+          ogImagePublicId: source.ogImagePublicId || "",
+        },
+        translated,
+        mode: imageMode,
+      }),
+      uniqueTranslationSlug(prisma, translated.suggestedSlug, translated.title),
+      ensureTranslationGroupForSource(prisma, { id: source.id, translationGroupId: source.translationGroupId }),
+    ]);
+
+    if (!categoryId && source.category) {
+      warnings.push("The French category could not be resolved automatically; choose an active category before publishing.");
+    }
+    if (tagResult.failed.length) {
+      warnings.push(`Some French tags could not be saved: ${tagResult.failed.join(", ")}.`);
+    }
+    if (!authorId) {
+      warnings.push("The byline could not be resolved automatically; assign an active author before publishing.");
+    }
+    if (image.warning) warnings.push(image.warning);
+
+    const sourceIsPublished = source.status === "PUBLISHED" && Boolean(source.publishedAt) && source.publishedAt!.getTime() <= Date.now();
 
     const payload = {
       title: translated.title,
-      slug: translated.suggestedSlug,
+      slug,
       excerpt: translated.excerpt,
       content: translated.articleContent,
       locale: "fr",
-      categoryId: source.categoryId || "",
-      authorId: source.authorId || "",
-      translationSourcePostId: "",
-      tagIds: [],
-      relatedPostIds: [],
+      categoryId: categoryId || "",
+      authorId,
+      // Validation only accepts a published counterpart. Unpublished sources
+      // are still linked through the translation group created above.
+      translationSourcePostId: sourceIsPublished ? source.id : "",
+      tagIds: tagResult.tagIds,
+      relatedPostIds,
       seoTitle: translated.seoTitle,
       seoDescription: translated.metaDescription,
-      focusKeyword: source.focusKeyword || "",
+      focusKeyword: translated.focusKeyword,
+      // The French page canonicalizes to itself; the hreflang alternates come
+      // from the translation group, not from a copied English canonical.
       canonicalUrl: "",
-      featuredImageUrl: source.featuredImageUrl || "",
-      featuredImagePublicId: source.featuredImagePublicId || "",
-      featuredImageAlt: source.featuredImageAlt || "",
-      ogImageUrl: source.ogImageUrl || "",
-      ogImagePublicId: source.ogImagePublicId || "",
-      ctaTitle: source.ctaTitle || "",
-      ctaDescription: source.ctaDescription || "",
+      featuredImageUrl: image.featuredImageUrl,
+      featuredImagePublicId: image.featuredImagePublicId,
+      featuredImageAlt: image.featuredImageAlt,
+      ogImageUrl: image.ogImageUrl,
+      ogImagePublicId: image.ogImagePublicId,
+      ctaTitle: translated.ctaTitle,
+      ctaDescription: translated.ctaDescription,
       ctaHref: source.ctaHref || "",
-      ctaLabel: source.ctaLabel || "",
+      ctaLabel: translated.ctaLabel,
       featured: false,
-      allowIndex: true,
-      nofollow: false,
+      allowIndex: source.allowIndex,
+      nofollow: source.nofollow,
       version: 1,
     };
 
-    const created = await createBlogPost(actor, payload, { existingTranslationGroupId: source.translationGroupId });
+    const created = await createBlogPost(actor, payload, { existingTranslationGroupId: translationGroupId });
     revalidatePath("/admin/blog");
-    return { ok: true, message: "French translation created as a draft.", id: created.id, slug: created.slug };
+    revalidatePath("/fr/admin/blog");
+    revalidatePath("/writer");
+
+    const warning = warnings.join(" ");
+    return {
+      ok: true,
+      message: warning ? `French translation created as a draft. ${warning}` : "French translation created as a draft.",
+      warning: warning || undefined,
+      id: created.id,
+      slug: created.slug,
+    };
   } catch (error) {
     return messageFromError(error);
   }

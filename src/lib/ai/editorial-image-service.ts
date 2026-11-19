@@ -23,24 +23,56 @@ export type EditorialImageResult = {
   model: string;
 };
 
-export async function generateEditorialImage(input: z.infer<typeof editorialImageInputSchema>, actorId: string): Promise<EditorialImageResult> {
-  if (!isEditorialImageEnabled()) throw new EditorialAiError("disabled", "Editorial image generation is disabled.");
-  const validated = editorialImageInputSchema.safeParse(input);
-  if (!validated.success) throw new EditorialAiError("invalid_input", "Invalid image request.");
+export type EditorialImageEditInput = {
+  sourceImageUrl: string;
+  articleTitle?: string;
+  altText?: string;
+  imagePrompt?: string;
+};
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new EditorialAiError("not_configured", "OPENAI_API_KEY is not configured.");
+const MAX_SOURCE_IMAGE_BYTES = 25 * 1024 * 1024;
+const SOURCE_IMAGE_TIMEOUT_MS = 30_000;
+const IMAGE_SIZE = "1536x1024";
 
-  const model = getEditorialImageModel();
-  if (!model) throw new EditorialAiError("not_configured", "OPENAI_EDITORIAL_IMAGE_MODEL is not configured.");
+function providerStatusError(status: number, model: string) {
+  if (status === 404) return new EditorialAiError("model_unavailable", `Image model (${model}) is not available.`);
+  if (status === 429) return new EditorialAiError("quota", "Image generation quota or rate limit reached.");
+  if (status === 401 || status === 403) return new EditorialAiError("auth", "Image generation credentials were rejected.");
+  return new EditorialAiError("api", `Image generation returned HTTP ${status}.`);
+}
 
-  await checkEditorialBurstLimit(actorId, 10);
+async function fetchProviderImage(url: string, init: RequestInit, operation: "generation" | "editing") {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), EDITORIAL_AI_CONFIG.imageTimeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) throw new EditorialAiError("timeout", `Image ${operation} timed out.`);
+    throw new EditorialAiError("api", `Image ${operation} failed: ${getErrorMessage(error)}`);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Shared reservation, provider response, billing classification and upload
+ * pipeline for both image generation and image editing. Keeping the two modes
+ * on one code path means they cannot drift on quota accounting or cleanup.
+ */
+async function runEditorialImageJob(input: {
+  actorId: string;
+  model: string;
+  altText: string;
+  auditAction: string;
+  providerCall: () => Promise<Response>;
+}): Promise<EditorialImageResult> {
+  await checkEditorialBurstLimit(input.actorId, 10);
 
   const reservationId = await reserveEditorialUsage({
-    actorId,
+    actorId: input.actorId,
     requestType: "EDITORIAL_IMAGE",
     limit: EDITORIAL_AI_CONFIG.maxImageGenerationsPerDay,
-    model,
+    model: input.model,
     imageCount: 1,
     burstLimit: 10,
   });
@@ -53,39 +85,12 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
   let uploadedPublicId: string | null = null;
 
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), EDITORIAL_AI_CONFIG.imageTimeoutMs);
-    let response: Response;
     providerRequestStarted = true;
-    try {
-      response = await fetch("https://api.openai.com/v1/images/generations", {
-        method: "POST",
-        signal: controller.signal,
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model,
-          prompt: `${validated.data.imagePrompt}\n\nStyle: professional, clean, premium digital solutions brand, text-free, logo-free, no watermarks, no embedded typography, landscape 16:9 editorial artwork.`,
-          n: 1,
-          size: "1536x1024",
-          quality: "high",
-          output_format: "png",
-        }),
-      });
-    } catch (error) {
-      if (controller.signal.aborted) throw new EditorialAiError("timeout", "Image generation timed out.");
-      throw new EditorialAiError("api", `Image generation failed: ${getErrorMessage(error)}`);
-    } finally {
-      clearTimeout(timer);
-    }
+    const response = await input.providerCall();
 
     providerResponded = true;
     providerHttpStatus = response.status;
-    if (!response.ok) {
-      if (response.status === 404) throw new EditorialAiError("model_unavailable", `Image model (${model}) is not available.`);
-      if (response.status === 429) throw new EditorialAiError("quota", "Image generation quota or rate limit reached.");
-      if (response.status === 401 || response.status === 403) throw new EditorialAiError("auth", "Image generation credentials were rejected.");
-      throw new EditorialAiError("api", `Image generation returned HTTP ${response.status}.`);
-    }
+    if (!response.ok) throw providerStatusError(response.status, input.model);
 
     providerHttpOk = true;
     const payload = (await response.json()) as { data?: Array<{ b64_json?: string; url?: string }> };
@@ -127,7 +132,7 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
       throw new EditorialAiError("not_configured", "Media storage is unavailable.");
     }
 
-    const altText = (validated.data.altText && validated.data.altText.trim()) || validated.data.articleTitle || "Editorial illustration";
+    const altText = input.altText.trim() || "Editorial illustration";
     const media = await prisma.$transaction(async (tx) => {
       const created = await tx.blogMedia.create({
         data: {
@@ -140,24 +145,24 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
           height: result.height,
           bytes: result.bytes,
           altText,
-          uploadedById: actorId,
+          uploadedById: input.actorId,
         },
       });
       await tx.auditLog.create({
         data: {
-          actorId,
-          action: "blog.ai_image_generated",
+          actorId: input.actorId,
+          action: input.auditAction,
           entityType: "BlogMedia",
           entityId: created.id,
-          metadata: { model, format: created.format, bytes: created.bytes },
+          metadata: { model: input.model, format: created.format, bytes: created.bytes },
         },
       });
       return created;
     });
 
-    const estimatedCost = estimateEditorialImageCost(model, "1536x1024", "high");
+    const estimatedCost = estimateEditorialImageCost(input.model, IMAGE_SIZE, "high");
     await finalizeEditorialUsage(reservationId, {
-      model,
+      model: input.model,
       inputTokens: 0,
       outputTokens: 0,
       estimatedCost,
@@ -176,7 +181,7 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
       format: media.format,
       bytes: media.bytes,
       altText: media.altText || altText,
-      model,
+      model: input.model,
     };
   } catch (error) {
     if (uploadedPublicId) await deleteFromCloudinary(uploadedPublicId).catch(() => undefined);
@@ -187,10 +192,11 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
       providerHttpStatus === 408 ||
       providerHttpOk
     );
+
     if (providerGenerated) {
-      const estimatedCost = estimateEditorialImageCost(model, "1536x1024", "high");
+      const estimatedCost = estimateEditorialImageCost(input.model, IMAGE_SIZE, "high");
       await finalizeEditorialUsage(reservationId, {
-        model,
+        model: input.model,
         inputTokens: 0,
         outputTokens: 0,
         estimatedCost,
@@ -202,7 +208,7 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
       });
     } else if (ambiguous) {
       await finalizeEditorialUsage(reservationId, {
-        model,
+        model: input.model,
         inputTokens: 0,
         outputTokens: 0,
         estimatedCost: null,
@@ -215,18 +221,173 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
     } else {
       await failEditorialUsage(reservationId);
     }
-    console.error("[editorial-ai] image_generation_failed", {
+
+    console.error("[editorial-ai] image_operation_failed", {
       reservationId,
-      actorId,
-      model,
+      actorId: input.actorId,
+      model: input.model,
       requestType: "EDITORIAL_IMAGE",
+      action: input.auditAction,
       providerRequestStarted,
       providerResponded,
       providerHttpOk,
       providerGenerated,
       reconciliationRequired: providerGenerated || ambiguous,
     });
+
     if (error instanceof EditorialAiError) throw error;
     throw new EditorialAiError("api", `Image upload failed: ${getErrorMessage(error)}`);
   }
+}
+
+export async function generateEditorialImage(input: z.infer<typeof editorialImageInputSchema>, actorId: string): Promise<EditorialImageResult> {
+  if (!isEditorialImageEnabled()) throw new EditorialAiError("disabled", "Editorial image generation is disabled.");
+  const validated = editorialImageInputSchema.safeParse(input);
+  if (!validated.success) throw new EditorialAiError("invalid_input", "Invalid image request.");
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new EditorialAiError("not_configured", "OPENAI_API_KEY is not configured.");
+
+  const model = getEditorialImageModel();
+  if (!model) throw new EditorialAiError("not_configured", "OPENAI_EDITORIAL_IMAGE_MODEL is not configured.");
+
+  const altText = (validated.data.altText && validated.data.altText.trim()) || validated.data.articleTitle || "Editorial illustration";
+
+  return runEditorialImageJob({
+    actorId,
+    model,
+    altText,
+    auditAction: "blog.ai_image_generated",
+    providerCall: () =>
+      fetchProviderImage(
+        "https://api.openai.com/v1/images/generations",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model,
+            prompt: `${validated.data.imagePrompt}\n\nStyle: professional, clean, premium digital solutions brand, text-free, logo-free, no watermarks, no embedded typography, landscape 16:9 editorial artwork.`,
+            n: 1,
+            size: IMAGE_SIZE,
+            quality: "high",
+            output_format: "png",
+          }),
+        },
+        "generation",
+      ),
+  });
+}
+
+function approvedSourceImageUrl(value: string) {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new EditorialAiError("invalid_input", "The source image URL is invalid.");
+  }
+  const hosts = new Set(["res.cloudinary.com", "techiadigital.com", "www.techiadigital.com"]);
+  if (process.env.NODE_ENV !== "production") {
+    hosts.add("localhost");
+    hosts.add("127.0.0.1");
+  }
+  if (url.protocol !== "https:" || !hosts.has(url.hostname.toLowerCase()) || url.username || url.password) {
+    throw new EditorialAiError("invalid_input", "The source image must come from the approved media storage.");
+  }
+  return url;
+}
+
+async function fetchSourceImage(sourceImageUrl: string) {
+  const url = approvedSourceImageUrl(sourceImageUrl);
+  // Cloudinary can normalize any supported source into an editable PNG. Other
+  // approved hosts are read as-is and validated by their byte signature.
+  const fetchUrl = url.hostname.toLowerCase() === "res.cloudinary.com"
+    ? url.toString().replace("/image/upload/", "/image/upload/f_png,q_90/")
+    : url.toString();
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SOURCE_IMAGE_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(fetchUrl, { signal: controller.signal, redirect: "follow" });
+  } catch (error) {
+    if (controller.signal.aborted) throw new EditorialAiError("timeout", "The source image download timed out.");
+    throw new EditorialAiError("api", `The source image could not be downloaded: ${getErrorMessage(error)}`);
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (!response.ok) throw new EditorialAiError("api", `The source image could not be downloaded (HTTP ${response.status}).`);
+  const declaredLength = Number(response.headers.get("content-length") || "0");
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_SOURCE_IMAGE_BYTES) {
+    throw new EditorialAiError("too_large", "The source image is too large to edit.");
+  }
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  if (buffer.byteLength <= 0 || buffer.byteLength > MAX_SOURCE_IMAGE_BYTES) {
+    throw new EditorialAiError("too_large", "The source image is empty or too large to edit.");
+  }
+
+  const detected = detectImageMime(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer);
+  if (!isAllowedBlogImageMime(detected)) {
+    throw new EditorialAiError("invalid_input", "The source image format is not supported for editing.");
+  }
+  if (detected === "image/avif") {
+    throw new EditorialAiError("invalid_input", "The source image must be a PNG, JPEG, or WebP file to translate its text.");
+  }
+
+  const extension = detected === "image/jpeg" ? "jpg" : detected.split("/")[1] || "png";
+  return { buffer, mimeType: detected, filename: `source-${Date.now()}.${extension}` };
+}
+
+/**
+ * Translates the visible text inside an existing featured image while keeping
+ * the rest of the composition. Used by the French translation workflow when the
+ * editor chooses "translate the image text".
+ */
+export async function editEditorialImage(input: EditorialImageEditInput, actorId: string): Promise<EditorialImageResult> {
+  if (!isEditorialImageEnabled()) throw new EditorialAiError("disabled", "Editorial image generation is disabled.");
+  if (!input.sourceImageUrl.trim()) throw new EditorialAiError("invalid_input", "The source image is missing.");
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new EditorialAiError("not_configured", "OPENAI_API_KEY is not configured.");
+
+  const model = getEditorialImageModel();
+  if (!model) throw new EditorialAiError("not_configured", "OPENAI_EDITORIAL_IMAGE_MODEL is not configured.");
+
+  const source = await fetchSourceImage(input.sourceImageUrl);
+  const prompt = [
+    "Edit the supplied featured image for the French version of a professional blog article.",
+    "Translate every visible word, headline, label, caption, interface string, number unit and call to action inside the image into natural, professional French.",
+    "Keep the composition, crop, subjects, objects, colours, lighting, graphic style, photographic realism and existing logos unchanged.",
+    "Do not add new elements, watermarks, captions or promotional copy. If the image contains no readable text, preserve the image faithfully without changes.",
+    input.articleTitle ? `Article title for context: "${input.articleTitle}".` : "",
+    input.imagePrompt ? `Editorial context: ${input.imagePrompt}` : "",
+  ].filter(Boolean).join(" ");
+
+  return runEditorialImageJob({
+    actorId,
+    model,
+    altText: (input.altText && input.altText.trim()) || input.articleTitle || "Illustration éditoriale",
+    auditAction: "blog.ai_image_edited",
+    providerCall: () => {
+      const form = new FormData();
+      form.set("model", model);
+      form.set("image", new File([new Uint8Array(source.buffer)], source.filename, { type: source.mimeType }));
+      form.set("prompt", prompt);
+      form.set("n", "1");
+      form.set("size", IMAGE_SIZE);
+      form.set("quality", "high");
+      form.set("output_format", "png");
+      if (/^gpt-image/i.test(model)) form.set("input_fidelity", "high");
+      return fetchProviderImage(
+        "https://api.openai.com/v1/images/edits",
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}` },
+          body: form,
+        },
+        "editing",
+      );
+    },
+  });
 }

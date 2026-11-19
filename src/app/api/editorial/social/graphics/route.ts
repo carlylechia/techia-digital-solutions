@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { assertSameOrigin, requireSuperAdmin, BlogAuthorizationError } from "@/lib/blog/auth";
-import { isEditorialImageEnabled, isEditorialAiEnabled } from "@/lib/ai/editorial-config";
+import { isEditorialAiEnabled } from "@/lib/ai/editorial-config";
 import { generateSocialGraphic, EditorialAiError as SocialError } from "@/lib/ai/social-share-service";
 import { socialGraphicGenerateInputSchema } from "@/lib/ai/social-share-types";
 import { EditorialAiError } from "@/lib/ai/editorial-service";
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json({ ok: false, error: "Invalid graphic request.", issues: parsed.error.issues }, { status: 400, headers: { "Cache-Control": "no-store" } });
     }
-    await generateSocialGraphic(parsed.data.postId, parsed.data.format, actor.id, parsed.data.prompt || undefined, parsed.data.logo || undefined);
+    await generateSocialGraphic(parsed.data.postId, parsed.data.format, actor.id, parsed.data.prompt || undefined, parsed.data.logoId || undefined);
     return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof BlogAuthorizationError) {

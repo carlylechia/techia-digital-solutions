@@ -4,7 +4,7 @@ import { estimateEditorialTextCost, estimateEditorialImageCost } from "@/lib/ai/
 import { editorialArticleSchema, editorialEditResultSchema, editorialTranslateResultSchema, editorialReviewResultSchema } from "@/lib/ai/editorial-types";
 import { z } from "zod";
 import { normalizeArticleHtml } from "@/lib/blog/sanitize";
-import { isReasoningModel } from "@/lib/ai/editorial-service";
+import { isReasoningModel, editorialArticleTranslationSchema } from "@/lib/ai/editorial-service";
 
 describe("editorial AI configuration", () => {
   it("is disabled unless explicitly enabled", () => {
@@ -76,7 +76,7 @@ describe("editorial AI configuration", () => {
   }
 
   it("generates strict JSON schemas for structured outputs", () => {
-    for (const schema of [editorialArticleSchema, editorialEditResultSchema, editorialTranslateResultSchema, editorialReviewResultSchema]) {
+    for (const schema of [editorialArticleSchema, editorialEditResultSchema, editorialTranslateResultSchema, editorialReviewResultSchema, editorialArticleTranslationSchema]) {
       assertStrict(z.toJSONSchema(schema));
     }
   });
