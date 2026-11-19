@@ -162,7 +162,9 @@ const updateProjectSchema = z.object({
   publicRoleFr: optionalText.optional(),
   publicBusinessValueEn: optionalText.optional(),
   publicBusinessValueFr: optionalText.optional(),
-  publicTechStack: optionalStringArray.optional()
+  publicTechStack: optionalStringArray.optional(),
+  publicFeatures: optionalStringArray.optional(),
+  publicLiveUrl: optionalUrl.optional()
 });
 
 const createProjectSchema = z.object({
@@ -196,7 +198,9 @@ const createProjectSchema = z.object({
   publicRoleFr: optionalText,
   publicBusinessValueEn: optionalText,
   publicBusinessValueFr: optionalText,
-  publicTechStack: optionalStringArray
+  publicTechStack: optionalStringArray,
+  publicFeatures: optionalStringArray,
+  publicLiveUrl: optionalUrl
 });
 
 const updateFeedbackSchema = z.object({
@@ -2007,7 +2011,9 @@ export async function createProjectWithTaskAction(
         publicRoleFr: nullable(data.publicRoleFr),
         publicBusinessValueEn: nullable(data.publicBusinessValueEn),
         publicBusinessValueFr: nullable(data.publicBusinessValueFr),
-        publicTechStack: data.publicTechStack
+        publicTechStack: data.publicTechStack,
+        publicFeatures: data.publicFeatures,
+        publicLiveUrl: nullable(data.publicLiveUrl)
       }
     });
 
@@ -2330,7 +2336,9 @@ export async function updateProjectAction(_prevState: unknown, formData: FormDat
         ...(data.publicRoleFr !== undefined ? { publicRoleFr: nullable(data.publicRoleFr) } : {}),
         ...(data.publicBusinessValueEn !== undefined ? { publicBusinessValueEn: nullable(data.publicBusinessValueEn) } : {}),
         ...(data.publicBusinessValueFr !== undefined ? { publicBusinessValueFr: nullable(data.publicBusinessValueFr) } : {}),
-        ...(data.publicTechStack !== undefined ? { publicTechStack: data.publicTechStack } : {})
+        ...(data.publicTechStack !== undefined ? { publicTechStack: data.publicTechStack } : {}),
+        ...(data.publicFeatures !== undefined ? { publicFeatures: data.publicFeatures } : {}),
+        ...(data.publicLiveUrl !== undefined ? { publicLiveUrl: nullable(data.publicLiveUrl) } : {})
       }
     });
 
@@ -2341,6 +2349,71 @@ export async function updateProjectAction(_prevState: unknown, formData: FormDat
   } catch (err) {
     console.error("[actions] updateProjectAction failed", { message: err instanceof Error ? err.message : err, stack: err instanceof Error ? err.stack : undefined });
     return { success: false, error: err instanceof Error ? err.message : "Update failed." };
+  }
+}
+
+export async function generateProjectShowcaseContentAction(
+  _prevState: unknown,
+  formData: FormData
+): Promise<{ success: boolean; error?: string; data?: Record<string, unknown> }> {
+  try {
+    await requireAdmin("projects.manage");
+    const locale = localeSchema.parse(formData.get("locale"));
+    const title = shortText.parse(formData.get("title") || "Project");
+    const liveUrl = optionalUrl.parse(formData.get("liveUrl") || "");
+    const description = optionalText.parse(formData.get("description") || "");
+
+    let pageText = "";
+    if (liveUrl) {
+      try {
+        const response = await fetch(liveUrl, { signal: AbortSignal.timeout(12000) });
+        const html = await response.text();
+        pageText = html
+          .replace(/<script[\s\S]*?<\/script>/gi, " ")
+          .replace(/<style[\s\S]*?<\/style>/gi, " ")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 7000);
+      } catch {
+        pageText = "";
+      }
+    }
+
+    const { callOpenAiJson } = await import("@/lib/ai/editorial-service");
+    const schema = z.object({
+      titleEn: z.string().trim().max(160),
+      titleFr: z.string().trim().max(160),
+      eyebrowEn: z.string().trim().max(120),
+      eyebrowFr: z.string().trim().max(120),
+      descriptionEn: z.string().trim().max(5000),
+      descriptionFr: z.string().trim().max(5000),
+      problemEn: z.string().trim().max(5000),
+      problemFr: z.string().trim().max(5000),
+      solutionEn: z.string().trim().max(5000),
+      solutionFr: z.string().trim().max(5000),
+      roleEn: z.string().trim().max(5000),
+      roleFr: z.string().trim().max(5000),
+      businessValueEn: z.string().trim().max(5000),
+      businessValueFr: z.string().trim().max(5000),
+      techStack: z.array(z.string().trim().max(60)).max(20),
+      features: z.array(z.string().trim().max(120)).max(20)
+    });
+
+    const result = await callOpenAiJson({
+      model: "gpt-4o-mini",
+      system:
+        "You generate high-quality bilingual public case-study content for a digital solutions company. Return concise, professional copy. Features should be short bullet-like phrases. Tech stack should be technologies only.",
+      user: `Project title: ${title}\nLocale context: ${locale}\nLive URL: ${liveUrl || "not provided"}\nLayman description: ${description || "not provided"}\nExtracted page content: ${pageText || "not available"}`,
+      schema,
+      timeoutMs: 45000,
+      maxTokens: 1800
+    });
+
+    return { success: true, data: result.data as Record<string, unknown> };
+  } catch (err) {
+    console.error("[actions] generateProjectShowcaseContentAction failed", { message: err instanceof Error ? err.message : err });
+    return { success: false, error: err instanceof Error ? err.message : "AI generation failed." };
   }
 }
 

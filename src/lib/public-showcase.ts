@@ -176,6 +176,54 @@ async function loadLocalizedFeedback(
   }
 }
 
+export type PublicProjectDetail = {
+  slug: string;
+  title: string;
+  description: string;
+  eyebrow: string;
+  problem: string;
+  solution: string;
+  role: string;
+  businessValue: string;
+  techStack: string[];
+  features: string[];
+  liveUrl: string | null;
+};
+
+export async function loadPortfolioProject(locale: Locale, slug: string): Promise<PublicProjectDetail | null> {
+  const prisma = getPrisma();
+  if (!prisma) return null;
+  let project: any = null;
+  try {
+    project = await prisma.clientProject.findFirst({
+      where: { OR: [{ publicSlug: slug }, { slug }] },
+    });
+  } catch (error) {
+    console.error("[public-showcase] project detail query failed", { slug, message: error instanceof Error ? error.message : error });
+    return null;
+  }
+  if (!project) return null;
+
+  const fallback = (getDictionary(locale).caseStudies.find((item) => item.slug === slug) || null) as any;
+  return {
+    slug: project.publicSlug || project.slug,
+    title: fromLocale(locale, project.publicTitleEn, project.publicTitleFr) || fallback?.title || project.title,
+    description:
+      fromLocale(locale, project.publicDescriptionEn, project.publicDescriptionFr) ||
+      fallback?.description ||
+      project.description ||
+      "",
+    eyebrow: fromLocale(locale, project.publicEyebrowEn, project.publicEyebrowFr) || fallback?.eyebrow || "",
+    problem: fromLocale(locale, project.publicProblemEn, project.publicProblemFr) || fallback?.problem || "",
+    solution: fromLocale(locale, project.publicSolutionEn, project.publicSolutionFr) || fallback?.solution || "",
+    role: fromLocale(locale, project.publicRoleEn, project.publicRoleFr) || fallback?.role || "",
+    businessValue: fromLocale(locale, project.publicBusinessValueEn, project.publicBusinessValueFr) || fallback?.businessValue || "",
+    techStack: project.publicTechStack?.length ? project.publicTechStack : fallback?.techStack || [],
+    features: project.publicFeatures?.length ? project.publicFeatures : fallback?.features || [],
+    liveUrl: project.publicLiveUrl || null,
+  };
+}
+
 export async function loadPortfolioCards(locale: Locale): Promise<CardItem[]> {
   return loadProjectCards(locale, "showInPortfolio");
 }

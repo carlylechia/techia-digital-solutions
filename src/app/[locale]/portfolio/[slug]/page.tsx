@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { PremiumPageCta } from "@/components/ui/premium-page-cta";
 import { PremiumPageHero } from "@/components/ui/premium-page-hero";
 import {
@@ -10,7 +11,7 @@ import {
   mergedPageAnchors,
   type Locale,
 } from "@/content/site";
-import { loadPortfolioCards } from "@/lib/public-showcase";
+import { loadPortfolioCards, loadPortfolioProject } from "@/lib/public-showcase";
 import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
 import { JsonLd } from "@/components/ui/json-ld";
 
@@ -54,19 +55,20 @@ export default async function CaseStudyPage({
   if (!isLocale(rawLocale)) notFound();
   const locale = rawLocale as Locale;
   const dict = getDictionary(locale);
+  const projectDetail = await loadPortfolioProject(locale, slug);
   const studies = await loadPortfolioCards(locale);
   const study = studies.find((item) => item.slug === slug);
-  if (!study) notFound();
+  if (!study && !projectDetail) notFound();
   const caseStudyTitle =
     slug === "teloh-global-business"
       ? "Teloh Global Business Case Study by Techia Digital"
-      : study.title;
+      : study?.title || projectDetail?.title || slug;
   const caseStudyIntro =
     slug === "teloh-global-business"
       ? locale === "fr"
         ? "Ce projet a permis à Teloh Global Business de disposer d’un site web multilingue et d’une présence digitale structurée pour la logistique, les produits domestiques, les carrières, la capture de prospects et des flux e-commerce évolutifs."
         : "This project delivered a multilingual web presence and structured digital experience for Teloh Global Business, covering logistics, household products, careers, lead capture, and scalable e-commerce workflows."
-      : study.description;
+      : study?.description || projectDetail?.description || "";
   return (
     <main>
       <JsonLd
@@ -78,20 +80,50 @@ export default async function CaseStudyPage({
       />
       <PremiumPageHero
         locale={locale}
-        eyebrow={study.eyebrow}
+        eyebrow={study?.eyebrow || projectDetail?.eyebrow || ""}
         title={caseStudyTitle}
         description={caseStudyIntro}
         badges={dict.pages.portfolio.detailSections}
         actions={[{ href: "/start-project", label: dict.common.buildLikeThis }]}
       />
+      {projectDetail?.liveUrl ? (
+        <section className="container pt-2">
+          <a
+            href={projectDetail.liveUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary inline-flex items-center gap-2 px-5 py-3"
+          >
+            {locale === "fr" ? "Voir le projet en ligne" : "View live project"}
+            <ArrowRight className="size-4" />
+          </a>
+        </section>
+      ) : null}
       <section className="container py-6">
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-5">
-          {dict.pages.portfolio.detailSections.map((section) => (
-            <article key={section} className="premium-card p-5">
-              <h2 className="font-semibold text-primary">{section}</h2>
-              <p className="mt-3 text-sm leading-6 text-muted">
-                {dict.pages.portfolio.detailNarrative}
-              </p>
+          {[
+            { title: dict.pages.portfolio.detailSections[0], body: projectDetail?.problem },
+            { title: dict.pages.portfolio.detailSections[1], body: projectDetail?.solution },
+            { title: dict.pages.portfolio.detailSections[2], list: projectDetail?.features },
+            { title: dict.pages.portfolio.detailSections[3], list: projectDetail?.techStack },
+            { title: dict.pages.portfolio.detailSections[4], body: projectDetail?.businessValue },
+          ].map((section, index) => (
+            <article key={`${section.title}-${index}`} className="premium-card p-5">
+              <h2 className="font-semibold text-primary">{section.title}</h2>
+              {section.list?.length ? (
+                <ul className="mt-3 grid gap-2 text-sm leading-6 text-muted">
+                  {section.list.map((item) => (
+                    <li key={item} className="flex items-start gap-2">
+                      <span className="mt-2 size-1.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-3 text-sm leading-6 text-muted">
+                  {section.body || dict.pages.portfolio.detailNarrative}
+                </p>
+              )}
             </article>
           ))}
         </div>
@@ -99,7 +131,7 @@ export default async function CaseStudyPage({
       <PremiumPageCta
         locale={locale}
         title={dict.home.finalCtaTitle}
-        description={study.description}
+        description={study?.description || projectDetail?.description || ""}
         primaryAction={{
           href: "/start-project",
           label: dict.common.buildLikeThis,

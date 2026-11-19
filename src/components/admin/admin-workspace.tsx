@@ -88,6 +88,7 @@ import {
   deleteClientAction,
   updateProjectAction,
   deleteProjectAction,
+  generateProjectShowcaseContentAction,
   updateCustomerFeedbackAction,
   deleteCustomerFeedbackAction,
   updateDemoDescriptionAction,
@@ -2509,6 +2510,8 @@ function Projects({ data, locale }: { data: AdminDashboardData; locale: Locale }
               <Field label="Description (EN)"><Textarea name="publicDescriptionEn" className="min-h-20" /></Field>
               <Field label="Description (FR)"><Textarea name="publicDescriptionFr" className="min-h-20" /></Field>
               <Field label="Tech stack (comma separated)"><Input name="publicTechStack" placeholder="Next.js, Prisma, PostgreSQL" /></Field>
+              <Field label="Features (comma separated)"><Input name="publicFeatures" placeholder="Live booking, admin dashboard, automated emails" /></Field>
+              <Field label="Live project URL"><Input name="publicLiveUrl" placeholder="https://example.com" /></Field>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Budget"><Input name="budget" type="number" min={0} /></Field>
@@ -2602,6 +2605,12 @@ function ProjectDetailDrawer({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [updateState, updateAction, updatePending] = useActionState(updateProjectAction, null);
   const [deleteState, deleteAction, deletePending] = useActionState(deleteProjectAction, null);
+  const [aiLiveUrl, setAiLiveUrl] = useState(project.publicLiveUrl ?? "");
+  const [aiDescription, setAiDescription] = useState(project.description ?? "");
+  const [aiPending, setAiPending] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiSuccess, setAiSuccess] = useState<string | null>(null);
+  const drawerFormRef = useRef<HTMLFormElement | null>(null);
 
   useEffect(() => {
     if (deleteState?.success) onClose();
@@ -2674,7 +2683,7 @@ function ProjectDetailDrawer({
 
           {editing && (
             <section className="rounded-lg border border-border bg-background p-4">
-              <form action={updateAction} className="grid gap-3">
+              <form ref={drawerFormRef} action={updateAction} className="grid gap-3">
                 <input type="hidden" name="locale" value={locale} />
                 <input type="hidden" name="id" value={project.id} />
                 <Field label="Title"><Input name="title" required defaultValue={project.title} /></Field>
@@ -2690,6 +2699,64 @@ function ProjectDetailDrawer({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Start date"><DatePicker key={`client-project-start-${project.id}-${project.startDate ?? "empty"}`} name="startDate" defaultValue={project.startDate ? project.startDate.slice(0, 10) : ""} /></Field>
                   <Field label="Due date"><DatePicker key={`client-project-due-${project.id}-${project.dueDate ?? "empty"}`} name="dueDate" defaultValue={project.dueDate ? project.dueDate.slice(0, 10) : ""} /></Field>
+                </div>
+                <div className="grid gap-3 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-700 dark:text-cyan-400">AI showcase assistant</p>
+                  <Field label="Live project URL (optional)"><Input value={aiLiveUrl} onChange={(e) => setAiLiveUrl(e.target.value)} placeholder="https://example.com" /></Field>
+                  <Field label="Layman description (optional)"><Textarea value={aiDescription} onChange={(e) => setAiDescription(e.target.value)} className="min-h-20" placeholder="Describe the project in simple words..." /></Field>
+                  <button
+                    type="button"
+                    disabled={aiPending}
+                    className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-background hover:bg-accent/90 transition disabled:opacity-60"
+                    onClick={async () => {
+                      setAiPending(true);
+                      setAiError(null);
+                      setAiSuccess(null);
+                      try {
+                        const data = new FormData();
+                        data.set("locale", locale);
+                        data.set("title", project.title);
+                        data.set("liveUrl", aiLiveUrl);
+                        data.set("description", aiDescription);
+                        const result = await generateProjectShowcaseContentAction(null, data);
+                        if (!result.success || !result.data) throw new Error(result.error || "AI generation failed.");
+                        const d = result.data as Record<string, unknown>;
+                        const setValue = (name: string, value: unknown) => {
+                          const root = drawerFormRef.current;
+                          if (!root) return;
+                          const el = root.querySelector(`[name="${name}"]`) as HTMLInputElement | HTMLTextAreaElement | null;
+                          if (el) el.value = Array.isArray(value) ? value.join(", ") : String(value ?? "");
+                        };
+                        setValue("publicTitleEn", d.titleEn);
+                        setValue("publicTitleFr", d.titleFr);
+                        setValue("publicEyebrowEn", d.eyebrowEn);
+                        setValue("publicEyebrowFr", d.eyebrowFr);
+                        setValue("publicDescriptionEn", d.descriptionEn);
+                        setValue("publicDescriptionFr", d.descriptionFr);
+                        setValue("publicProblemEn", d.problemEn);
+                        setValue("publicProblemFr", d.problemFr);
+                        setValue("publicSolutionEn", d.solutionEn);
+                        setValue("publicSolutionFr", d.solutionFr);
+                        setValue("publicRoleEn", d.roleEn);
+                        setValue("publicRoleFr", d.roleFr);
+                        setValue("publicBusinessValueEn", d.businessValueEn);
+                        setValue("publicBusinessValueFr", d.businessValueFr);
+                        setValue("publicTechStack", d.techStack);
+                        setValue("publicFeatures", d.features);
+                        if (aiLiveUrl) setValue("publicLiveUrl", aiLiveUrl);
+                        setAiSuccess("Generated. Review the fields, then save.");
+                      } catch (err) {
+                        setAiError(err instanceof Error ? err.message : "AI generation failed.");
+                      } finally {
+                        setAiPending(false);
+                      }
+                    }}
+                  >
+                    {aiPending ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                    {aiPending ? "Generating…" : "Generate showcase content with AI"}
+                  </button>
+                  {aiError ? <p className="text-xs text-red-400">{aiError}</p> : null}
+                  {aiSuccess ? <p className="text-xs text-emerald-400">{aiSuccess}</p> : null}
                 </div>
                 <div className="grid gap-3 rounded-lg border border-border bg-surface p-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Public showcase</p>
@@ -2729,6 +2796,8 @@ function ProjectDetailDrawer({
                     <Field label="Business value (FR)"><Textarea name="publicBusinessValueFr" defaultValue={project.publicBusinessValueFr ?? ""} className="min-h-16" /></Field>
                   </div>
                   <Field label="Tech stack (comma separated)"><Input name="publicTechStack" defaultValue={(project.publicTechStack ?? []).join(", ")} /></Field>
+                  <Field label="Features (comma separated)"><Input name="publicFeatures" defaultValue={(project.publicFeatures ?? []).join(", ")} /></Field>
+                  <Field label="Live project URL"><Input name="publicLiveUrl" defaultValue={project.publicLiveUrl ?? ""} /></Field>
                 </div>
                 <div className="flex items-center gap-2">
                   <button

@@ -666,6 +666,8 @@ export async function loadAdminDashboardData(prisma: NonNullable<ReturnType<type
       publicBusinessValueEn: project.publicBusinessValueEn,
       publicBusinessValueFr: project.publicBusinessValueFr,
       publicTechStack: project.publicTechStack,
+      publicFeatures: project.publicFeatures,
+      publicLiveUrl: project.publicLiveUrl,
       createdAt: iso(project.createdAt),
       updatedAt: iso(project.updatedAt)
     })),

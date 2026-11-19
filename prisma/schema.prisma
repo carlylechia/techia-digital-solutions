@@ -643,6 +643,8 @@ model ClientProject {
   publicBusinessValueEn String?
   publicBusinessValueFr String?
   publicTechStack       String[]               @default([])
+  publicFeatures        String[]               @default([])
+  publicLiveUrl         String?
   feedbacks             CustomerFeedback[]
   portalFiles           PortalFile[]
   portalInvoices        PortalInvoice[]
