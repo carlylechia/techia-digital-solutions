@@ -4,7 +4,7 @@ import type { MetaConnectedAccount, MetaConnection } from "@prisma/client";
 import { getPrisma } from "@/lib/prisma";
 import {
   META_OAUTH_SCOPES,
-  META_REQUIRED_PAGE_TASKS,
+  META_PAGE_PUBLISHING_TASKS,
   getMetaAppCredentials,
   getMetaAppAccessToken,
 } from "./config";
@@ -193,22 +193,19 @@ export function decryptConnectionUserToken(connection: MetaConnection) {
   }
 }
 
-function missingTasks(tasks: string[]) {
-  return META_REQUIRED_PAGE_TASKS.filter((task) => !tasks.includes(task));
+export function hasPagePublishingCapability(tasks: string[]) {
+  return META_PAGE_PUBLISHING_TASKS.some((task) => tasks.includes(task));
 }
 
-function pageEligibility(page: MetaPageAccount, grantedScopes: string[]) {
-  const tasks = Array.isArray(page.tasks) ? page.tasks : [];
-  if (!page.access_token)
+export function evaluatePagePublishingEligibility(input: {
+  tasks: string[];
+  grantedScopes: string[];
+  hasPageToken: boolean;
+}) {
+  if (!input.hasPageToken) {
     return {
       eligible: false,
       reason: "Meta did not return a Page access token for this Page.",
-    };
-  const missing = missingTasks(tasks);
-  if (missing.length) {
-    return {
-      eligible: false,
-      reason: `The authorizing user is missing the required Page task${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}.`,
     };
   }
   const requiredScopes = [
@@ -217,7 +214,7 @@ function pageEligibility(page: MetaPageAccount, grantedScopes: string[]) {
     "pages_show_list",
   ];
   const missingScopes = requiredScopes.filter(
-    (scope) => !grantedScopes.includes(scope),
+    (scope) => !input.grantedScopes.includes(scope),
   );
   if (missingScopes.length) {
     return {
@@ -225,7 +222,23 @@ function pageEligibility(page: MetaPageAccount, grantedScopes: string[]) {
       reason: `Missing permissions: ${missingScopes.join(", ")}.`,
     };
   }
+  if (!hasPagePublishingCapability(input.tasks)) {
+    return {
+      eligible: false,
+      reason:
+        "The authorizing user is missing a Page publishing task (CREATE_CONTENT or MANAGE).",
+    };
+  }
   return { eligible: true, reason: null };
+}
+
+function pageEligibility(page: MetaPageAccount, grantedScopes: string[]) {
+  const tasks = Array.isArray(page.tasks) ? page.tasks : [];
+  return evaluatePagePublishingEligibility({
+    tasks,
+    grantedScopes,
+    hasPageToken: Boolean(page.access_token),
+  });
 }
 
 function instagramEligibility(
@@ -705,11 +718,11 @@ export async function refreshMetaConnectionHealth(
             retry: false,
           });
           tasks = Array.isArray(page.tasks) ? page.tasks : [];
-          const missing = missingTasks(tasks);
-          eligible = missing.length === 0;
+          eligible = hasPagePublishingCapability(tasks);
           if (!eligible) {
             healthStatus = "ATTENTION_REQUIRED";
-            healthMessage = `Missing Page tasks: ${missing.join(", ")}`;
+            healthMessage =
+              "Missing a Page publishing task (CREATE_CONTENT or MANAGE).";
           }
         } catch (error) {
           if (error instanceof MetaGraphError) {

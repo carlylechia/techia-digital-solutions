@@ -922,11 +922,16 @@ async function findRecentInstagramPost(
   }
 }
 
+type FacebookFeedLookup =
+  | { kind: "found"; post: { id: string; permalink_url?: string } }
+  | { kind: "not_found" }
+  | { kind: "failed"; error: MetaGraphError };
+
 async function findRecentFacebookPost(
   publication: PublicationWithRelations,
   pageId: string,
   token: string,
-) {
+): Promise<FacebookFeedLookup> {
   try {
     const result = await metaGraphRequest<{
       data?: Array<{
@@ -942,7 +947,7 @@ async function findRecentFacebookPost(
       retry: false,
     });
     const start = publication.startedAt.getTime() - 5 * 60_000;
-    return (
+    const match =
       (result.data || []).find((item) => {
         if (
           normalizeCaption(item.message || "") !==
@@ -951,10 +956,20 @@ async function findRecentFacebookPost(
           return false;
         const stamp = item.created_time ? Date.parse(item.created_time) : NaN;
         return Number.isFinite(stamp) ? stamp >= start : true;
-      }) || null
-    );
-  } catch {
-    return null;
+      }) || null;
+    if (match) return { kind: "found", post: match };
+    return { kind: "not_found" };
+  } catch (error) {
+    if (error instanceof MetaGraphError) return { kind: "failed", error };
+    return {
+      kind: "failed",
+      error: new MetaGraphError({
+        category: "outage",
+        message: "Meta is temporarily unavailable. Try again shortly.",
+        technicalMessage:
+          error instanceof Error ? error.message : "Facebook feed lookup failed.",
+      }),
+    };
   }
 }
 
@@ -1065,30 +1080,42 @@ export async function reconcileMetaPublication(
     Date.now() - publication.startedAt.getTime() > 120_000
   ) {
     if (publication.platform === "FACEBOOK" && account.pageId) {
-      const match = await findRecentFacebookPost(
+      const lookup = await findRecentFacebookPost(
         publication,
         account.pageId,
         pageToken,
       );
-      if (match) {
+      if (lookup.kind === "found") {
         await markReconciled(
           publication.id,
-          match.id,
-          match.permalink_url || `https://www.facebook.com/${match.id}`,
+          lookup.post.id,
+          lookup.post.permalink_url || `https://www.facebook.com/${lookup.post.id}`,
         );
         return toPublicationDto(await loadPublication(publication.id));
       }
+      await prisma.metaPublication.update({
+        where: { id: publication.id },
+        data: {
+          status: "UNKNOWN_RESULT",
+          reconciliationAttemptedAt: new Date(),
+          lastErrorCode:
+            lookup.kind === "not_found" ? "no_matching_post" : lookup.error.category,
+          lastErrorMessage:
+            lookup.kind === "not_found"
+              ? "No matching Facebook post was found, but feed visibility can be delayed. The result remains unresolved."
+              : lookup.error.message,
+        },
+      });
+      return toPublicationDto(await loadPublication(publication.id));
     }
     await prisma.metaPublication.update({
       where: { id: publication.id },
       data: {
-        status: "FAILED",
-        activeKey: null,
-        completedAt: new Date(),
+        status: "UNKNOWN_RESULT",
         reconciliationAttemptedAt: new Date(),
         lastErrorCode: "interrupted",
         lastErrorMessage:
-          "The publishing request was interrupted before Meta confirmed a result. No post was found.",
+          "The publishing request was interrupted before Meta confirmed a result. The result remains unresolved.",
       },
     });
     return toPublicationDto(await loadPublication(publication.id));
@@ -1100,21 +1127,35 @@ export async function reconcileMetaPublication(
         "not_reconcilable",
         "The Page destination is missing.",
       );
-    const match = await findRecentFacebookPost(
+    const lookup = await findRecentFacebookPost(
       publication,
       account.pageId,
       pageToken,
     );
-    if (match) {
+    if (lookup.kind === "found") {
       await markReconciled(
         publication.id,
-        match.id,
-        match.permalink_url || `https://www.facebook.com/${match.id}`,
+        lookup.post.id,
+        lookup.post.permalink_url || `https://www.facebook.com/${lookup.post.id}`,
       );
+    } else if (lookup.kind === "not_found") {
+      await prisma.metaPublication.update({
+        where: { id: publication.id },
+        data: {
+          reconciliationAttemptedAt: new Date(),
+          lastErrorCode: "no_matching_post",
+          lastErrorMessage:
+            "No matching Facebook post was found. Feed visibility can be delayed; the publication remains unresolved.",
+        },
+      });
     } else {
       await prisma.metaPublication.update({
         where: { id: publication.id },
-        data: { reconciliationAttemptedAt: new Date() },
+        data: {
+          reconciliationAttemptedAt: new Date(),
+          lastErrorCode: lookup.error.category,
+          lastErrorMessage: lookup.error.message,
+        },
       });
     }
     return toPublicationDto(await loadPublication(publication.id));
@@ -1127,10 +1168,33 @@ export async function reconcileMetaPublication(
     );
   }
 
-  const statusCode = await readInstagramContainerStatus(
-    publication.containerId,
-    pageToken,
-  );
+  let statusCode: string;
+  try {
+    statusCode = await readInstagramContainerStatus(
+      publication.containerId,
+      pageToken,
+    );
+  } catch (error) {
+    const mapped =
+      error instanceof MetaGraphError
+        ? error
+        : new MetaGraphError({
+            category: "outage",
+            message: "Meta is temporarily unavailable. Try again shortly.",
+            technicalMessage:
+              error instanceof Error ? error.message : "Instagram status lookup failed.",
+          });
+    await prisma.metaPublication.update({
+      where: { id: publication.id },
+      data: {
+        status: "UNKNOWN_RESULT",
+        reconciliationAttemptedAt: new Date(),
+        lastErrorCode: mapped.category,
+        lastErrorMessage: mapped.message,
+      },
+    });
+    return toPublicationDto(await loadPublication(publication.id));
+  }
   if (statusCode === "FINISHED") {
     const result = await publishInstagramContainer({
       publication,

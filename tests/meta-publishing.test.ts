@@ -21,6 +21,7 @@ const ORIGINAL_ENV = {
 let originalFetch: typeof fetch;
 let savedCaption = "Saved Facebook/Instagram caption with article link.";
 let failNextPost = false;
+let facebookFeedMode = "match";
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -185,6 +186,7 @@ async function createFixture(options: FixtureOptions = {}) {
 beforeEach(async () => {
   setupEnv();
   failNextPost = false;
+  facebookFeedMode = "match";
   savedCaption = "Saved Facebook/Instagram caption with article link.";
   originalFetch = global.fetch;
   global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -224,6 +226,27 @@ beforeEach(async () => {
         }
         return jsonResponse({ id: "post_123", post_id: "post_123" });
       }
+      if (facebookFeedMode === "empty") {
+        return jsonResponse({ data: [] });
+      }
+      if (facebookFeedMode === "permission") {
+        return jsonResponse({ error: { message: "permission denied", code: 10 } }, 403);
+      }
+      if (facebookFeedMode === "auth") {
+        return jsonResponse({ error: { message: "invalid token", code: 190 } }, 401);
+      }
+      if (facebookFeedMode === "rate_limit") {
+        return jsonResponse({ error: { message: "rate limited", code: 4 } }, 429);
+      }
+      if (facebookFeedMode === "provider") {
+        return jsonResponse({ error: { message: "server error", code: 1 } }, 500);
+      }
+      if (facebookFeedMode === "timeout") {
+        const error = new Error("timeout");
+        error.name = "TimeoutError";
+        throw error;
+      }
+      // map timeout throw to TimeoutError name
       return jsonResponse({
         data: [{ id: "post_123", message: savedCaption, created_time: new Date().toISOString(), permalink_url: "https://www.facebook.com/post_123" }],
       });
@@ -606,4 +629,292 @@ describe("meta direct publishing", () => {
     expect(serialized).not.toContain("page-token-123");
     expect(serialized).not.toContain("user-token");
   });
+
+  it("reconciles when Facebook feed returns a matching post", async () => {
+    if (!prisma) return;
+    const fixture = await createFixture();
+    if (!fixture) return;
+    failNextPost = true;
+    const result = await publishMetaPublication(
+      {
+        postId: fixture.post.id,
+        platform: "FACEBOOK",
+        connectedAccountId: fixture.pageAccount.id,
+        graphicId: null,
+        idempotencyKey: `key-${Math.random()}`,
+        confirm: true,
+      },
+      fixture.admin.id,
+    );
+    facebookFeedMode = "match";
+    const { reconcileMetaPublication } = await import("@/lib/meta/publishing");
+    const reconciled = await reconcileMetaPublication(result.publication.id, fixture.admin.id);
+    expect(reconciled.status).toBe("PUBLISHED");
+    expect(reconciled.externalId).toBe("post_123");
+  });
+
+  it("keeps the lock when Facebook feed succeeds but has no matching post", async () => {
+    if (!prisma) return;
+    const fixture = await createFixture();
+    if (!fixture) return;
+    failNextPost = true;
+    const result = await publishMetaPublication(
+      {
+        postId: fixture.post.id,
+        platform: "FACEBOOK",
+        connectedAccountId: fixture.pageAccount.id,
+        graphicId: null,
+        idempotencyKey: `key-${Math.random()}`,
+        confirm: true,
+      },
+      fixture.admin.id,
+    );
+    facebookFeedMode = "empty";
+    const { reconcileMetaPublication } = await import("@/lib/meta/publishing");
+    const reconciled = await reconcileMetaPublication(result.publication.id, fixture.admin.id);
+    expect(reconciled.status).toBe("UNKNOWN_RESULT");
+    expect(reconciled.lastErrorCode).toBe("no_matching_post");
+    const row = await prisma.metaPublication.findUnique({ where: { id: result.publication.id } });
+    expect(row?.activeKey).not.toBeNull();
+  });
+
+  it("keeps the lock on a Facebook permission error", async () => {
+    if (!prisma) return;
+    const fixture = await createFixture();
+    if (!fixture) return;
+    failNextPost = true;
+    const result = await publishMetaPublication(
+      {
+        postId: fixture.post.id,
+        platform: "FACEBOOK",
+        connectedAccountId: fixture.pageAccount.id,
+        graphicId: null,
+        idempotencyKey: `key-${Math.random()}`,
+        confirm: true,
+      },
+      fixture.admin.id,
+    );
+    facebookFeedMode = "permission";
+    const { reconcileMetaPublication } = await import("@/lib/meta/publishing");
+    const reconciled = await reconcileMetaPublication(result.publication.id, fixture.admin.id);
+    expect(reconciled.status).toBe("UNKNOWN_RESULT");
+    expect(reconciled.lastErrorCode).toBe("permission");
+    const row = await prisma.metaPublication.findUnique({ where: { id: result.publication.id } });
+    expect(row?.activeKey).not.toBeNull();
+  });
+
+  it("keeps the lock on a Facebook authentication error", async () => {
+    if (!prisma) return;
+    const fixture = await createFixture();
+    if (!fixture) return;
+    failNextPost = true;
+    const result = await publishMetaPublication(
+      {
+        postId: fixture.post.id,
+        platform: "FACEBOOK",
+        connectedAccountId: fixture.pageAccount.id,
+        graphicId: null,
+        idempotencyKey: `key-${Math.random()}`,
+        confirm: true,
+      },
+      fixture.admin.id,
+    );
+    facebookFeedMode = "auth";
+    const { reconcileMetaPublication } = await import("@/lib/meta/publishing");
+    const reconciled = await reconcileMetaPublication(result.publication.id, fixture.admin.id);
+    expect(reconciled.status).toBe("UNKNOWN_RESULT");
+    expect(reconciled.lastErrorCode).toBe("authentication");
+    const row = await prisma.metaPublication.findUnique({ where: { id: result.publication.id } });
+    expect(row?.activeKey).not.toBeNull();
+  });
+
+  it("keeps the lock on a Facebook rate-limit error", async () => {
+    if (!prisma) return;
+    const fixture = await createFixture();
+    if (!fixture) return;
+    failNextPost = true;
+    const result = await publishMetaPublication(
+      {
+        postId: fixture.post.id,
+        platform: "FACEBOOK",
+        connectedAccountId: fixture.pageAccount.id,
+        graphicId: null,
+        idempotencyKey: `key-${Math.random()}`,
+        confirm: true,
+      },
+      fixture.admin.id,
+    );
+    facebookFeedMode = "rate_limit";
+    const { reconcileMetaPublication } = await import("@/lib/meta/publishing");
+    const reconciled = await reconcileMetaPublication(result.publication.id, fixture.admin.id);
+    expect(reconciled.status).toBe("UNKNOWN_RESULT");
+    expect(reconciled.lastErrorCode).toBe("rate_limit");
+    const row = await prisma.metaPublication.findUnique({ where: { id: result.publication.id } });
+    expect(row?.activeKey).not.toBeNull();
+  });
+
+  it("keeps the lock on a Facebook timeout", async () => {
+    if (!prisma) return;
+    const fixture = await createFixture();
+    if (!fixture) return;
+    failNextPost = true;
+    const result = await publishMetaPublication(
+      {
+        postId: fixture.post.id,
+        platform: "FACEBOOK",
+        connectedAccountId: fixture.pageAccount.id,
+        graphicId: null,
+        idempotencyKey: `key-${Math.random()}`,
+        confirm: true,
+      },
+      fixture.admin.id,
+    );
+    facebookFeedMode = "timeout";
+    const { reconcileMetaPublication } = await import("@/lib/meta/publishing");
+    const reconciled = await reconcileMetaPublication(result.publication.id, fixture.admin.id);
+    expect(reconciled.status).toBe("UNKNOWN_RESULT");
+    const row = await prisma.metaPublication.findUnique({ where: { id: result.publication.id } });
+    expect(row?.activeKey).not.toBeNull();
+  });
+
+  it("keeps the lock on a Facebook provider error", async () => {
+    if (!prisma) return;
+    const fixture = await createFixture();
+    if (!fixture) return;
+    failNextPost = true;
+    const result = await publishMetaPublication(
+      {
+        postId: fixture.post.id,
+        platform: "FACEBOOK",
+        connectedAccountId: fixture.pageAccount.id,
+        graphicId: null,
+        idempotencyKey: `key-${Math.random()}`,
+        confirm: true,
+      },
+      fixture.admin.id,
+    );
+    facebookFeedMode = "provider";
+    const { reconcileMetaPublication } = await import("@/lib/meta/publishing");
+    const reconciled = await reconcileMetaPublication(result.publication.id, fixture.admin.id);
+    expect(reconciled.status).toBe("UNKNOWN_RESULT");
+    const row = await prisma.metaPublication.findUnique({ where: { id: result.publication.id } });
+    expect(row?.activeKey).not.toBeNull();
+  });
+
+  it("cannot release a stale PENDING lock after a failed lookup", async () => {
+    if (!prisma) return;
+    const fixture = await createFixture();
+    if (!fixture) return;
+    failNextPost = true;
+    const result = await publishMetaPublication(
+      {
+        postId: fixture.post.id,
+        platform: "FACEBOOK",
+        connectedAccountId: fixture.pageAccount.id,
+        graphicId: null,
+        idempotencyKey: `key-${Math.random()}`,
+        confirm: true,
+      },
+      fixture.admin.id,
+    );
+    // Force the record to look stale.
+    await prisma.metaPublication.update({
+      where: { id: result.publication.id },
+      data: { startedAt: new Date(Date.now() - 5 * 60_000) },
+    });
+    facebookFeedMode = "provider";
+    const { reconcileMetaPublication } = await import("@/lib/meta/publishing");
+    const reconciled = await reconcileMetaPublication(result.publication.id, fixture.admin.id);
+    expect(reconciled.status).toBe("UNKNOWN_RESULT");
+    const row = await prisma.metaPublication.findUnique({ where: { id: result.publication.id } });
+    expect(row?.activeKey).not.toBeNull();
+    expect(row?.completedAt).toBeNull();
+  });
+
+  it("cannot release an UNKNOWN_RESULT lock after a failed lookup", async () => {
+    if (!prisma) return;
+    const fixture = await createFixture();
+    if (!fixture) return;
+    failNextPost = true;
+    const result = await publishMetaPublication(
+      {
+        postId: fixture.post.id,
+        platform: "FACEBOOK",
+        connectedAccountId: fixture.pageAccount.id,
+        graphicId: null,
+        idempotencyKey: `key-${Math.random()}`,
+        confirm: true,
+      },
+      fixture.admin.id,
+    );
+    expect(result.publication.status).toBe("UNKNOWN_RESULT");
+    facebookFeedMode = "auth";
+    const { reconcileMetaPublication } = await import("@/lib/meta/publishing");
+    const reconciled = await reconcileMetaPublication(result.publication.id, fixture.admin.id);
+    expect(reconciled.status).toBe("UNKNOWN_RESULT");
+    const row = await prisma.metaPublication.findUnique({ where: { id: result.publication.id } });
+    expect(row?.activeKey).not.toBeNull();
+  });
+
+  it("allows a second publish request to be blocked while unresolved", async () => {
+    if (!prisma) return;
+    const fixture = await createFixture();
+    if (!fixture) return;
+    failNextPost = true;
+    const result = await publishMetaPublication(
+      {
+        postId: fixture.post.id,
+        platform: "FACEBOOK",
+        connectedAccountId: fixture.pageAccount.id,
+        graphicId: null,
+        idempotencyKey: `key-${Math.random()}`,
+        confirm: true,
+      },
+      fixture.admin.id,
+    );
+    facebookFeedMode = "empty";
+    await expect(
+      publishMetaPublication(
+        {
+          postId: fixture.post.id,
+          platform: "FACEBOOK",
+          connectedAccountId: fixture.pageAccount.id,
+          graphicId: null,
+          idempotencyKey: `key-${Math.random()}`,
+          confirm: true,
+        },
+        fixture.admin.id,
+      ),
+    ).rejects.toMatchObject({ code: "ambiguous" });
+    const row = await prisma.metaPublication.findUnique({ where: { id: result.publication.id } });
+    expect(row?.activeKey).not.toBeNull();
+  });
+
+  it("releases the lock after human-confirmed failure", async () => {
+    if (!prisma) return;
+    const fixture = await createFixture();
+    if (!fixture) return;
+    failNextPost = true;
+    const result = await publishMetaPublication(
+      {
+        postId: fixture.post.id,
+        platform: "FACEBOOK",
+        connectedAccountId: fixture.pageAccount.id,
+        graphicId: null,
+        idempotencyKey: `key-${Math.random()}`,
+        confirm: true,
+      },
+      fixture.admin.id,
+    );
+    const { resolveMetaPublication } = await import("@/lib/meta/publishing");
+    const resolved = await resolveMetaPublication({
+      publicationId: result.publication.id,
+      adminUserId: fixture.admin.id,
+      action: "mark_failed",
+    });
+    expect(resolved.status).toBe("FAILED");
+    const row = await prisma.metaPublication.findUnique({ where: { id: result.publication.id } });
+    expect(row?.activeKey).toBeNull();
+  });
+
 });

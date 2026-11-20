@@ -18,16 +18,13 @@ export const META_GRAPH_VERSION_DEFAULT = "v27.0";
 export const META_OAUTH_SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
+  "pages_read_user_content",
   "pages_manage_posts",
   "instagram_basic",
   "instagram_content_publish",
 ] as const;
 
-export const META_REQUIRED_PAGE_TASKS = [
-  "CREATE_CONTENT",
-  "MANAGE",
-  "MODERATE",
-] as const;
+export const META_PAGE_PUBLISHING_TASKS = ["CREATE_CONTENT", "MANAGE"] as const;
 
 export const META_LOGO_SCOPES = [...META_OAUTH_SCOPES];
 

@@ -127,9 +127,9 @@ describe("meta oauth state", () => {
     if (!prisma) return;
     const admin = await createAdmin("blank");
     if (!admin) return;
-    await expect(consumeMetaOAuthState("", admin.id)).rejects.toBeInstanceOf(MetaOAuthError);
-    await expect(consumeMetaOAuthState("short", admin.id)).rejects.toBeInstanceOf(MetaOAuthError);
-    await expect(consumeMetaOAuthState("a".repeat(201), admin.id)).rejects.toBeInstanceOf(MetaOAuthError);
-    await expect(consumeMetaOAuthState("not-a-real-state", admin.id)).rejects.toMatchObject({ code: "state_invalid" });
+    await expect(consumeMetaOAuthState("", admin.id)).rejects.toMatchObject({ code: "state_missing" });
+    await expect(consumeMetaOAuthState("short", admin.id)).rejects.toMatchObject({ code: "state_missing" });
+    await expect(consumeMetaOAuthState("a".repeat(201), admin.id)).rejects.toMatchObject({ code: "state_missing" });
+    await expect(consumeMetaOAuthState("a".repeat(32), admin.id)).rejects.toMatchObject({ code: "state_invalid" });
   });
 });

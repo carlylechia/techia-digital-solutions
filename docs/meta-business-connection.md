@@ -46,14 +46,18 @@ Required OAuth scopes (all five are requested on every authorization):
 
 1. `pages_show_list`
 2. `pages_read_engagement`
-3. `pages_manage_posts`
-4. `instagram_basic`
-5. `instagram_content_publish`
+3. `pages_read_user_content` (required to read Page Feed content during reconciliation)
+4. `pages_manage_posts`
+5. `instagram_basic`
+6. `instagram_content_publish`
 
-Page publishing eligibility requires the authorizing user to hold the
-`CREATE_CONTENT`, `MANAGE`, and `MODERATE` tasks on the Page (Meta Pages API
-requirement). Page Publishing Authorization (PPA) may still block an account;
-such failures surface as `ATTENTION_REQUIRED` / `PERMISSION_MISSING` health.
+Page publishing eligibility requires the authorizing user to hold a Page
+publishing task: `CREATE_CONTENT` or `MANAGE`. `MODERATE` alone is not
+sufficient publishing authority. The broader Meta feature set may also use
+`MODERATE` for engagement management, but it is not treated as publish
+authority here. Page Publishing Authorization (PPA) may still block an
+account; such failures surface as `ATTENTION_REQUIRED` /
+`PERMISSION_MISSING` health.
 
 ## Environment variables
 
@@ -126,14 +130,20 @@ session cookie + `assertSameOrigin`), bound to the initiating SuperAdmin.
 - Decryption requires `META_TOKEN_ENCRYPTION_KEY` (32 bytes). If the key is
   missing or invalid, the integration **fails closed** — no token is stored or
   read.
-- `META_TOKEN_ENCRYPTION_KEY_PREVIOUS` allows a documented rotation window.
+- `META_TOKEN_ENCRYPTION_KEY_PREVIOUS` allows a documented rotation window. The
+  runtime can **decrypt** with the previous key, but it does **not**
+  automatically re-encrypt stored tokens. To complete a rotation, set the
+  previous key, deploy the new key, then reconnect each Meta connection (or
+  otherwise re-run authorization) so tokens are stored under the new key, and
+  finally remove `META_TOKEN_ENCRYPTION_KEY_PREVIOUS`. No token-rotation
+  endpoint is exposed.
 - Tokens are never logged. Error text is sanitized for token-like substrings
   before logging or persistence.
 
 ## Publishing eligibility
 
-- A Page is eligible only when the authorizing user holds `CREATE_CONTENT`,
-  `MANAGE`, and `MODERATE`.
+- A Page is eligible for publishing when the authorizing user holds
+  `CREATE_CONTENT` or `MANAGE`. `MODERATE` alone is not sufficient.
 - Instagram accounts are eligible only when their parent Page is eligible and
   the required Instagram scopes were granted.
 - Health is refreshed explicitly through `POST /api/meta/accounts/health`
