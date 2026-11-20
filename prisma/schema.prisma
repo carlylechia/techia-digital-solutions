@@ -118,6 +118,56 @@ enum SocialPublishStatus {
   PUBLISHED
 }
 
+// Release 3 — direct Meta publishing. These enums are intentionally separate
+// from SocialPublishStatus so the manual "I published this myself" workflow
+// keeps its original meaning and evidence.
+enum MetaConnectionStatus {
+  CONNECTED
+  ATTENTION_REQUIRED
+  EXPIRED
+  REVOKED
+  DISCONNECTED
+}
+
+enum MetaAccountPlatform {
+  FACEBOOK_PAGE
+  INSTAGRAM
+}
+
+enum MetaPermissionStatus {
+  UNKNOWN
+  OK
+  MISSING
+}
+
+enum MetaAccountHealth {
+  UNKNOWN
+  HEALTHY
+  ATTENTION_REQUIRED
+  PERMISSION_MISSING
+  TOKEN_EXPIRED
+  TOKEN_REVOKED
+  DISCONNECTED
+}
+
+enum MetaPublicationStatus {
+  PENDING
+  PROCESSING
+  PUBLISHED
+  FAILED
+  UNKNOWN_RESULT
+  REQUIRES_REAUTHORIZATION
+  CANCELLED
+}
+
+enum MetaPublicationAttemptOutcome {
+  PENDING
+  SUCCEEDED
+  FAILED
+  AMBIGUOUS
+}
+
+
 model Lead {
   id                String           @id @default(cuid())
   name              String
@@ -259,6 +309,7 @@ model BlogPost {
   revisions        BlogPostRevision[]
   slugRedirects    BlogSlugRedirect[]
   socialShareKits  SocialShareKit[] @relation("SocialShareKits")
+  metaPublications MetaPublication[]
 
   @@unique([locale, slug])
   @@index([locale, published])
@@ -519,6 +570,11 @@ model AdminUser {
   socialShareKitsCreated   SocialShareKit[]           @relation("SocialShareKitCreator")
   socialShareVariantsPublished SocialShareVariant[]    @relation("SocialShareVariantPublisher")
   socialShareLogosCreated  SocialShareLogo[]          @relation("SocialShareLogoCreator")
+  metaConnectionsOwned     MetaConnection[]           @relation("MetaConnectionOwner")
+  metaConnectionsCreated   MetaConnection[]           @relation("MetaConnectionCreator")
+  metaOAuthStates          MetaOAuthState[]
+  metaPublications         MetaPublication[]
+  metaPublishingSettingsUpdated MetaPublishingSettings[] @relation("MetaPublishingSettingsUpdater")
   outreachMessagesApproved OutreachMessage[]          @relation("OutreachMessageApprover")
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
@@ -2257,6 +2313,7 @@ model SocialShareVariant {
   publishedBy     AdminUser?          @relation("SocialShareVariantPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
+  metaPublications MetaPublication[]
 
   @@unique([kitId, platform])
   @@index([kitId])
@@ -2276,6 +2333,7 @@ model SocialShareGraphic {
   formatMime String
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
+  metaPublications MetaPublication[]
 
   @@unique([kitId, format])
   @@index([kitId])
@@ -2302,4 +2360,155 @@ model SocialShareLogo {
 
   @@index([createdById])
   @@index([isActive, createdAt])
+}
+
+// ─── Release 3: Meta Business connection & direct publishing ────────────────
+// Additive layer only. SocialShareKit, SocialShareVariant, SocialShareGraphic
+// and SocialShareLogo stay untouched semantically; these records reference
+// them without replacing the existing manual publishing workflow.
+
+model MetaConnection {
+  id                     String                 @id @default(cuid())
+  adminUserId            String?
+  adminUser              AdminUser?             @relation("MetaConnectionOwner", fields: [adminUserId], references: [id], onDelete: SetNull)
+  metaUserId             String
+  metaUserName           String?
+  encryptedUserToken     String?                @db.Text
+  tokenEncryptionVersion String                 @default("v1")
+  tokenExpiresAt         DateTime?
+  dataAccessExpiresAt    DateTime?
+  grantedPermissions     String[]               @default([])
+  declinedPermissions    String[]               @default([])
+  status                 MetaConnectionStatus   @default(CONNECTED)
+  healthMessage          String?
+  lastValidatedAt        DateTime?
+  lastHealthCheckAt      DateTime?
+  connectedById          String?
+  connectedBy            AdminUser?             @relation("MetaConnectionCreator", fields: [connectedById], references: [id], onDelete: SetNull)
+  connectedAt            DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  disconnectedAt         DateTime?
+  accounts               MetaConnectedAccount[]
+
+  @@index([adminUserId, status])
+  @@index([status, lastHealthCheckAt])
+  @@index([connectedById])
+}
+
+model MetaConnectedAccount {
+  id                     String               @id @default(cuid())
+  connectionId           String
+  connection             MetaConnection       @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  platform               MetaAccountPlatform
+  platformAccountId      String
+  displayName            String
+  username               String?
+  pageId                 String?
+  pageName               String?
+  linkedInstagramId      String?
+  encryptedAccessToken   String?              @db.Text
+  tokenEncryptionVersion String               @default("v1")
+  tasks                  String[]             @default([])
+  isEligible             Boolean              @default(false)
+  ineligibilityReason    String?
+  permissionStatus       MetaPermissionStatus @default(UNKNOWN)
+  healthStatus           MetaAccountHealth    @default(UNKNOWN)
+  healthMessage          String?
+  tokenExpiresAt         DateTime?
+  lastValidatedAt        DateTime?
+  lastHealthCheckAt      DateTime?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  disconnectedAt         DateTime?
+  publications           MetaPublication[]
+
+  @@unique([connectionId, platform, platformAccountId])
+  @@index([connectionId, platform, healthStatus])
+  @@index([platform, platformAccountId])
+}
+
+model MetaOAuthState {
+  id           String    @id @default(cuid())
+  stateHash    String    @unique
+  adminUserId  String
+  adminUser    AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  returnLocale String    @default("en")
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([adminUserId, expiresAt])
+  @@index([expiresAt])
+}
+
+model MetaPublication {
+  id                        String                   @id @default(cuid())
+  variantId                 String?
+  variant                   SocialShareVariant?      @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  graphicId                 String?
+  graphic                   SocialShareGraphic?      @relation(fields: [graphicId], references: [id], onDelete: SetNull)
+  connectedAccountId        String?
+  connectedAccount          MetaConnectedAccount?    @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+  platform                  SocialPlatform
+  status                    MetaPublicationStatus    @default(PENDING)
+  captionSnapshot           String                   @db.Text
+  mediaUrl                  String?                  @db.Text
+  mediaFormat               String?
+  articleId                 String?
+  article                   BlogPost?                @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  articleUrl                String?                  @db.Text
+  destinationName           String?
+  destinationAccountId      String?
+  idempotencyKey            String                   @unique
+  activeKey                 String?                  @unique
+  containerId               String?
+  externalId                String?
+  externalUrl               String?                  @db.Text
+  initiatedById             String?
+  initiatedBy               AdminUser?               @relation(fields: [initiatedById], references: [id], onDelete: SetNull)
+  startedAt                 DateTime                 @default(now())
+  publishedAt               DateTime?
+  completedAt               DateTime?
+  lastErrorCode             String?
+  lastErrorMessage          String?
+  attemptCount              Int                      @default(0)
+  reconciliationAttemptedAt DateTime?
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
+  attempts                  MetaPublicationAttempt[]
+
+  @@index([articleId, createdAt(sort: Desc)])
+  @@index([connectedAccountId, createdAt(sort: Desc)])
+  @@index([status, updatedAt])
+  @@index([platform, createdAt(sort: Desc)])
+  @@index([initiatedById])
+}
+
+model MetaPublicationAttempt {
+  id            String                        @id @default(cuid())
+  publicationId String
+  publication   MetaPublication               @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  attemptNumber Int
+  requestAt     DateTime                      @default(now())
+  responseAt    DateTime?
+  outcome       MetaPublicationAttemptOutcome @default(PENDING)
+  httpStatus    Int?
+  errorCode     String?
+  errorSummary  String?                       @db.Text
+  metaRequestId String?
+  createdAt     DateTime                      @default(now())
+
+  @@unique([publicationId, attemptNumber])
+  @@index([publicationId, createdAt])
+}
+
+model MetaPublishingSettings {
+  id                String     @id
+  publishingEnabled Boolean    @default(false)
+  updatedById       String?
+  updatedBy         AdminUser? @relation("MetaPublishingSettingsUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@index([updatedById])
 }
