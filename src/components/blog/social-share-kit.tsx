@@ -1,10 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Copy, Check, Download, ImagePlus, Share2, Sparkles, RefreshCw, Link as LinkIcon, Trash2, UploadCloud } from "lucide-react";
+import {
+  Loader2,
+  Copy,
+  Check,
+  Download,
+  ImagePlus,
+  Share2,
+  Sparkles,
+  RefreshCw,
+  Link as LinkIcon,
+  Trash2,
+  UploadCloud,
+} from "lucide-react";
 import { ProfessionalLoader } from "@/components/ui/professional-loader";
+import { MetaConnectionManager } from "@/components/blog/meta-connection-manager";
+import { MetaPublishPanel } from "@/components/blog/meta-publish-panel";
 import type { BlogLocale } from "@/lib/blog/constants";
-import type { SocialPlatform, SocialGraphicFormat } from "@/lib/ai/social-share-types";
+import type {
+  SocialPlatform,
+  SocialGraphicFormat,
+} from "@/lib/ai/social-share-types";
 
 type Post = {
   id: string;
@@ -74,17 +91,35 @@ const refinementOptions = [
   "Add a stronger call to action",
 ];
 
-export function SocialShareKit({ locale }: { locale: BlogLocale }) {
+export function SocialShareKit({
+  locale,
+  metaNotice,
+  metaReason,
+}: {
+  locale: BlogLocale;
+  metaNotice?: string | null;
+  metaReason?: string | null;
+}) {
+  const [metaRevision, setMetaRevision] = useState(0);
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const [article, setArticle] = useState<{ title: string; slug: string; canonicalUrl: string; status: string; categories: string[] } | null>(null);
+  const [article, setArticle] = useState<{
+    title: string;
+    slug: string;
+    canonicalUrl: string;
+    status: string;
+    categories: string[];
+  } | null>(null);
   const [kit, setKit] = useState<Kit | null>(null);
   const [kitLoading, setKitLoading] = useState(false);
-  const [activePlatform, setActivePlatform] = useState<SocialPlatform>("FACEBOOK");
-  const [captionDrafts, setCaptionDrafts] = useState<Record<SocialPlatform, string>>({
+  const [activePlatform, setActivePlatform] =
+    useState<SocialPlatform>("FACEBOOK");
+  const [captionDrafts, setCaptionDrafts] = useState<
+    Record<SocialPlatform, string>
+  >({
     FACEBOOK: "",
     INSTAGRAM: "",
     WHATSAPP: "",
@@ -96,7 +131,8 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-  const [graphicFormat, setGraphicFormat] = useState<SocialGraphicFormat>("SQUARE");
+  const [graphicFormat, setGraphicFormat] =
+    useState<SocialGraphicFormat>("SQUARE");
   const [graphicPrompt, setGraphicPrompt] = useState("");
   const [graphicLogo, setGraphicLogo] = useState("");
   const [logos, setLogos] = useState<Logo[]>([]);
@@ -115,9 +151,13 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
       if (search.trim()) params.set("q", search.trim());
       if (statusFilter) params.set("status", statusFilter);
       params.set("locale", locale);
-      const res = await fetch(`/api/editorial/social/posts?${params.toString()}`, { credentials: "same-origin" });
+      const res = await fetch(
+        `/api/editorial/social/posts?${params.toString()}`,
+        { credentials: "same-origin" },
+      );
       const json = await res.json();
-      if (!res.ok || !json.ok) throw new Error(json.error || "Failed to load articles.");
+      if (!res.ok || !json.ok)
+        throw new Error(json.error || "Failed to load articles.");
       setPosts(json.posts || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load articles.");
@@ -134,12 +174,17 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
   const loadLogos = useCallback(async () => {
     setLogosLoading(true);
     try {
-      const res = await fetch("/api/editorial/social/logos", { credentials: "same-origin" });
+      const res = await fetch("/api/editorial/social/logos", {
+        credentials: "same-origin",
+      });
       const json = await res.json();
-      if (!res.ok || !json.ok) throw new Error(json.error || "Failed to load uploaded logos.");
+      if (!res.ok || !json.ok)
+        throw new Error(json.error || "Failed to load uploaded logos.");
       setLogos(json.logos || []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load uploaded logos.");
+      setError(
+        e instanceof Error ? e.message : "Failed to load uploaded logos.",
+      );
     } finally {
       setLogosLoading(false);
     }
@@ -156,14 +201,22 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
     setError(null);
     setNotice(null);
     try {
-      const res = await fetch(`/api/editorial/social/kit?postId=${encodeURIComponent(postId)}`, { credentials: "same-origin" });
+      const res = await fetch(
+        `/api/editorial/social/kit?postId=${encodeURIComponent(postId)}`,
+        { credentials: "same-origin" },
+      );
       const json = await res.json();
-      if (!res.ok || !json.ok) throw new Error(json.error || "Failed to load kit.");
+      if (!res.ok || !json.ok)
+        throw new Error(json.error || "Failed to load kit.");
       setArticle(json.article);
       const k = json.kit as Kit | null;
       setKit(k);
       // init drafts
-      const drafts: Record<SocialPlatform, string> = { FACEBOOK: "", INSTAGRAM: "", WHATSAPP: "" };
+      const drafts: Record<SocialPlatform, string> = {
+        FACEBOOK: "",
+        INSTAGRAM: "",
+        WHATSAPP: "",
+      };
       let short = "";
       let status = "";
       let direct = "";
@@ -193,10 +246,15 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
     }
   }, []);
 
-  const variantFor = (p: SocialPlatform) => kit?.variants.find((v) => v.platform === p) || null;
-  const graphicFor = (f: SocialGraphicFormat) => kit?.graphics.find((g) => g.format === f) || null;
+  const variantFor = (p: SocialPlatform) =>
+    kit?.variants.find((v) => v.platform === p) || null;
+  const graphicFor = (f: SocialGraphicFormat) =>
+    kit?.graphics.find((g) => g.format === f) || null;
 
-  async function generateCaption(platform: SocialPlatform, refinement?: string) {
+  async function generateCaption(
+    platform: SocialPlatform,
+    refinement?: string,
+  ) {
     if (!selectedPostId) return;
     setBusy(`caption-${platform}`);
     setError(null);
@@ -206,10 +264,15 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId: selectedPostId, platform, refinement: refinement || customRefinement || undefined }),
+        body: JSON.stringify({
+          postId: selectedPostId,
+          platform,
+          refinement: refinement || customRefinement || undefined,
+        }),
       });
       const json = await res.json();
-      if (!res.ok || !json.ok) throw new Error(json.error || "Generation failed.");
+      if (!res.ok || !json.ok)
+        throw new Error(json.error || "Generation failed.");
       await selectPost(selectedPostId);
       setNotice(`${platformLabel[platform]} caption generated.`);
     } catch (e) {
@@ -243,7 +306,34 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
       });
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "Save failed.");
-      setNotice("Caption saved.");
+      setKit((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          variants: current.variants.map((variant) => {
+            if (variant.platform !== platform) return variant;
+            return {
+              ...variant,
+              editedCaption:
+                platform === "WHATSAPP"
+                  ? directDraft || captionDrafts[platform]
+                  : captionDrafts[platform],
+              ...(platform === "INSTAGRAM"
+                ? { shortCaption: shortDraft || null }
+                : {}),
+              ...(platform === "WHATSAPP"
+                ? {
+                    statusCaption: statusDraft || null,
+                    directCaption: directDraft || null,
+                  }
+                : {}),
+            };
+          }),
+        };
+      });
+      setNotice(
+        "Caption saved. Direct publishing will use this saved caption.",
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed.");
     } finally {
@@ -260,12 +350,20 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId: selectedPostId, format, prompt: graphicPrompt || undefined, logoId: graphicLogo || undefined }),
+        body: JSON.stringify({
+          postId: selectedPostId,
+          format,
+          prompt: graphicPrompt || undefined,
+          logoId: graphicLogo || undefined,
+        }),
       });
       const json = await res.json();
-      if (!res.ok || !json.ok) throw new Error(json.error || "Graphic generation failed.");
+      if (!res.ok || !json.ok)
+        throw new Error(json.error || "Graphic generation failed.");
       await selectPost(selectedPostId);
-      setNotice(`${format === "SQUARE" ? "Square" : "Vertical"} graphic generated.`);
+      setNotice(
+        `${format === "SQUARE" ? "Square" : "Vertical"} graphic generated.`,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Graphic generation failed.");
     } finally {
@@ -281,9 +379,14 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
     data.set("file", file);
     if (logoUploadName.trim()) data.set("name", logoUploadName.trim());
     try {
-      const res = await fetch("/api/editorial/social/logos", { method: "POST", credentials: "same-origin", body: data });
+      const res = await fetch("/api/editorial/social/logos", {
+        method: "POST",
+        credentials: "same-origin",
+        body: data,
+      });
       const json = await res.json();
-      if (!res.ok || !json.ok || !json.logo) throw new Error(json.error || "Logo upload failed.");
+      if (!res.ok || !json.ok || !json.logo)
+        throw new Error(json.error || "Logo upload failed.");
       setLogos((current) => [json.logo, ...current]);
       setGraphicLogo(json.logo.id);
       setLogoUploadName("");
@@ -297,13 +400,22 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
   }
 
   async function deleteLogo(logo: Logo) {
-    if (!window.confirm(`Delete the logo “${logo.name}”? Graphics already generated with it keep their embedded copy, but it will no longer be available for new graphics.`)) return;
+    if (
+      !window.confirm(
+        `Delete the logo “${logo.name}”? Graphics already generated with it keep their embedded copy, but it will no longer be available for new graphics.`,
+      )
+    )
+      return;
     setLogoUploading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/editorial/social/logos?id=${encodeURIComponent(logo.id)}`, { method: "DELETE", credentials: "same-origin" });
+      const res = await fetch(
+        `/api/editorial/social/logos?id=${encodeURIComponent(logo.id)}`,
+        { method: "DELETE", credentials: "same-origin" },
+      );
       const json = await res.json();
-      if (!res.ok || !json.ok) throw new Error(json.error || "Logo deletion failed.");
+      if (!res.ok || !json.ok)
+        throw new Error(json.error || "Logo deletion failed.");
       setLogos((current) => current.filter((item) => item.id !== logo.id));
       if (graphicLogo === logo.id) setGraphicLogo("");
       setNotice(`Logo “${logo.name}” deleted.`);
@@ -314,7 +426,10 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
     }
   }
 
-  async function updateStatus(platform: SocialPlatform, status: "NOT_STARTED" | "READY" | "PUBLISHED") {
+  async function updateStatus(
+    platform: SocialPlatform,
+    status: "NOT_STARTED" | "READY" | "PUBLISHED",
+  ) {
     if (!selectedPostId) return;
     setBusy(`status-${platform}`);
     setError(null);
@@ -326,7 +441,8 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
         body: JSON.stringify({ postId: selectedPostId, platform, status }),
       });
       const json = await res.json();
-      if (!res.ok || !json.ok) throw new Error(json.error || "Status update failed.");
+      if (!res.ok || !json.ok)
+        throw new Error(json.error || "Status update failed.");
       await selectPost(selectedPostId);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Status update failed.");
@@ -350,7 +466,10 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
     // Cloudinary's `fl_attachment` flag forces a download response, so the
     // browser can save the file directly from a user click instead of going
     // through an async fetch that loses the user-gesture context.
-    const downloadUrl = graphic.url.replace("/upload/", "/upload/fl_attachment,f_png/");
+    const downloadUrl = graphic.url.replace(
+      "/upload/",
+      "/upload/fl_attachment,f_png/",
+    );
     const a = document.createElement("a");
     a.href = downloadUrl;
     a.download = `${article?.slug || "article"}-${platform.toLowerCase()}-${graphic.format.toLowerCase()}.png`;
@@ -363,13 +482,18 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
     const caption = captionDrafts[platform];
     const link = article?.canonicalUrl || "";
     const graphic = graphicFor(graphicFormat);
-    const shareData: { title?: string; text: string; files?: File[] } = { title: article?.title, text: `${caption}\n\n${link}` };
+    const shareData: { title?: string; text: string; files?: File[] } = {
+      title: article?.title,
+      text: `${caption}\n\n${link}`,
+    };
     if (graphic) {
       try {
         const pngUrl = graphic.url.replace("/upload/", "/upload/f_png/");
         const res = await fetch(pngUrl);
         const blob = await res.blob();
-        const file = new File([blob], `${article?.slug || "graphic"}.png`, { type: "image/png" });
+        const file = new File([blob], `${article?.slug || "graphic"}.png`, {
+          type: "image/png",
+        });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           shareData.files = [file];
         }
@@ -387,371 +511,625 @@ export function SocialShareKit({ locale }: { locale: BlogLocale }) {
         }
       }
     } else {
-      setError("Native sharing is not supported on this device. Use copy/download instead.");
+      setError(
+        "Native sharing is not supported on this device. Use copy/download instead.",
+      );
     }
   }
 
-
   return (
-    <div className="grid gap-6 lg:grid-cols-[20rem_1fr]">
-      {/* Article selection */}
-      <aside className="premium-card p-4 grid gap-3 content-start">
-        <h2 className="text-sm font-semibold text-primary">Select article</h2>
-        <input
-          className="form-input text-sm"
-          placeholder="Search by title..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select className="form-input text-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="">All statuses</option>
-          <option value="DRAFT">Draft</option>
-          <option value="IN_REVIEW">In review</option>
-          <option value="PUBLISHED">Published</option>
-          <option value="ARCHIVED">Archived</option>
-        </select>
-        <button type="button" onClick={() => void loadPosts()} disabled={postsLoading} className="btn-secondary text-xs">
-          {postsLoading ? <Loader2 className="size-3.5 animate-spin" /> : "Refresh"}
-        </button>
-        {postsLoading ? <ProfessionalLoader label="Loading articles" size="sm" /> : null}
-        <div className="grid gap-2 max-h-[60vh] overflow-auto">
-          {posts.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => void selectPost(p.id)}
-              className={`text-left rounded-lg border p-3 transition ${selectedPostId === p.id ? "border-accent bg-accent/10" : "border-border hover:border-accent/40"}`}
-            >
-              <p className="text-sm font-semibold text-primary line-clamp-2">{p.title}</p>
-              <p className="text-[11px] text-muted mt-1">{p.status} · {p.category?.name || "Uncategorised"}</p>
-            </button>
-          ))}
-          {!postsLoading && posts.length === 0 ? <p className="text-xs text-muted">No articles found.</p> : null}
-        </div>
-      </aside>
+    <div className="grid gap-6">
+      <MetaConnectionManager
+        locale={locale}
+        initialNotice={metaNotice}
+        initialReason={metaReason}
+        onChanged={() => setMetaRevision((value) => value + 1)}
+      />
+      <div className="grid gap-6 lg:grid-cols-[20rem_1fr]">
+        {/* Article selection */}
+        <aside className="premium-card p-4 grid gap-3 content-start">
+          <h2 className="text-sm font-semibold text-primary">Select article</h2>
+          <input
+            className="form-input text-sm"
+            placeholder="Search by title..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select
+            className="form-input text-sm"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="">All statuses</option>
+            <option value="DRAFT">Draft</option>
+            <option value="IN_REVIEW">In review</option>
+            <option value="PUBLISHED">Published</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+          <button
+            type="button"
+            onClick={() => void loadPosts()}
+            disabled={postsLoading}
+            className="btn-secondary text-xs"
+          >
+            {postsLoading ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              "Refresh"
+            )}
+          </button>
+          {postsLoading ? (
+            <ProfessionalLoader label="Loading articles" size="sm" />
+          ) : null}
+          <div className="grid gap-2 max-h-[60vh] overflow-auto">
+            {posts.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => void selectPost(p.id)}
+                className={`text-left rounded-lg border p-3 transition ${selectedPostId === p.id ? "border-accent bg-accent/10" : "border-border hover:border-accent/40"}`}
+              >
+                <p className="text-sm font-semibold text-primary line-clamp-2">
+                  {p.title}
+                </p>
+                <p className="text-[11px] text-muted mt-1">
+                  {p.status} · {p.category?.name || "Uncategorised"}
+                </p>
+              </button>
+            ))}
+            {!postsLoading && posts.length === 0 ? (
+              <p className="text-xs text-muted">No articles found.</p>
+            ) : null}
+          </div>
+        </aside>
 
-      {/* Workspace */}
-      <section className="grid gap-4">
-        {error ? <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</p> : null}
-        {notice ? <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">{notice}</p> : null}
-        {busy ? <ProfessionalLoader label="Processing social share task" size="md" /> : null}
-        {busy?.startsWith("graphic-") ? <ProfessionalLoader label="Regenerating graphic" variant="fullScreen" /> : null}
+        {/* Workspace */}
+        <section className="grid gap-4">
+          {error ? (
+            <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">
+              {error}
+            </p>
+          ) : null}
+          {notice ? (
+            <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+              {notice}
+            </p>
+          ) : null}
+          {busy ? (
+            <ProfessionalLoader
+              label="Processing social share task"
+              size="md"
+            />
+          ) : null}
+          {busy?.startsWith("graphic-") ? (
+            <ProfessionalLoader
+              label="Regenerating graphic"
+              variant="fullScreen"
+            />
+          ) : null}
 
-        {!selectedPostId ? (
-          <div className="premium-card p-8 text-center text-sm text-muted">Select an article to begin.</div>
-        ) : kitLoading ? (
-          <div className="premium-card p-8 flex items-center justify-center"><Loader2 className="size-6 animate-spin text-accent" /></div>
-        ) : (
-          <>
-            {/* Article header */}
-            <div className="premium-card p-5 grid gap-2">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h1 className="text-lg font-semibold text-primary">{article?.title}</h1>
-                  <p className="text-xs text-muted mt-1">
-                    {article?.status} · {article?.categories?.join(", ") || "Uncategorised"}
-                  </p>
-                  <a href={article?.canonicalUrl} target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline break-all">
-                    {article?.canonicalUrl}
-                  </a>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => article?.canonicalUrl && window.open(article.canonicalUrl, "_blank")}
-                  className="btn-secondary text-xs"
-                >
-                  Open article
-                </button>
-              </div>
+          {!selectedPostId ? (
+            <div className="premium-card p-8 text-center text-sm text-muted">
+              Select an article to begin.
             </div>
-
-            {/* Platform tabs */}
-            <div className="flex gap-2 border-b border-border">
-              {PLATFORMS.map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setActivePlatform(p)}
-                  className={`px-4 py-2 text-sm font-semibold border-b-2 transition ${activePlatform === p ? "border-accent text-accent" : "border-transparent text-muted hover:text-primary"}`}
-                >
-                  {platformLabel[p]}
-                </button>
-              ))}
+          ) : kitLoading ? (
+            <div className="premium-card p-8 flex items-center justify-center">
+              <Loader2 className="size-6 animate-spin text-accent" />
             </div>
-
-            {/* Caption editor */}
-            <div className="premium-card p-5 grid gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold text-primary">{platformLabel[activePlatform]} caption</h2>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void generateCaption(activePlatform)}
-                    disabled={busy !== null}
-                    className="inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-[#001018] disabled:opacity-50"
-                  >
-                    {busy === `caption-${activePlatform}` ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-                    {variantFor(activePlatform) ? "Regenerate" : "Generate"}
-                  </button>
-                </div>
-              </div>
-
-              <textarea
-                className="form-input text-sm min-h-40"
-                value={captionDrafts[activePlatform]}
-                onChange={(e) => setCaptionDrafts((d) => ({ ...d, [activePlatform]: e.target.value }))}
-                placeholder={`Generate ${platformLabel[activePlatform]} caption...`}
-              />
-              <p className="text-[11px] text-muted">{captionDrafts[activePlatform].length} characters</p>
-
-              {activePlatform === "INSTAGRAM" ? (
-                <label className="form-label text-xs">Short caption
-                  <textarea className="form-input text-sm min-h-20" value={shortDraft} onChange={(e) => setShortDraft(e.target.value)} />
-                </label>
-              ) : null}
-
-              {activePlatform === "WHATSAPP" ? (
-                <>
-                  <label className="form-label text-xs">Status caption
-                    <textarea className="form-input text-sm min-h-20" value={statusDraft} onChange={(e) => setStatusDraft(e.target.value)} />
-                  </label>
-                  <label className="form-label text-xs">Direct message caption
-                    <textarea className="form-input text-sm min-h-20" value={directDraft} onChange={(e) => setDirectDraft(e.target.value)} />
-                  </label>
-                </>
-              ) : null}
-
-              {/* Refinement */}
-              <div className="grid gap-2 border-t border-border pt-3">
-                <p className="text-xs font-semibold text-primary">Refine</p>
-                <div className="flex flex-wrap gap-2">
-                  {refinementOptions.map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => void generateCaption(activePlatform, opt)}
-                      disabled={busy !== null}
-                      className="rounded-full border border-border px-3 py-1 text-[11px] text-muted hover:border-accent/40 hover:text-primary disabled:opacity-50"
+          ) : (
+            <>
+              {/* Article header */}
+              <div className="premium-card p-5 grid gap-2">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h1 className="text-lg font-semibold text-primary">
+                      {article?.title}
+                    </h1>
+                    <p className="text-xs text-muted mt-1">
+                      {article?.status} ·{" "}
+                      {article?.categories?.join(", ") || "Uncategorised"}
+                    </p>
+                    <a
+                      href={article?.canonicalUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-accent hover:underline break-all"
                     >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    className="form-input text-sm flex-1"
-                    placeholder="Custom refinement instruction..."
-                    value={customRefinement}
-                    onChange={(e) => setCustomRefinement(e.target.value)}
-                  />
+                      {article?.canonicalUrl}
+                    </a>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => { if (customRefinement.trim()) void generateCaption(activePlatform, customRefinement.trim()); }}
-                    disabled={busy !== null || !customRefinement.trim()}
+                    onClick={() =>
+                      article?.canonicalUrl &&
+                      window.open(article.canonicalUrl, "_blank")
+                    }
                     className="btn-secondary text-xs"
                   >
-                    Apply
+                    Open article
                   </button>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 border-t border-border pt-3">
-                <button type="button" onClick={() => void saveCaption(activePlatform)} disabled={busy !== null} className="btn-secondary text-xs">
-                  {busy === `save-${activePlatform}` ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />} Save edits
-                </button>
-                <button type="button" onClick={() => void copyText(captionDrafts[activePlatform], `caption-${activePlatform}`)} className="btn-secondary text-xs">
-                  {copied === `caption-${activePlatform}` ? <Check className="size-3.5" /> : <Copy className="size-3.5" />} Copy caption
-                </button>
-                <button type="button" onClick={() => void copyText(article?.canonicalUrl || "", "link")} className="btn-secondary text-xs">
-                  {copied === "link" ? <Check className="size-3.5" /> : <LinkIcon className="size-3.5" />} Copy link
-                </button>
-                <button type="button" onClick={() => void shareNative(activePlatform)} className="btn-secondary text-xs">
-                  <Share2 className="size-3.5" /> Share
-                </button>
-              </div>
-            </div>
-
-            {/* Graphics */}
-            <div className="premium-card p-5 grid gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold text-primary">Branded graphics</h2>
-                <div className="flex gap-2">
+              {/* Platform tabs */}
+              <div className="flex gap-2 border-b border-border">
+                {PLATFORMS.map((p) => (
                   <button
+                    key={p}
                     type="button"
-                    onClick={() => setGraphicFormat("SQUARE")}
-                    className={`px-3 py-1.5 text-xs rounded-lg border ${graphicFormat === "SQUARE" ? "border-accent text-accent" : "border-border text-muted"}`}
+                    onClick={() => setActivePlatform(p)}
+                    className={`px-4 py-2 text-sm font-semibold border-b-2 transition ${activePlatform === p ? "border-accent text-accent" : "border-transparent text-muted hover:text-primary"}`}
                   >
-                    Square
+                    {platformLabel[p]}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setGraphicFormat("VERTICAL")}
-                    className={`px-3 py-1.5 text-xs rounded-lg border ${graphicFormat === "VERTICAL" ? "border-accent text-accent" : "border-border text-muted"}`}
-                  >
-                    Vertical
-                  </button>
-                </div>
+                ))}
               </div>
 
-              <div className="grid gap-2">
-                <label className="form-label text-xs">Graphic prompt (optional)
-                  <textarea className="form-input text-sm min-h-20" value={graphicPrompt} onChange={(e) => setGraphicPrompt(e.target.value)} placeholder="Describe the image or edits you want..." />
-                </label>
-                <div className="grid gap-1">
-                  <span className="text-xs font-semibold text-primary">Logo</span>
-                  <select className="form-input text-sm" value={graphicLogo} onChange={(e) => setGraphicLogo(e.target.value)} disabled={logosLoading}>
-                    <option value="">teChia official logo (default)</option>
-                    {logos.map((logo) => (
-                      <option key={logo.id} value={logo.id}>{logo.name}</option>
-                    ))}
-                  </select>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-[11px] text-muted">
-                      {logosLoading ? "Loading uploaded logos…" : logos.length ? `${logos.length} uploaded logo${logos.length === 1 ? "" : "s"} available.` : "No uploaded logos yet."}
-                    </span>
-                    <button type="button" className="btn-secondary text-[11px]" onClick={() => setLogoManagerOpen((current) => !current)}>
-                      {logoManagerOpen ? "Hide logo manager" : "Manage / upload logos"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {logoManagerOpen ? (
-                <div className="rounded-xl border border-border bg-surface-strong/40 p-3 grid gap-3">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-                    <ImagePlus className="size-4 text-accent" /> Uploaded logos
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <input
-                      className="form-input text-sm flex-1 min-w-48"
-                      placeholder="Logo name (for example: teChia horizontal white)"
-                      value={logoUploadName}
-                      onChange={(e) => setLogoUploadName(e.target.value)}
-                      disabled={logoUploading}
-                    />
-                    <input
-                      ref={logoInputRef}
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) void uploadLogo(file);
-                      }}
-                    />
-                    <button type="button" className="btn-secondary text-xs" onClick={() => logoInputRef.current?.click()} disabled={logoUploading}>
-                      {logoUploading ? <Loader2 className="size-3.5 animate-spin" /> : <UploadCloud className="size-3.5" />} Upload logo
-                    </button>
-                  </div>
-                  <p className="text-[11px] leading-5 text-muted">
-                    PNG or WebP with transparency works best. Maximum 5 MB. Uploaded logos become available in the dropdown immediately and are stored in Cloudinary.
-                  </p>
-                  {logosLoading ? (
-                    <div className="flex items-center gap-2 text-xs text-muted"><Loader2 className="size-3.5 animate-spin" /> Loading logos…</div>
-                  ) : logos.length ? (
-                    <div className="grid gap-2">
-                      {logos.map((logo) => (
-                        <div key={logo.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface/40 p-2">
-                          <span className="flex h-9 w-20 shrink-0 items-center justify-center rounded bg-white/95 p-1">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={logo.url} alt="" className="max-h-7 max-w-full object-contain" />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-xs font-semibold text-primary">{logo.name}</span>
-                            <span className="block text-[10px] text-muted">
-                              {logo.width && logo.height ? `${logo.width}×${logo.height}` : "Image"} · {(logo.bytes / 1024).toFixed(0)} KB
-                            </span>
-                          </span>
-                          <button
-                            type="button"
-                            className="btn-ghost p-1 text-red-300"
-                            onClick={() => void deleteLogo(logo)}
-                            disabled={logoUploading}
-                            aria-label={`Delete ${logo.name}`}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted">No logos uploaded yet. Add the first official logo above.</p>
-                  )}
-                </div>
-              ) : null}
-
-              {graphicFor(graphicFormat) ? (
-                <div className="grid gap-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={graphicFor(graphicFormat)!.url.replace("/upload/", "/upload/f_png/")}
-                    alt="Social graphic preview"
-                    className={`rounded-lg border border-border ${graphicFormat === "SQUARE" ? "max-w-sm" : "max-w-xs"} w-full`}
-                  />
+              {/* Caption editor */}
+              <div className="premium-card p-5 grid gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-sm font-semibold text-primary">
+                    {platformLabel[activePlatform]} caption
+                  </h2>
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      onClick={() => void downloadGraphic(graphicFor(graphicFormat)!, activePlatform)}
+                      onClick={() => void generateCaption(activePlatform)}
+                      disabled={busy !== null}
+                      className="inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-[#001018] disabled:opacity-50"
+                    >
+                      {busy === `caption-${activePlatform}` ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="size-3.5" />
+                      )}
+                      {variantFor(activePlatform) ? "Regenerate" : "Generate"}
+                    </button>
+                  </div>
+                </div>
+
+                <textarea
+                  className="form-input text-sm min-h-40"
+                  value={captionDrafts[activePlatform]}
+                  onChange={(e) =>
+                    setCaptionDrafts((d) => ({
+                      ...d,
+                      [activePlatform]: e.target.value,
+                    }))
+                  }
+                  placeholder={`Generate ${platformLabel[activePlatform]} caption...`}
+                />
+                <p className="text-[11px] text-muted">
+                  {captionDrafts[activePlatform].length} characters
+                </p>
+
+                {activePlatform === "INSTAGRAM" ? (
+                  <label className="form-label text-xs">
+                    Short caption
+                    <textarea
+                      className="form-input text-sm min-h-20"
+                      value={shortDraft}
+                      onChange={(e) => setShortDraft(e.target.value)}
+                    />
+                  </label>
+                ) : null}
+
+                {activePlatform === "WHATSAPP" ? (
+                  <>
+                    <label className="form-label text-xs">
+                      Status caption
+                      <textarea
+                        className="form-input text-sm min-h-20"
+                        value={statusDraft}
+                        onChange={(e) => setStatusDraft(e.target.value)}
+                      />
+                    </label>
+                    <label className="form-label text-xs">
+                      Direct message caption
+                      <textarea
+                        className="form-input text-sm min-h-20"
+                        value={directDraft}
+                        onChange={(e) => setDirectDraft(e.target.value)}
+                      />
+                    </label>
+                  </>
+                ) : null}
+
+                {/* Refinement */}
+                <div className="grid gap-2 border-t border-border pt-3">
+                  <p className="text-xs font-semibold text-primary">Refine</p>
+                  <div className="flex flex-wrap gap-2">
+                    {refinementOptions.map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() =>
+                          void generateCaption(activePlatform, opt)
+                        }
+                        disabled={busy !== null}
+                        className="rounded-full border border-border px-3 py-1 text-[11px] text-muted hover:border-accent/40 hover:text-primary disabled:opacity-50"
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      className="form-input text-sm flex-1"
+                      placeholder="Custom refinement instruction..."
+                      value={customRefinement}
+                      onChange={(e) => setCustomRefinement(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customRefinement.trim())
+                          void generateCaption(
+                            activePlatform,
+                            customRefinement.trim(),
+                          );
+                      }}
+                      disabled={busy !== null || !customRefinement.trim()}
                       className="btn-secondary text-xs"
                     >
-                      <Download className="size-3.5" /> Download
+                      Apply
                     </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+                  <button
+                    type="button"
+                    onClick={() => void saveCaption(activePlatform)}
+                    disabled={busy !== null}
+                    className="btn-secondary text-xs"
+                  >
+                    {busy === `save-${activePlatform}` ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Check className="size-3.5" />
+                    )}{" "}
+                    Save edits
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void copyText(
+                        captionDrafts[activePlatform],
+                        `caption-${activePlatform}`,
+                      )
+                    }
+                    className="btn-secondary text-xs"
+                  >
+                    {copied === `caption-${activePlatform}` ? (
+                      <Check className="size-3.5" />
+                    ) : (
+                      <Copy className="size-3.5" />
+                    )}{" "}
+                    Copy caption
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void copyText(article?.canonicalUrl || "", "link")
+                    }
+                    className="btn-secondary text-xs"
+                  >
+                    {copied === "link" ? (
+                      <Check className="size-3.5" />
+                    ) : (
+                      <LinkIcon className="size-3.5" />
+                    )}{" "}
+                    Copy link
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void shareNative(activePlatform)}
+                    className="btn-secondary text-xs"
+                  >
+                    <Share2 className="size-3.5" /> Share
+                  </button>
+                </div>
+              </div>
+
+              {/* Graphics */}
+              <div className="premium-card p-5 grid gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-sm font-semibold text-primary">
+                    Branded graphics
+                  </h2>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setGraphicFormat("SQUARE")}
+                      className={`px-3 py-1.5 text-xs rounded-lg border ${graphicFormat === "SQUARE" ? "border-accent text-accent" : "border-border text-muted"}`}
+                    >
+                      Square
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGraphicFormat("VERTICAL")}
+                      className={`px-3 py-1.5 text-xs rounded-lg border ${graphicFormat === "VERTICAL" ? "border-accent text-accent" : "border-border text-muted"}`}
+                    >
+                      Vertical
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <label className="form-label text-xs">
+                    Graphic prompt (optional)
+                    <textarea
+                      className="form-input text-sm min-h-20"
+                      value={graphicPrompt}
+                      onChange={(e) => setGraphicPrompt(e.target.value)}
+                      placeholder="Describe the image or edits you want..."
+                    />
+                  </label>
+                  <div className="grid gap-1">
+                    <span className="text-xs font-semibold text-primary">
+                      Logo
+                    </span>
+                    <select
+                      className="form-input text-sm"
+                      value={graphicLogo}
+                      onChange={(e) => setGraphicLogo(e.target.value)}
+                      disabled={logosLoading}
+                    >
+                      <option value="">teChia official logo (default)</option>
+                      {logos.map((logo) => (
+                        <option key={logo.id} value={logo.id}>
+                          {logo.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] text-muted">
+                        {logosLoading
+                          ? "Loading uploaded logos…"
+                          : logos.length
+                            ? `${logos.length} uploaded logo${logos.length === 1 ? "" : "s"} available.`
+                            : "No uploaded logos yet."}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn-secondary text-[11px]"
+                        onClick={() =>
+                          setLogoManagerOpen((current) => !current)
+                        }
+                      >
+                        {logoManagerOpen
+                          ? "Hide logo manager"
+                          : "Manage / upload logos"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {logoManagerOpen ? (
+                  <div className="rounded-xl border border-border bg-surface-strong/40 p-3 grid gap-3">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                      <ImagePlus className="size-4 text-accent" /> Uploaded
+                      logos
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        className="form-input text-sm flex-1 min-w-48"
+                        placeholder="Logo name (for example: teChia horizontal white)"
+                        value={logoUploadName}
+                        onChange={(e) => setLogoUploadName(e.target.value)}
+                        disabled={logoUploading}
+                      />
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void uploadLogo(file);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="btn-secondary text-xs"
+                        onClick={() => logoInputRef.current?.click()}
+                        disabled={logoUploading}
+                      >
+                        {logoUploading ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <UploadCloud className="size-3.5" />
+                        )}{" "}
+                        Upload logo
+                      </button>
+                    </div>
+                    <p className="text-[11px] leading-5 text-muted">
+                      PNG or WebP with transparency works best. Maximum 5 MB.
+                      Uploaded logos become available in the dropdown
+                      immediately and are stored in Cloudinary.
+                    </p>
+                    {logosLoading ? (
+                      <div className="flex items-center gap-2 text-xs text-muted">
+                        <Loader2 className="size-3.5 animate-spin" /> Loading
+                        logos…
+                      </div>
+                    ) : logos.length ? (
+                      <div className="grid gap-2">
+                        {logos.map((logo) => (
+                          <div
+                            key={logo.id}
+                            className="flex items-center gap-2 rounded-lg border border-border bg-surface/40 p-2"
+                          >
+                            <span className="flex h-9 w-20 shrink-0 items-center justify-center rounded bg-white/95 p-1">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={logo.url}
+                                alt=""
+                                className="max-h-7 max-w-full object-contain"
+                              />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-xs font-semibold text-primary">
+                                {logo.name}
+                              </span>
+                              <span className="block text-[10px] text-muted">
+                                {logo.width && logo.height
+                                  ? `${logo.width}×${logo.height}`
+                                  : "Image"}{" "}
+                                · {(logo.bytes / 1024).toFixed(0)} KB
+                              </span>
+                            </span>
+                            <button
+                              type="button"
+                              className="btn-ghost p-1 text-red-300"
+                              onClick={() => void deleteLogo(logo)}
+                              disabled={logoUploading}
+                              aria-label={`Delete ${logo.name}`}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted">
+                        No logos uploaded yet. Add the first official logo
+                        above.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+
+                {graphicFor(graphicFormat) ? (
+                  <div className="grid gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={graphicFor(graphicFormat)!.url.replace(
+                        "/upload/",
+                        "/upload/f_png/",
+                      )}
+                      alt="Social graphic preview"
+                      className={`rounded-lg border border-border ${graphicFormat === "SQUARE" ? "max-w-sm" : "max-w-xs"} w-full`}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void downloadGraphic(
+                            graphicFor(graphicFormat)!,
+                            activePlatform,
+                          )
+                        }
+                        className="btn-secondary text-xs"
+                      >
+                        <Download className="size-3.5" /> Download
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void generateGraphic(graphicFormat)}
+                        disabled={busy !== null}
+                        className="btn-secondary text-xs"
+                      >
+                        {busy === `graphic-${graphicFormat}` ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <RefreshCw className="size-3.5" />
+                        )}{" "}
+                        Regenerate
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid gap-2">
+                    <p className="text-xs text-muted">
+                      No {graphicFormat.toLowerCase()} graphic yet.
+                    </p>
                     <button
                       type="button"
                       onClick={() => void generateGraphic(graphicFormat)}
                       disabled={busy !== null}
-                      className="btn-secondary text-xs"
+                      className="inline-flex w-fit items-center gap-2 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-[#001018] disabled:opacity-50"
                     >
-                      {busy === `graphic-${graphicFormat}` ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Regenerate
+                      {busy === `graphic-${graphicFormat}` ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="size-3.5" />
+                      )}
+                      Generate{" "}
+                      {graphicFormat === "SQUARE" ? "square" : "vertical"}{" "}
+                      graphic
                     </button>
                   </div>
-                </div>
-              ) : (
-                <div className="grid gap-2">
-                  <p className="text-xs text-muted">No {graphicFormat.toLowerCase()} graphic yet.</p>
-                  <button
-                    type="button"
-                    onClick={() => void generateGraphic(graphicFormat)}
-                    disabled={busy !== null}
-                    className="inline-flex w-fit items-center gap-2 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-[#001018] disabled:opacity-50"
-                  >
-                    {busy === `graphic-${graphicFormat}` ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-                    Generate {graphicFormat === "SQUARE" ? "square" : "vertical"} graphic
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Publishing status */}
-            <div className="premium-card p-5 grid gap-3">
-              <h2 className="text-sm font-semibold text-primary">Manual publishing status</h2>
-              <p className="text-xs text-muted">Mark as published only after you have published manually.</p>
-              <div className="flex flex-wrap gap-2">
-                {(["NOT_STARTED", "READY", "PUBLISHED"] as const).map((s) => {
-                  const v = variantFor(activePlatform);
-                  const active = v?.publishStatus === s;
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => void updateStatus(activePlatform, s)}
-                      disabled={busy !== null}
-                      className={`px-3 py-1.5 text-xs rounded-lg border ${active ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:border-accent/40"}`}
-                    >
-                      {s === "NOT_STARTED" ? "Not started" : s === "READY" ? "Ready to publish" : "Published"}
-                    </button>
-                  );
-                })}
+                )}
               </div>
-              {variantFor(activePlatform)?.publishedAt ? (
-                <p className="text-[11px] text-muted">
-                  Published at {new Date(variantFor(activePlatform)!.publishedAt!).toLocaleString()}
+
+              {/* Publishing status */}
+              <div className="premium-card p-5 grid gap-3">
+                <h2 className="text-sm font-semibold text-primary">
+                  Manual publishing status
+                </h2>
+                <p className="text-xs text-muted">
+                  Mark as published only after you have published manually.
                 </p>
+                <div className="flex flex-wrap gap-2">
+                  {(["NOT_STARTED", "READY", "PUBLISHED"] as const).map((s) => {
+                    const v = variantFor(activePlatform);
+                    const active = v?.publishStatus === s;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => void updateStatus(activePlatform, s)}
+                        disabled={busy !== null}
+                        className={`px-3 py-1.5 text-xs rounded-lg border ${active ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:border-accent/40"}`}
+                      >
+                        {s === "NOT_STARTED"
+                          ? "Not started"
+                          : s === "READY"
+                            ? "Ready to publish"
+                            : "Published"}
+                      </button>
+                    );
+                  })}
+                </div>
+                {variantFor(activePlatform)?.publishedAt ? (
+                  <p className="text-[11px] text-muted">
+                    Published at{" "}
+                    {new Date(
+                      variantFor(activePlatform)!.publishedAt!,
+                    ).toLocaleString()}
+                  </p>
+                ) : null}
+              </div>
+
+              {selectedPostId &&
+              (activePlatform === "FACEBOOK" ||
+                activePlatform === "INSTAGRAM") ? (
+                <MetaPublishPanel
+                  key={`${selectedPostId}-${activePlatform}`}
+                  postId={selectedPostId}
+                  platform={activePlatform}
+                  articleStatus={article?.status || ""}
+                  savedCaption={
+                    variantFor(activePlatform)?.editedCaption ||
+                    variantFor(activePlatform)?.generatedCaption ||
+                    ""
+                  }
+                  captionDraft={captionDrafts[activePlatform]}
+                  graphics={(kit?.graphics || []).map((graphic) => ({
+                    id: graphic.id,
+                    format: graphic.format,
+                    width: graphic.width,
+                    height: graphic.height,
+                  }))}
+                  revision={metaRevision}
+                />
               ) : null}
-            </div>
-          </>
-        )}
-      </section>
+            </>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
