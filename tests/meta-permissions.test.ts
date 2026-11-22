@@ -18,7 +18,12 @@ describe("meta permissions", () => {
 });
 
 describe("meta page publishing eligibility", () => {
-  const scopes = ["pages_manage_posts", "pages_read_engagement", "pages_show_list"];
+  const scopes = [
+    "pages_manage_posts",
+    "pages_read_engagement",
+    "pages_read_user_content",
+    "pages_show_list",
+  ];
 
   it("accepts CREATE_CONTENT without MANAGE", () => {
     expect(
@@ -69,6 +74,31 @@ describe("meta page publishing eligibility", () => {
     });
     expect(result.eligible).toBe(false);
     expect(result.reason).toMatch(/Missing permissions/i);
+  });
+
+  it("rejects missing pages_read_user_content", () => {
+    const result = evaluatePagePublishingEligibility({
+      tasks: ["CREATE_CONTENT"],
+      grantedScopes: ["pages_manage_posts", "pages_read_engagement", "pages_show_list"],
+      hasPageToken: true,
+    });
+    expect(result.eligible).toBe(false);
+    expect(result.reason).toMatch(/pages_read_user_content/i);
+  });
+
+  it("preserves the distinction between missing permission and missing task", () => {
+    const permissionResult = evaluatePagePublishingEligibility({
+      tasks: ["CREATE_CONTENT"],
+      grantedScopes: ["pages_show_list"],
+      hasPageToken: true,
+    });
+    const taskResult = evaluatePagePublishingEligibility({
+      tasks: ["MODERATE"],
+      grantedScopes: scopes,
+      hasPageToken: true,
+    });
+    expect(permissionResult.reason).toMatch(/Missing permissions/i);
+    expect(taskResult.reason).toMatch(/publishing task/i);
   });
 
   it("rejects a Page without an access token", () => {

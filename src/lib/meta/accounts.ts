@@ -211,6 +211,7 @@ export function evaluatePagePublishingEligibility(input: {
   const requiredScopes = [
     "pages_manage_posts",
     "pages_read_engagement",
+    "pages_read_user_content",
     "pages_show_list",
   ];
   const missingScopes = requiredScopes.filter(
@@ -699,6 +700,7 @@ export async function refreshMetaConnectionHealth(
     if (missingScopes.length) {
       healthStatus = "PERMISSION_MISSING";
       healthMessage = `Missing permissions: ${missingScopes.join(", ")}`;
+      eligible = false;
     } else if (account.platform === "FACEBOOK_PAGE") {
       const token = account.pageId ? pageTokens.get(account.pageId) : null;
       if (!token) {
@@ -718,11 +720,23 @@ export async function refreshMetaConnectionHealth(
             retry: false,
           });
           tasks = Array.isArray(page.tasks) ? page.tasks : [];
-          eligible = hasPagePublishingCapability(tasks);
+          const pageEligibilityResult = evaluatePagePublishingEligibility({
+            tasks,
+            grantedScopes: granted,
+            hasPageToken: true,
+          });
+          eligible = pageEligibilityResult.eligible;
           if (!eligible) {
-            healthStatus = "ATTENTION_REQUIRED";
-            healthMessage =
-              "Missing a Page publishing task (CREATE_CONTENT or MANAGE).";
+            if (pageEligibilityResult.reason?.includes("permissions")) {
+              healthStatus = "PERMISSION_MISSING";
+              healthMessage = pageEligibilityResult.reason;
+            } else if (pageEligibilityResult.reason?.includes("publishing task")) {
+              healthStatus = "ATTENTION_REQUIRED";
+              healthMessage = pageEligibilityResult.reason;
+            } else {
+              healthStatus = "ATTENTION_REQUIRED";
+              healthMessage = pageEligibilityResult.reason;
+            }
           }
         } catch (error) {
           if (error instanceof MetaGraphError) {

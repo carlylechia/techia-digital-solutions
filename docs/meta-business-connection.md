@@ -42,7 +42,7 @@ This integration uses **Instagram API with Facebook Login** exclusively:
 - Instagram publishing reuses the **parent Page access token**; no separate
   Instagram token is stored.
 
-Required OAuth scopes (all five are requested on every authorization):
+Required OAuth scopes (all six are requested on every authorization):
 
 1. `pages_show_list`
 2. `pages_read_engagement`
@@ -50,6 +50,12 @@ Required OAuth scopes (all five are requested on every authorization):
 4. `pages_manage_posts`
 5. `instagram_basic`
 6. `instagram_content_publish`
+
+Requesting these scopes does not by itself grant production use. The effective
+access level, app review, and approval requirements depend on the Meta app
+configuration and the permissions being used. Verify the app's configured
+access levels and completed review status before relying on the integration
+outside of test users and roles.
 
 Page publishing eligibility requires the authorizing user to hold a Page
 publishing task: `CREATE_CONTENT` or `MANAGE`. `MODERATE` alone is not
@@ -220,8 +226,16 @@ Reconciliation (`POST /api/meta/publications/{id}` with `action: "check"`):
 - Instagram: reads the container status; if `FINISHED`, completes publishing;
   if `PUBLISHED`, matches recent media by caption and timestamp; otherwise
   reports processing/error/expired.
-- A pending record older than two minutes with no external evidence is marked
-  `FAILED` (no post was found).
+- A stale `PENDING` Facebook publication is checked against the Page Feed.
+  A matching post is reconciled to `PUBLISHED`. A successful lookup with no
+  matching post remains `UNKNOWN_RESULT` because feed visibility may be delayed.
+  A failed or inconclusive lookup remains unresolved.
+- An interrupted Instagram publication without sufficient evidence remains
+  unresolved (`UNKNOWN_RESULT`).
+- `UNKNOWN_RESULT` retains `activeKey`. An unresolved publication cannot be
+  blindly retried; the administrator must reconcile it or explicitly resolve
+  it through the supported manual resolution action.
+- The lock is released only after a definitive terminal outcome.
 
 Manual resolution (SuperAdmin only):
 - `confirm_published` — marks the publication `PUBLISHED` (optional external
@@ -293,9 +307,16 @@ Run with `pnpm test`. CI provides PostgreSQL 16.
 ## Operational notes
 
 - Never commit real Meta credentials or encryption keys.
-- Rotate `META_TOKEN_ENCRYPTION_KEY` by setting `META_TOKEN_ENCRYPTION_KEY_PREVIOUS`
-  to the old key, deploying the new key, then removing the previous key once
-  all tokens have been re-encrypted.
+- Rotate `META_TOKEN_ENCRYPTION_KEY` operationally:
+  1. Set the old key as `META_TOKEN_ENCRYPTION_KEY_PREVIOUS`.
+  2. Deploy the new key as `META_TOKEN_ENCRYPTION_KEY`.
+  3. Reconnect or reauthorize every Meta connection so newly stored user and
+     Page tokens are encrypted under the new key.
+  4. Verify that no stored token still depends on the previous key before
+     removing `META_TOKEN_ENCRYPTION_KEY_PREVIOUS`.
+  The runtime can decrypt with the previous key, but it does not automatically
+  re-encrypt or migrate existing records. No undocumented rotation endpoint
+  exists.
 - Disconnecting a connection deletes the stored user token and all Page tokens.
 - Revoked tokens require a full reconnect (re-run OAuth).
 - Publication history is shared across SuperAdmins and preserved across
@@ -303,7 +324,7 @@ Run with `pnpm test`. CI provides PostgreSQL 16.
 
 ## Production activation checklist (not performed on this branch)
 
-- [ ] App review for the five scopes (if serving non-admin users).
+- [ ] App review for the six scopes (if serving non-admin users).
 - [ ] Register the exact `META_OAUTH_REDIRECT_URI` in the Meta app.
 - [ ] Set all environment variables in the deployment environment.
 - [ ] Run `prisma migrate deploy`.
