@@ -399,4 +399,438 @@ describe("meta accounts permission eligibility", () => {
     expect(refreshedAccount?.isEligible).toBe(true);
   });
 
+
+  it("keeps a CREATE_CONTENT Page eligible when only instagram_basic is missing", async () => {
+    if (!prisma) return;
+    const admin = await createAdmin();
+    if (!admin) return;
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_read_user_content",
+      "pages_manage_posts",
+      "instagram_content_publish",
+    ];
+    const connection = await createConnection(admin.id, grantedScopes);
+    if (!connection) return;
+    const pageAccount = await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "FACEBOOK_PAGE",
+        platformAccountId: "page-fb-only",
+        displayName: "Facebook Only Page",
+        pageId: "page-fb-only",
+        pageName: "Facebook Only Page",
+        encryptedAccessToken: encryptMetaToken("page-token-fb"),
+        tasks: ["CREATE_CONTENT"],
+        isEligible: false,
+        permissionStatus: "MISSING",
+        healthStatus: "PERMISSION_MISSING",
+      },
+    });
+    const instagramAccount = await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "INSTAGRAM",
+        platformAccountId: "ig-fb-only",
+        displayName: "Instagram Account",
+        pageId: "page-fb-only",
+        pageName: "Facebook Only Page",
+        tasks: ["CREATE_CONTENT"],
+        isEligible: true,
+        permissionStatus: "OK",
+        healthStatus: "HEALTHY",
+      },
+    });
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes("debug_token")) {
+        return jsonResponse({
+          data: {
+            is_valid: true,
+            app_id: "1234567890",
+            scopes: grantedScopes,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+          },
+        });
+      }
+      if (url.includes("page-fb-only")) {
+        return jsonResponse({ id: "page-fb-only", name: "Facebook Only Page", tasks: ["CREATE_CONTENT"] });
+      }
+      if (url.includes("ig-fb-only")) {
+        return jsonResponse({ id: "ig-fb-only", username: "igfbonly" });
+      }
+      return jsonResponse({});
+    }) as typeof fetch;
+
+    const refreshed = await refreshMetaConnectionHealth(connection.id, admin.id);
+    const refreshedPage = refreshed.accounts.find((item) => item.id === pageAccount.id);
+    const refreshedInstagram = refreshed.accounts.find((item) => item.id === instagramAccount.id);
+
+    expect(refreshed.status).toBe("ATTENTION_REQUIRED");
+    expect(refreshed.healthMessage).toMatch(/instagram_basic/i);
+    expect(refreshedPage?.permissionStatus).toBe("OK");
+    expect(refreshedPage?.healthStatus).toBe("HEALTHY");
+    expect(refreshedPage?.isEligible).toBe(true);
+    expect(refreshedInstagram?.permissionStatus).toBe("MISSING");
+    expect(refreshedInstagram?.isEligible).toBe(false);
+  });
+
+  it("keeps a MANAGE Page eligible when only instagram_content_publish is missing", async () => {
+    if (!prisma) return;
+    const admin = await createAdmin();
+    if (!admin) return;
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_read_user_content",
+      "pages_manage_posts",
+      "instagram_basic",
+    ];
+    const connection = await createConnection(admin.id, grantedScopes);
+    if (!connection) return;
+    const pageAccount = await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "FACEBOOK_PAGE",
+        platformAccountId: "page-manage-only",
+        displayName: "Managed Page",
+        pageId: "page-manage-only",
+        pageName: "Managed Page",
+        encryptedAccessToken: encryptMetaToken("page-token-manage"),
+        tasks: ["MANAGE"],
+        isEligible: false,
+        permissionStatus: "MISSING",
+        healthStatus: "PERMISSION_MISSING",
+      },
+    });
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes("debug_token")) {
+        return jsonResponse({
+          data: {
+            is_valid: true,
+            app_id: "1234567890",
+            scopes: grantedScopes,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+          },
+        });
+      }
+      if (url.includes("page-manage-only")) {
+        return jsonResponse({ id: "page-manage-only", name: "Managed Page", tasks: ["MANAGE"] });
+      }
+      return jsonResponse({});
+    }) as typeof fetch;
+
+    const refreshed = await refreshMetaConnectionHealth(connection.id, admin.id);
+    const refreshedPage = refreshed.accounts.find((item) => item.id === pageAccount.id);
+
+    expect(refreshedPage?.permissionStatus).toBe("OK");
+    expect(refreshedPage?.healthStatus).toBe("HEALTHY");
+    expect(refreshedPage?.isEligible).toBe(true);
+  });
+
+  it("marks a Page ineligible when pages_read_user_content is missing", async () => {
+    if (!prisma) return;
+    const admin = await createAdmin();
+    if (!admin) return;
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_manage_posts",
+      "instagram_basic",
+      "instagram_content_publish",
+    ];
+    const connection = await createConnection(admin.id, grantedScopes);
+    if (!connection) return;
+    const pageAccount = await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "FACEBOOK_PAGE",
+        platformAccountId: "page-missing-read",
+        displayName: "Read Permission Page",
+        pageId: "page-missing-read",
+        pageName: "Read Permission Page",
+        encryptedAccessToken: encryptMetaToken("page-token-read"),
+        tasks: ["CREATE_CONTENT"],
+        isEligible: true,
+        permissionStatus: "OK",
+        healthStatus: "HEALTHY",
+      },
+    });
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes("debug_token")) {
+        return jsonResponse({
+          data: {
+            is_valid: true,
+            app_id: "1234567890",
+            scopes: grantedScopes,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+          },
+        });
+      }
+      if (url.includes("page-missing-read")) {
+        return jsonResponse({ id: "page-missing-read", name: "Read Permission Page", tasks: ["CREATE_CONTENT"] });
+      }
+      return jsonResponse({});
+    }) as typeof fetch;
+
+    const refreshed = await refreshMetaConnectionHealth(connection.id, admin.id);
+    const refreshedPage = refreshed.accounts.find((item) => item.id === pageAccount.id);
+
+    expect(refreshedPage?.permissionStatus).toBe("MISSING");
+    expect(refreshedPage?.healthStatus).toBe("PERMISSION_MISSING");
+    expect(refreshedPage?.isEligible).toBe(false);
+    expect(refreshedPage?.healthMessage).toMatch(/pages_read_user_content/i);
+  });
+
+  it("marks a Page ineligible when it has neither publishing task", async () => {
+    if (!prisma) return;
+    const admin = await createAdmin();
+    if (!admin) return;
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_read_user_content",
+      "pages_manage_posts",
+      "instagram_basic",
+      "instagram_content_publish",
+    ];
+    const connection = await createConnection(admin.id, grantedScopes);
+    if (!connection) return;
+    const pageAccount = await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "FACEBOOK_PAGE",
+        platformAccountId: "page-no-task",
+        displayName: "No Task Page",
+        pageId: "page-no-task",
+        pageName: "No Task Page",
+        encryptedAccessToken: encryptMetaToken("page-token-task"),
+        tasks: ["MODERATE"],
+        isEligible: true,
+        permissionStatus: "OK",
+        healthStatus: "HEALTHY",
+      },
+    });
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes("debug_token")) {
+        return jsonResponse({
+          data: {
+            is_valid: true,
+            app_id: "1234567890",
+            scopes: grantedScopes,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+          },
+        });
+      }
+      if (url.includes("page-no-task")) {
+        return jsonResponse({ id: "page-no-task", name: "No Task Page", tasks: ["MODERATE"] });
+      }
+      return jsonResponse({});
+    }) as typeof fetch;
+
+    const refreshed = await refreshMetaConnectionHealth(connection.id, admin.id);
+    const refreshedPage = refreshed.accounts.find((item) => item.id === pageAccount.id);
+
+    expect(refreshedPage?.permissionStatus).toBe("OK");
+    expect(refreshedPage?.healthStatus).toBe("ATTENTION_REQUIRED");
+    expect(refreshedPage?.isEligible).toBe(false);
+    expect(refreshedPage?.healthMessage).toMatch(/publishing task/i);
+  });
+
+  it("marks a Page with an undecryptable token ineligible", async () => {
+    if (!prisma) return;
+    const admin = await createAdmin();
+    if (!admin) return;
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_read_user_content",
+      "pages_manage_posts",
+      "instagram_basic",
+      "instagram_content_publish",
+    ];
+    const connection = await createConnection(admin.id, grantedScopes);
+    if (!connection) return;
+    const pageAccount = await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "FACEBOOK_PAGE",
+        platformAccountId: "page-bad-token",
+        displayName: "Bad Token Page",
+        pageId: "page-bad-token",
+        pageName: "Bad Token Page",
+        encryptedAccessToken: "not-a-valid-token",
+        tasks: ["CREATE_CONTENT"],
+        isEligible: true,
+        permissionStatus: "OK",
+        healthStatus: "HEALTHY",
+      },
+    });
+
+    const refreshed = await refreshMetaConnectionHealth(connection.id, admin.id);
+    const refreshedPage = refreshed.accounts.find((item) => item.id === pageAccount.id);
+
+    expect(refreshedPage?.healthStatus).toBe("TOKEN_REVOKED");
+    expect(refreshedPage?.isEligible).toBe(false);
+  });
+
+  it("marks an expired connection and its accounts ineligible", async () => {
+    if (!prisma) return;
+    const admin = await createAdmin();
+    if (!admin) return;
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_read_user_content",
+      "pages_manage_posts",
+      "instagram_basic",
+      "instagram_content_publish",
+    ];
+    const connection = await prisma.metaConnection.create({
+      data: {
+        adminUserId: admin.id,
+        metaUserId: "meta-user-expired",
+        metaUserName: "Expired User",
+        encryptedUserToken: encryptMetaToken("user-token"),
+        status: "CONNECTED",
+        grantedPermissions: grantedScopes,
+        tokenExpiresAt: new Date(Date.now() - 60_000),
+        connectedById: admin.id,
+      },
+    });
+    created.connectionIds.push(connection.id);
+    const pageAccount = await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "FACEBOOK_PAGE",
+        platformAccountId: "page-expired",
+        displayName: "Expired Page",
+        pageId: "page-expired",
+        pageName: "Expired Page",
+        encryptedAccessToken: encryptMetaToken("page-token-expired"),
+        tasks: ["CREATE_CONTENT"],
+        isEligible: true,
+        permissionStatus: "OK",
+        healthStatus: "HEALTHY",
+      },
+    });
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes("debug_token")) {
+        return jsonResponse({
+          data: {
+            is_valid: true,
+            app_id: "1234567890",
+            scopes: grantedScopes,
+            expires_at: Math.floor(Date.now() / 1000) - 60,
+          },
+        });
+      }
+      return jsonResponse({});
+    }) as typeof fetch;
+
+    const refreshed = await refreshMetaConnectionHealth(connection.id, admin.id);
+    const refreshedPage = refreshed.accounts.find((item) => item.id === pageAccount.id);
+
+    expect(refreshed.status).toBe("EXPIRED");
+    expect(refreshedPage?.healthStatus).toBe("TOKEN_EXPIRED");
+    expect(refreshedPage?.isEligible).toBe(false);
+  });
+
+  it("restores Instagram eligibility when Instagram permissions are granted", async () => {
+    if (!prisma) return;
+    const admin = await createAdmin();
+    if (!admin) return;
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_read_user_content",
+      "pages_manage_posts",
+    ];
+    const connection = await createConnection(admin.id, grantedScopes);
+    if (!connection) return;
+    const pageAccount = await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "FACEBOOK_PAGE",
+        platformAccountId: "page-ig-restore",
+        displayName: "Parent Page",
+        pageId: "page-ig-restore",
+        pageName: "Parent Page",
+        encryptedAccessToken: encryptMetaToken("page-token-ig"),
+        tasks: ["CREATE_CONTENT"],
+        isEligible: true,
+        permissionStatus: "OK",
+        healthStatus: "HEALTHY",
+      },
+    });
+    const instagramAccount = await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "INSTAGRAM",
+        platformAccountId: "ig-restore",
+        displayName: "Instagram Restore",
+        pageId: "page-ig-restore",
+        pageName: "Parent Page",
+        tasks: ["CREATE_CONTENT"],
+        isEligible: false,
+        permissionStatus: "MISSING",
+        healthStatus: "PERMISSION_MISSING",
+      },
+    });
+
+    let refreshed = await refreshMetaConnectionHealth(connection.id, admin.id);
+    let refreshedInstagram = refreshed.accounts.find((item) => item.id === instagramAccount.id);
+    expect(refreshedInstagram?.isEligible).toBe(false);
+
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_read_user_content",
+      "pages_manage_posts",
+      "instagram_basic",
+      "instagram_content_publish",
+    ];
+    await prisma.metaConnection.update({
+      where: { id: connection.id },
+      data: { grantedPermissions: grantedScopes },
+    });
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes("debug_token")) {
+        return jsonResponse({
+          data: {
+            is_valid: true,
+            app_id: "1234567890",
+            scopes: grantedScopes,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+          },
+        });
+      }
+      if (url.includes("page-ig-restore")) {
+        return jsonResponse({ id: "page-ig-restore", name: "Parent Page", tasks: ["CREATE_CONTENT"] });
+      }
+      if (url.includes("ig-restore")) {
+        return jsonResponse({ id: "ig-restore", username: "igrestore" });
+      }
+      return jsonResponse({});
+    }) as typeof fetch;
+
+    refreshed = await refreshMetaConnectionHealth(connection.id, admin.id);
+    refreshedInstagram = refreshed.accounts.find((item) => item.id === instagramAccount.id);
+    expect(refreshedInstagram?.permissionStatus).toBe("OK");
+    expect(refreshedInstagram?.healthStatus).toBe("HEALTHY");
+    expect(refreshedInstagram?.isEligible).toBe(true);
+  });
+
 });

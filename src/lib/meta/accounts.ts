@@ -685,6 +685,7 @@ export async function refreshMetaConnectionHealth(
       data: {
         healthStatus: expired ? "TOKEN_EXPIRED" : "TOKEN_REVOKED",
         healthMessage: connectionMessage,
+        isEligible: false,
         lastHealthCheckAt: now,
       },
     });
@@ -731,11 +732,7 @@ export async function refreshMetaConnectionHealth(
     let tasks = account.tasks;
     let eligible = account.isEligible;
 
-    if (missingScopes.length) {
-      healthStatus = "PERMISSION_MISSING";
-      healthMessage = `Missing permissions: ${missingScopes.join(", ")}`;
-      eligible = false;
-    } else if (account.platform === "FACEBOOK_PAGE") {
+    if (account.platform === "FACEBOOK_PAGE") {
       if (missingPageScopes.length) {
         healthStatus = "PERMISSION_MISSING";
         healthMessage = `Missing permissions: ${missingPageScopes.join(", ")}`;
@@ -860,7 +857,12 @@ export async function refreshMetaConnectionHealth(
       data: {
         tasks,
         isEligible: eligible,
-        permissionStatus: missingScopes.length ? "MISSING" : "OK",
+        permissionStatus: (account.platform === "FACEBOOK_PAGE"
+          ? missingPageScopes
+          : missingInstagramScopes
+        ).length
+          ? "MISSING"
+          : "OK",
         healthStatus,
         healthMessage,
         lastValidatedAt: now,
