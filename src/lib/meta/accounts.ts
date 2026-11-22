@@ -859,7 +859,7 @@ export async function refreshMetaConnectionHealth(
         isEligible: eligible,
         permissionStatus: (account.platform === "FACEBOOK_PAGE"
           ? missingPageScopes
-          : missingInstagramScopes
+          : [...missingPageScopes, ...missingInstagramScopes]
         ).length
           ? "MISSING"
           : "OK",

@@ -199,7 +199,7 @@ describe("meta accounts permission eligibility", () => {
     });
 
     // mock page fetch returns tasks
-    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
       if (url.includes("debug_token")) {
         return jsonResponse({
@@ -758,7 +758,7 @@ describe("meta accounts permission eligibility", () => {
     ];
     const connection = await createConnection(admin.id, grantedScopes);
     if (!connection) return;
-    const pageAccount = await prisma.metaConnectedAccount.create({
+    await prisma.metaConnectedAccount.create({
       data: {
         connectionId: connection.id,
         platform: "FACEBOOK_PAGE",
@@ -831,6 +831,241 @@ describe("meta accounts permission eligibility", () => {
     expect(refreshedInstagram?.permissionStatus).toBe("OK");
     expect(refreshedInstagram?.healthStatus).toBe("HEALTHY");
     expect(refreshedInstagram?.isEligible).toBe(true);
+  });
+
+
+  it("marks an Instagram account permission-deficient when a Page permission is missing (Test A)", async () => {
+    if (!prisma) return;
+    const admin = await createAdmin();
+    if (!admin) return;
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_manage_posts",
+      "instagram_basic",
+      "instagram_content_publish",
+    ];
+    const connection = await createConnection(admin.id, grantedScopes);
+    if (!connection) return;
+    await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "FACEBOOK_PAGE",
+        platformAccountId: "page-ig-page-permission",
+        displayName: "Page",
+        pageId: "page-ig-page-permission",
+        pageName: "Page",
+        encryptedAccessToken: encryptMetaToken("page-token"),
+        tasks: ["CREATE_CONTENT"],
+        isEligible: true,
+        permissionStatus: "OK",
+        healthStatus: "HEALTHY",
+      },
+    });
+    const instagramAccount = await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "INSTAGRAM",
+        platformAccountId: "ig-page-permission",
+        displayName: "Instagram",
+        pageId: "page-ig-page-permission",
+        pageName: "Page",
+        tasks: ["CREATE_CONTENT"],
+        isEligible: true,
+        permissionStatus: "OK",
+        healthStatus: "HEALTHY",
+      },
+    });
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes("debug_token")) {
+        return jsonResponse({
+          data: {
+            is_valid: true,
+            app_id: "1234567890",
+            scopes: grantedScopes,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+          },
+        });
+      }
+      if (url.includes("page-ig-page-permission")) {
+        return jsonResponse({ id: "page-ig-page-permission", name: "Page", tasks: ["CREATE_CONTENT"] });
+      }
+      if (url.includes("ig-page-permission")) {
+        return jsonResponse({ id: "ig-page-permission", username: "igpagepermission" });
+      }
+      return jsonResponse({});
+    }) as typeof fetch;
+
+    const refreshed = await refreshMetaConnectionHealth(connection.id, admin.id);
+    const refreshedInstagram = refreshed.accounts.find((item) => item.id === instagramAccount.id);
+
+    expect(refreshedInstagram?.isEligible).toBe(false);
+    expect(refreshedInstagram?.healthStatus).toBe("PERMISSION_MISSING");
+    expect(refreshedInstagram?.permissionStatus).toBe("MISSING");
+  });
+
+  it("restores Instagram permission status when Page permissions are granted (Test B)", async () => {
+    if (!prisma) return;
+    const admin = await createAdmin();
+    if (!admin) return;
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_manage_posts",
+      "instagram_basic",
+      "instagram_content_publish",
+    ];
+    const connection = await createConnection(admin.id, grantedScopes);
+    if (!connection) return;
+    await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "FACEBOOK_PAGE",
+        platformAccountId: "page-ig-restore-permission",
+        displayName: "Parent Page",
+        pageId: "page-ig-restore-permission",
+        pageName: "Parent Page",
+        encryptedAccessToken: encryptMetaToken("page-token-restore"),
+        tasks: ["CREATE_CONTENT"],
+        isEligible: false,
+        permissionStatus: "MISSING",
+        healthStatus: "PERMISSION_MISSING",
+      },
+    });
+    const instagramAccount = await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "INSTAGRAM",
+        platformAccountId: "ig-restore-permission",
+        displayName: "Instagram Restore Permission",
+        pageId: "page-ig-restore-permission",
+        pageName: "Parent Page",
+        tasks: ["CREATE_CONTENT"],
+        isEligible: false,
+        permissionStatus: "MISSING",
+        healthStatus: "PERMISSION_MISSING",
+      },
+    });
+
+    const initialRefreshed = await refreshMetaConnectionHealth(connection.id, admin.id);
+    const initialInstagram = initialRefreshed.accounts.find((item) => item.id === instagramAccount.id);
+    expect(initialInstagram?.isEligible).toBe(false);
+    expect(initialInstagram?.permissionStatus).toBe("MISSING");
+
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_read_user_content",
+      "pages_manage_posts",
+      "instagram_basic",
+      "instagram_content_publish",
+    ];
+    await prisma.metaConnection.update({
+      where: { id: connection.id },
+      data: { grantedPermissions: grantedScopes },
+    });
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes("debug_token")) {
+        return jsonResponse({
+          data: {
+            is_valid: true,
+            app_id: "1234567890",
+            scopes: grantedScopes,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+          },
+        });
+      }
+      if (url.includes("page-ig-restore-permission")) {
+        return jsonResponse({ id: "page-ig-restore-permission", name: "Parent Page", tasks: ["CREATE_CONTENT"] });
+      }
+      if (url.includes("ig-restore-permission")) {
+        return jsonResponse({ id: "ig-restore-permission", username: "igrestorepermission" });
+      }
+      return jsonResponse({});
+    }) as typeof fetch;
+
+    const restored = await refreshMetaConnectionHealth(connection.id, admin.id);
+    const restoredInstagram = restored.accounts.find((item) => item.id === instagramAccount.id);
+
+    expect(restoredInstagram?.isEligible).toBe(true);
+    expect(restoredInstagram?.healthStatus).toBe("HEALTHY");
+    expect(restoredInstagram?.permissionStatus).toBe("OK");
+  });
+
+  it("marks an Instagram account permission-deficient when an Instagram permission is missing (Test D)", async () => {
+    if (!prisma) return;
+    const admin = await createAdmin();
+    if (!admin) return;
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_read_user_content",
+      "pages_manage_posts",
+      "instagram_content_publish",
+    ];
+    const connection = await createConnection(admin.id, grantedScopes);
+    if (!connection) return;
+    await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "FACEBOOK_PAGE",
+        platformAccountId: "page-ig-missing",
+        displayName: "Parent Page",
+        pageId: "page-ig-missing",
+        pageName: "Parent Page",
+        encryptedAccessToken: encryptMetaToken("page-token-ig-missing"),
+        tasks: ["CREATE_CONTENT"],
+        isEligible: true,
+        permissionStatus: "OK",
+        healthStatus: "HEALTHY",
+      },
+    });
+    const instagramAccount = await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "INSTAGRAM",
+        platformAccountId: "ig-missing",
+        displayName: "Instagram Missing",
+        pageId: "page-ig-missing",
+        pageName: "Parent Page",
+        tasks: ["CREATE_CONTENT"],
+        isEligible: true,
+        permissionStatus: "OK",
+        healthStatus: "HEALTHY",
+      },
+    });
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes("debug_token")) {
+        return jsonResponse({
+          data: {
+            is_valid: true,
+            app_id: "1234567890",
+            scopes: grantedScopes,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+          },
+        });
+      }
+      if (url.includes("page-ig-missing")) {
+        return jsonResponse({ id: "page-ig-missing", name: "Parent Page", tasks: ["CREATE_CONTENT"] });
+      }
+      if (url.includes("ig-missing")) {
+        return jsonResponse({ id: "ig-missing", username: "igmissing" });
+      }
+      return jsonResponse({});
+    }) as typeof fetch;
+
+    const refreshed = await refreshMetaConnectionHealth(connection.id, admin.id);
+    const refreshedInstagram = refreshed.accounts.find((item) => item.id === instagramAccount.id);
+
+    expect(refreshedInstagram?.isEligible).toBe(false);
+    expect(refreshedInstagram?.healthStatus).toBe("PERMISSION_MISSING");
+    expect(refreshedInstagram?.permissionStatus).toBe("MISSING");
   });
 
 });
