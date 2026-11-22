@@ -242,6 +242,36 @@ function pageEligibility(page: MetaPageAccount, grantedScopes: string[]) {
   });
 }
 
+export function evaluateInstagramPublishingEligibility(input: {
+  pageEligible: boolean;
+  grantedScopes: string[];
+  hasParentToken?: boolean;
+}) {
+  if (!input.pageEligible) {
+    return {
+      eligible: false,
+      reason: "The parent Facebook Page is not eligible for publishing.",
+    };
+  }
+  const requiredScopes = ["instagram_basic", "instagram_content_publish"];
+  const missingScopes = requiredScopes.filter(
+    (scope) => !input.grantedScopes.includes(scope),
+  );
+  if (missingScopes.length) {
+    return {
+      eligible: false,
+      reason: `Missing permissions: ${missingScopes.join(", ")}.`,
+    };
+  }
+  if (input.hasParentToken === false) {
+    return {
+      eligible: false,
+      reason: "The parent Facebook Page access token is unavailable.",
+    };
+  }
+  return { eligible: true, reason: null };
+}
+
 function instagramEligibility(
   page: MetaPageAccount,
   pageEligible: boolean,
@@ -249,25 +279,12 @@ function instagramEligibility(
 ) {
   const ig = page.instagram_business_account;
   if (!ig?.id) return { present: false, eligible: false, reason: null };
-  if (!pageEligible) {
-    return {
-      present: true,
-      eligible: false,
-      reason: "The parent Facebook Page is not eligible for publishing.",
-    };
-  }
-  const requiredScopes = ["instagram_basic", "instagram_content_publish"];
-  const missingScopes = requiredScopes.filter(
-    (scope) => !grantedScopes.includes(scope),
-  );
-  if (missingScopes.length) {
-    return {
-      present: true,
-      eligible: false,
-      reason: `Missing permissions: ${missingScopes.join(", ")}.`,
-    };
-  }
-  return { present: true, eligible: true, reason: null };
+  const result = evaluateInstagramPublishingEligibility({
+    pageEligible,
+    grantedScopes,
+    hasParentToken: Boolean(page.access_token),
+  });
+  return { present: true, eligible: result.eligible, reason: result.reason };
 }
 
 /**
@@ -620,6 +637,19 @@ export async function refreshMetaConnectionHealth(
   const missingScopes = META_OAUTH_SCOPES.filter(
     (scope) => !granted.includes(scope),
   );
+  const pageRequiredScopes = [
+    "pages_manage_posts",
+    "pages_read_engagement",
+    "pages_read_user_content",
+    "pages_show_list",
+  ];
+  const instagramRequiredScopes = ["instagram_basic", "instagram_content_publish"];
+  const missingPageScopes = pageRequiredScopes.filter(
+    (scope) => !granted.includes(scope),
+  );
+  const missingInstagramScopes = instagramRequiredScopes.filter(
+    (scope) => !granted.includes(scope),
+  );
 
   const connectionStatus = !valid
     ? "REVOKED"
@@ -670,8 +700,12 @@ export async function refreshMetaConnectionHealth(
     where: { connectionId: connection.id, disconnectedAt: null },
     take: 25,
   });
+  const orderedAccounts = [...accounts].sort((a, b) =>
+    a.platform === b.platform ? 0 : a.platform === "FACEBOOK_PAGE" ? -1 : 1,
+  );
+  const pageEligibilityByPageId = new Map<string, boolean>();
   const pageTokens = new Map<string, string>();
-  for (const account of accounts) {
+  for (const account of orderedAccounts) {
     if (account.platform === "FACEBOOK_PAGE" && account.pageId) {
       try {
         if (account.encryptedAccessToken)
@@ -702,83 +736,120 @@ export async function refreshMetaConnectionHealth(
       healthMessage = `Missing permissions: ${missingScopes.join(", ")}`;
       eligible = false;
     } else if (account.platform === "FACEBOOK_PAGE") {
-      const token = account.pageId ? pageTokens.get(account.pageId) : null;
-      if (!token) {
-        healthStatus = "TOKEN_REVOKED";
-        healthMessage =
-          "The Page access token is unavailable. Reconnect this Page.";
+      if (missingPageScopes.length) {
+        healthStatus = "PERMISSION_MISSING";
+        healthMessage = `Missing permissions: ${missingPageScopes.join(", ")}`;
+        eligible = false;
       } else {
-        try {
-          const page = await metaGraphRequest<{
-            id: string;
-            name?: string;
-            tasks?: string[];
-          }>(account.platformAccountId, {
-            method: "GET",
-            params: { fields: "id,name,tasks" },
-            accessToken: token,
-            retry: false,
-          });
-          tasks = Array.isArray(page.tasks) ? page.tasks : [];
-          const pageEligibilityResult = evaluatePagePublishingEligibility({
-            tasks,
-            grantedScopes: granted,
-            hasPageToken: true,
-          });
-          eligible = pageEligibilityResult.eligible;
-          if (!eligible) {
-            if (pageEligibilityResult.reason?.includes("permissions")) {
-              healthStatus = "PERMISSION_MISSING";
-              healthMessage = pageEligibilityResult.reason;
-            } else if (pageEligibilityResult.reason?.includes("publishing task")) {
-              healthStatus = "ATTENTION_REQUIRED";
-              healthMessage = pageEligibilityResult.reason;
+        const token = account.pageId ? pageTokens.get(account.pageId) : null;
+        if (!token) {
+          healthStatus = "TOKEN_REVOKED";
+          healthMessage =
+            "The Page access token is unavailable. Reconnect this Page.";
+          eligible = false;
+        } else {
+          try {
+            const page = await metaGraphRequest<{
+              id: string;
+              name?: string;
+              tasks?: string[];
+            }>(account.platformAccountId, {
+              method: "GET",
+              params: { fields: "id,name,tasks" },
+              accessToken: token,
+              retry: false,
+            });
+            tasks = Array.isArray(page.tasks) ? page.tasks : [];
+            const pageEligibilityResult = evaluatePagePublishingEligibility({
+              tasks,
+              grantedScopes: granted,
+              hasPageToken: true,
+            });
+            eligible = pageEligibilityResult.eligible;
+            if (!eligible) {
+              if (pageEligibilityResult.reason?.includes("permissions")) {
+                healthStatus = "PERMISSION_MISSING";
+                healthMessage = pageEligibilityResult.reason;
+              } else {
+                healthStatus = "ATTENTION_REQUIRED";
+                healthMessage = pageEligibilityResult.reason;
+              }
+            }
+          } catch (error) {
+            if (error instanceof MetaGraphError) {
+              healthStatus =
+                error.category === "permission"
+                  ? "PERMISSION_MISSING"
+                  : "TOKEN_REVOKED";
+              healthMessage = error.message;
+              eligible = false;
             } else {
               healthStatus = "ATTENTION_REQUIRED";
-              healthMessage = pageEligibilityResult.reason;
+              healthMessage = "The Page could not be validated.";
+              eligible = false;
             }
-          }
-        } catch (error) {
-          if (error instanceof MetaGraphError) {
-            healthStatus =
-              error.category === "permission"
-                ? "PERMISSION_MISSING"
-                : "TOKEN_REVOKED";
-            healthMessage = error.message;
-          } else {
-            healthStatus = "ATTENTION_REQUIRED";
-            healthMessage = "The Page could not be validated.";
           }
         }
       }
+      pageEligibilityByPageId.set(account.platformAccountId, eligible);
     } else {
-      const parentToken = account.pageId
-        ? pageTokens.get(account.pageId)
-        : null;
-      if (!parentToken) {
-        healthStatus = "ATTENTION_REQUIRED";
-        healthMessage =
-          "Reconnect the parent Facebook Page so Instagram publishing can use its token.";
+      const relevantMissingScopes = [
+        ...missingPageScopes,
+        ...missingInstagramScopes,
+      ];
+      if (relevantMissingScopes.length) {
+        healthStatus = "PERMISSION_MISSING";
+        healthMessage = `Missing permissions: ${relevantMissingScopes.join(", ")}`;
         eligible = false;
       } else {
-        try {
-          await metaGraphRequest<{ id: string }>(account.platformAccountId, {
-            method: "GET",
-            params: { fields: "id,username" },
-            accessToken: parentToken,
-            retry: false,
+        const parentEligible =
+          pageEligibilityByPageId.get(account.pageId || "") ??
+          hasPagePublishingCapability(account.tasks);
+        const parentToken = account.pageId
+          ? pageTokens.get(account.pageId)
+          : null;
+        const instagramEligibilityResult =
+          evaluateInstagramPublishingEligibility({
+            pageEligible: parentEligible,
+            grantedScopes: granted,
+            hasParentToken: Boolean(parentToken),
           });
-        } catch (error) {
-          if (error instanceof MetaGraphError) {
-            healthStatus =
-              error.category === "permission"
-                ? "PERMISSION_MISSING"
-                : "ATTENTION_REQUIRED";
-            healthMessage = error.message;
-            eligible = false;
+        eligible = instagramEligibilityResult.eligible;
+        if (!eligible) {
+          if (instagramEligibilityResult.reason?.includes("permissions")) {
+            healthStatus = "PERMISSION_MISSING";
+            healthMessage = instagramEligibilityResult.reason;
+          } else if (!parentToken) {
+            healthStatus = "ATTENTION_REQUIRED";
+            healthMessage =
+              "Reconnect the parent Facebook Page so Instagram publishing can use its token.";
           } else {
             healthStatus = "ATTENTION_REQUIRED";
-            healthMessage = "The Instagram account could not be validated.";
+            healthMessage =
+              instagramEligibilityResult.reason ||
+              "The Instagram account could not be validated.";
+          }
+        } else if (parentToken) {
+          try {
+            await metaGraphRequest<{ id: string }>(account.platformAccountId, {
+              method: "GET",
+              params: { fields: "id,username" },
+              accessToken: parentToken,
+              retry: false,
+            });
+          } catch (error) {
+            if (error instanceof MetaGraphError) {
+              healthStatus =
+                error.category === "permission"
+                  ? "PERMISSION_MISSING"
+                  : "ATTENTION_REQUIRED";
+              healthMessage = error.message;
+              eligible = false;
+            } else {
+              healthStatus = "ATTENTION_REQUIRED";
+              healthMessage = "The Instagram account could not be validated.";
+              eligible = false;
+            }
           }
         }
       }
@@ -789,9 +860,7 @@ export async function refreshMetaConnectionHealth(
       data: {
         tasks,
         isEligible: eligible,
-        permissionStatus: missingScopes.length
-          ? "MISSING"
-          : account.permissionStatus,
+        permissionStatus: missingScopes.length ? "MISSING" : "OK",
         healthStatus,
         healthMessage,
         lastValidatedAt: now,

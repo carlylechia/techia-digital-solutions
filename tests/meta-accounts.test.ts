@@ -224,4 +224,179 @@ describe("meta accounts permission eligibility", () => {
     expect(refreshedAccount?.healthStatus).toBe("HEALTHY");
     expect(refreshedAccount?.isEligible).toBe(true);
   });
+
+  it("keeps a Facebook Page eligible when only Instagram permissions are missing", async () => {
+    if (!prisma) return;
+    const admin = await createAdmin();
+    if (!admin) return;
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_read_user_content",
+      "pages_manage_posts",
+    ];
+    const connection = await createConnection(admin.id, grantedScopes);
+    if (!connection) return;
+
+    const discovery = await discoverMetaAssets(connection.id, admin.id);
+    expect(discovery.pages[0].isEligible).toBe(true);
+    expect(discovery.pages[0].instagram?.isEligible).toBe(false);
+    expect(discovery.pages[0].instagram?.ineligibilityReason).toMatch(
+      /instagram_basic|instagram_content_publish/i,
+    );
+  });
+
+  it("keeps a MANAGE Page eligible when instagram_content_publish is missing", async () => {
+    if (!prisma) return;
+    const admin = await createAdmin();
+    if (!admin) return;
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_read_user_content",
+      "pages_manage_posts",
+    ];
+    const connection = await prisma.metaConnection.create({
+      data: {
+        adminUserId: admin.id,
+        metaUserId: "meta-user-manage",
+        metaUserName: "Meta Manager",
+        encryptedUserToken: encryptMetaToken("user-token"),
+        status: "CONNECTED",
+        grantedPermissions: grantedScopes,
+        connectedById: admin.id,
+      },
+    });
+    created.connectionIds.push(connection.id);
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes("me/accounts")) {
+        return jsonResponse({
+          data: [
+            {
+              id: "page-manage",
+              name: "Managed Page",
+              access_token: "page-token-456",
+              tasks: ["MANAGE"],
+            },
+          ],
+        });
+      }
+      return jsonResponse({});
+    }) as typeof fetch;
+
+    const discovery = await discoverMetaAssets(connection.id, admin.id);
+    expect(discovery.pages[0].isEligible).toBe(true);
+  });
+
+  it("marks a Page ineligible during health refresh when its token is missing", async () => {
+    if (!prisma) return;
+    const admin = await createAdmin();
+    if (!admin) return;
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_read_user_content",
+      "pages_manage_posts",
+      "instagram_basic",
+      "instagram_content_publish",
+    ];
+    const connection = await createConnection(admin.id, grantedScopes);
+    if (!connection) return;
+    const account = await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "FACEBOOK_PAGE",
+        platformAccountId: "page-tokenless",
+        displayName: "Tokenless Page",
+        pageId: "page-tokenless",
+        pageName: "Tokenless Page",
+        encryptedAccessToken: null,
+        tasks: ["CREATE_CONTENT"],
+        isEligible: true,
+        permissionStatus: "OK",
+        healthStatus: "HEALTHY",
+      },
+    });
+
+    const refreshed = await refreshMetaConnectionHealth(connection.id, admin.id);
+    const refreshedAccount = refreshed.accounts.find((item) => item.id === account.id);
+    expect(refreshedAccount?.healthStatus).toBe("TOKEN_REVOKED");
+    expect(refreshedAccount?.isEligible).toBe(false);
+    expect(refreshedAccount?.healthMessage).toMatch(/access token/i);
+  });
+
+  it("restores Page eligibility when the missing permission is granted", async () => {
+    if (!prisma) return;
+    const admin = await createAdmin();
+    if (!admin) return;
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_manage_posts",
+    ];
+    const connection = await createConnection(admin.id, grantedScopes);
+    if (!connection) return;
+    const account = await prisma.metaConnectedAccount.create({
+      data: {
+        connectionId: connection.id,
+        platform: "FACEBOOK_PAGE",
+        platformAccountId: "page-restore",
+        displayName: "Restored Page",
+        pageId: "page-restore",
+        pageName: "Restored Page",
+        encryptedAccessToken: encryptMetaToken("page-token-789"),
+        tasks: ["CREATE_CONTENT"],
+        isEligible: false,
+        permissionStatus: "MISSING",
+        healthStatus: "PERMISSION_MISSING",
+      },
+    });
+
+    // First refresh keeps it ineligible.
+    let refreshed = await refreshMetaConnectionHealth(connection.id, admin.id);
+    let refreshedAccount = refreshed.accounts.find((item) => item.id === account.id);
+    expect(refreshedAccount?.isEligible).toBe(false);
+
+    // Grant the missing permission and refresh again.
+    grantedScopes = [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_read_user_content",
+      "pages_manage_posts",
+      "instagram_basic",
+      "instagram_content_publish",
+    ];
+    await prisma.metaConnection.update({
+      where: { id: connection.id },
+      data: { grantedPermissions: grantedScopes },
+    });
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.includes("debug_token")) {
+        return jsonResponse({
+          data: {
+            is_valid: true,
+            app_id: "1234567890",
+            scopes: grantedScopes,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+          },
+        });
+      }
+      if (url.includes("page-restore")) {
+        return jsonResponse({ id: "page-restore", name: "Restored Page", tasks: ["CREATE_CONTENT"] });
+      }
+      return jsonResponse({});
+    }) as typeof fetch;
+
+    refreshed = await refreshMetaConnectionHealth(connection.id, admin.id);
+    refreshedAccount = refreshed.accounts.find((item) => item.id === account.id);
+    expect(refreshed.status).toBe("CONNECTED");
+    expect(refreshedAccount?.permissionStatus).toBe("OK");
+    expect(refreshedAccount?.healthStatus).toBe("HEALTHY");
+    expect(refreshedAccount?.isEligible).toBe(true);
+  });
+
 });
