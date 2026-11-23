@@ -14,7 +14,7 @@ import { normalizeHomepagePicks } from "./public-feed";
 import { blogAuthorProfileSchema, blogCategorySchema, blogMediaMetadataSchema, blogPostPayloadSchema, blogTagSchema, blogTransitionSchema, writerInviteSchema, writerPasswordSchema, type BlogPostPayload } from "./validation";
 import { BlogConflictError, BlogPublicationError, createBlogPost, deleteUnpublishedBlogPost, invalidateBlogCache, transitionBlogPost, updateBlogPost } from "./service";
 import { translateEditorialArticle, type EditorialArticleTranslation } from "@/lib/ai/editorial-service";
-import { editEditorialImage, generateEditorialImage } from "@/lib/ai/editorial-image-service";
+import { editEditorialImage, generateEditorialImage, EditorialAiError } from "@/lib/ai/editorial-image-service";
 import {
   ensureTranslationGroupForSource,
   findExistingFrenchTranslation,
@@ -130,37 +130,78 @@ async function resolveTranslationImage(input: {
     ? "The English featured image was reused instead."
     : "The draft has no featured image yet; add one before publishing.";
 
-  try {
-    const image = effectiveMode === "translate"
-      ? await editEditorialImage({
-          sourceImageUrl: input.source.featuredImageUrl,
-          articleTitle: input.translated.title,
-          altText: fallbackAlt,
-          imagePrompt: input.translated.imagePrompt,
-        }, input.actor.id)
-      : await generateEditorialImage({
+  function isRetryableImageError(error: unknown) {
+    if (!(error instanceof EditorialAiError)) return true;
+    return !["disabled", "not_configured", "auth", "invalid_input"].includes(error.category);
+  }
+
+  async function attemptImage(mode: "translate" | "generate") {
+    const maxAttempts = 2;
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        if (mode === "translate") {
+          return await editEditorialImage({
+            sourceImageUrl: input.source.featuredImageUrl,
+            articleTitle: input.translated.title,
+            altText: fallbackAlt,
+            imagePrompt: input.translated.imagePrompt,
+          }, input.actor.id);
+        }
+        return await generateEditorialImage({
           imagePrompt: input.translated.imagePrompt,
           altText: fallbackAlt,
           articleTitle: input.translated.title,
         }, input.actor.id);
-
-    return {
-      featuredImageUrl: image.url,
-      featuredImagePublicId: image.publicId,
-      featuredImageAlt: image.altText || fallbackAlt,
-      ogImageUrl: image.url,
-      ogImagePublicId: image.publicId,
-    };
-  } catch (error) {
-    const attempted = effectiveMode === "translate"
-      ? "translate the text in the English featured image"
-      : "generate a new French featured image";
-    const reason = error instanceof Error && error.message ? ` ${error.message}` : "";
-    return {
-      ...reused,
-      warning: `We could not ${attempted}.${reason} ${fallbackNote}`,
-    };
+      } catch (error) {
+        lastError = error;
+        if (attempt === maxAttempts - 1 || !isRetryableImageError(error)) break;
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error("Image operation failed.");
   }
+
+  // Prefer the requested operation. If image translation cannot be completed,
+  // retry it once and then attempt a fresh generation before falling back to
+  // the English image, so a transient provider failure does not silently leave
+  // the French draft with an unchanged image.
+  const operations: Array<"translate" | "generate"> = effectiveMode === "translate"
+    ? ["translate", "generate"]
+    : ["generate"];
+
+  let lastError: unknown = null;
+  let attemptedTranslation = false;
+  for (const operation of operations) {
+    if (operation === "translate" && !input.source.featuredImageUrl) continue;
+    attemptedTranslation = attemptedTranslation || operation === "translate";
+    try {
+      const image = await attemptImage(operation);
+      const usedFallbackGeneration = effectiveMode === "translate" && operation === "generate";
+      return {
+        featuredImageUrl: image.url,
+        featuredImagePublicId: image.publicId,
+        featuredImageAlt: image.altText || fallbackAlt,
+        ogImageUrl: image.url,
+        ogImagePublicId: image.publicId,
+        ...(usedFallbackGeneration
+          ? { warning: "The English image text could not be translated after retrying, so a new French featured image was generated instead." }
+          : {}),
+      };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  const attempted = effectiveMode === "translate"
+    ? attemptedTranslation
+      ? "translate the text in the English featured image"
+      : "generate a new French featured image"
+    : "generate a new French featured image";
+  const reason = lastError instanceof Error && lastError.message ? ` ${lastError.message}` : "";
+  return {
+    ...reused,
+    warning: `We could not ${attempted}.${reason} ${fallbackNote}`,
+  };
 }
 
 export async function translateBlogPostToFrenchAction(
