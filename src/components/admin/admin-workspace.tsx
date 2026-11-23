@@ -770,6 +770,11 @@ export function AdminWorkspace({ locale, data, currentUser }: AdminWorkspaceProp
             <Link href="/admin/blog" className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-background">
               <span className="flex min-w-0 items-start gap-3"><BookOpenText className="mt-0.5 size-4 shrink-0 text-accent" /><span className="min-w-0"><span className="block text-sm font-semibold text-primary">Editorial Studio</span><span className="mt-0.5 block text-xs text-muted">Review and publish teChia insights</span></span></span><ExternalLink className="mt-0.5 size-4 shrink-0 text-muted" />
             </Link>
+            {currentUser.roleLevel >= 100 ? (
+              <Link href="/admin/blog/social-share" className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-background">
+                <span className="flex min-w-0 items-start gap-3"><Sparkles className="mt-0.5 size-4 shrink-0 text-accent" /><span className="min-w-0"><span className="block text-sm font-semibold text-primary">Social Share Kit</span><span className="mt-0.5 block text-xs text-muted">Generate captions and branded graphics from articles.</span></span></span><ExternalLink className="mt-0.5 size-4 shrink-0 text-muted" />
+              </Link>
+            ) : null}
           </div>
         ) : null}
         {can("dashboard.view") ? (
