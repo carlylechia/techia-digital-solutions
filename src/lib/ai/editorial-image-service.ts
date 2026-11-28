@@ -344,6 +344,61 @@ async function fetchSourceImage(sourceImageUrl: string) {
  * the rest of the composition. Used by the French translation workflow when the
  * editor chooses "translate the image text".
  */
+export async function editEditorialImageInstruction(input: {
+  sourceImageUrl: string;
+  instruction: string;
+  altText?: string;
+  articleTitle?: string;
+}, actorId: string): Promise<EditorialImageResult> {
+  if (!isEditorialImageEnabled()) throw new EditorialAiError("disabled", "Editorial image editing is disabled.");
+  if (!input.sourceImageUrl.trim()) throw new EditorialAiError("invalid_input", "The source image is missing.");
+  if (!input.instruction.trim()) throw new EditorialAiError("invalid_input", "An edit instruction is required.");
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new EditorialAiError("not_configured", "OPENAI_API_KEY is not configured.");
+
+  const model = getEditorialImageModel();
+  if (!model) throw new EditorialAiError("not_configured", "OPENAI_EDITORIAL_IMAGE_MODEL is not configured.");
+
+  const source = await fetchSourceImage(input.sourceImageUrl);
+  const instruction = input.instruction.trim();
+  const prompt = [
+    "Edit the supplied image according to this instruction:",
+    instruction,
+    "Preserve the overall composition, crop, subjects, objects, colours, lighting, camera angle, graphic style, and brand feel.",
+    "Apply only the requested correction. Do not add text, watermarks, logos, captions, or unrelated changes.",
+    "If the instruction refers to an anatomical or object defect, fix only that defect and keep everything else unchanged.",
+    input.articleTitle ? `Article title for context: "${input.articleTitle}".` : "",
+  ].filter(Boolean).join(" ");
+
+  return runEditorialImageJob({
+    actorId,
+    model,
+    altText: (input.altText && input.altText.trim()) || input.articleTitle || "Editorial illustration",
+    auditAction: "blog.ai_image_edited",
+    providerCall: () => {
+      const form = new FormData();
+      form.set("model", model);
+      form.set("image", new File([new Uint8Array(source.buffer)], source.filename, { type: source.mimeType }));
+      form.set("prompt", prompt);
+      form.set("n", "1");
+      form.set("size", IMAGE_SIZE);
+      form.set("quality", "high");
+      form.set("output_format", "png");
+      if (/^gpt-image/i.test(model)) form.set("input_fidelity", "high");
+      return fetchProviderImage(
+        "https://api.openai.com/v1/images/edits",
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}` },
+          body: form,
+        },
+        "editing",
+      );
+    },
+  });
+}
+
 export async function editEditorialImage(input: EditorialImageEditInput, actorId: string): Promise<EditorialImageResult> {
   if (!isEditorialImageEnabled()) throw new EditorialAiError("disabled", "Editorial image generation is disabled.");
   if (!input.sourceImageUrl.trim()) throw new EditorialAiError("invalid_input", "The source image is missing.");

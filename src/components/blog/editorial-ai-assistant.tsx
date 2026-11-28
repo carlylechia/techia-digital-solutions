@@ -101,6 +101,8 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
   const [imageAlt, setImageAlt] = useState("");
   const [imageResult, setImageResult] = useState<ImageResult | null>(null);
   const [imagePending, setImagePending] = useState(false);
+  const [imageEditInstruction, setImageEditInstruction] = useState("");
+  const [imageEditPending, setImageEditPending] = useState(false);
   const [inserted, setInserted] = useState(false);
 
   const [topic, setTopic] = useState("");
@@ -252,6 +254,36 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
       setError(cause instanceof Error ? cause.message : "Image generation failed.");
     } finally {
       setImagePending(false);
+    }
+  }
+
+  async function runImageEdit() {
+    if (!imageResult || !imageEditInstruction.trim()) {
+      setError("An edit instruction is required.");
+      return;
+    }
+    setImageEditPending(true);
+    setError(null);
+    try {
+      const result = await postJson<{ ok: true } & ImageResult>("/api/editorial/ai/image/edit", {
+        sourceImageUrl: imageResult.url,
+        instruction: imageEditInstruction,
+        altText: imageResult.altText || imageAlt || undefined,
+        articleTitle: article?.title,
+      });
+      setImageResult({
+        url: result.url,
+        publicId: result.publicId,
+        altText: result.altText,
+        width: result.width,
+        height: result.height,
+        model: result.model,
+      });
+      setImageEditInstruction("");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Image editing failed.");
+    } finally {
+      setImageEditPending(false);
     }
   }
 
@@ -647,6 +679,26 @@ export function EditorialAiAssistant({ locale, disabled, onInsert, hasExistingCo
             <div className="grid gap-2">
               <img src={imageResult.url} alt={imageResult.altText} className="max-h-64 w-full rounded-lg object-cover" />
               <p className="text-[11px] text-muted">Cloudinary: {imageResult.publicId}</p>
+              <label className="form-label text-xs">
+                Fix or edit the generated image
+                <textarea
+                  className={`${inputClass} min-h-20`}
+                  value={imageEditInstruction}
+                  onChange={(e) => setImageEditInstruction(e.target.value)}
+                  placeholder="Example: remove the duplicate left hand and correct the arm anatomy while keeping the rest of the image unchanged."
+                />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void runImageEdit()}
+                  disabled={imageEditPending || !imageEditInstruction.trim()}
+                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-semibold text-primary transition hover:border-accent disabled:opacity-50"
+                >
+                  {imageEditPending ? <Loader2 className="size-3.5 animate-spin" /> : <Wand2 className="size-3.5" />}
+                  Apply image fix
+                </button>
+              </div>
             </div>
           ) : null}
         </div>
