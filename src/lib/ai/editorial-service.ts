@@ -79,7 +79,7 @@ articleContent must be clean Markdown with H2/H3 headings, introduction, body se
 - Include 2-4 internal Markdown links to relevant teChia services inside the body (use relative paths like /services#seo, /services#website-design-development, /services#business-automation, /services#ai-solutions, /services#digital-marketing, /services#custom-business-software). Only link to services that genuinely fit the topic.
 - The SEO title, meta description and excerpt must be optimized for the focus keyword and stay within their length limits.
 - suggestedInternalLinks must list the same service links you embedded, with anchor text and a short reason.
-imagePrompt must describe a clean, professional, text-free, logo-free editorial illustration suitable for a 16:9 featured image. No embedded text, no watermarks, no distorted faces or hands.
+imagePrompt must describe a clean, professional, text-free, logo-free editorial illustration suitable for a 16:9 featured image. No embedded text, no watermarks, no distorted faces or hands. Whenever people or places are depicted, show Black Africans in authentic African settings (workplaces, cities, communities, landscapes) and reflect teChia's African and diaspora audience; never default to white, European or American people/settings.
 suggestedSlug must be lowercase, URL-safe, hyphenated.
 Return JSON only.`;
 }
@@ -682,7 +682,7 @@ Translation rules:
 - suggestedCategory is a concise, natural French category name that mirrors the source category.
 - suggestedTags is 3-8 concise French tags that describe the article. They must be natural French, not English words.
 - focusKeyword is the French focus topic or keyword phrase, not a direct word-for-word calque.
-- imagePrompt must be written in English and describe a clean, professional, text-free, logo-free 16:9 editorial illustration for the French article. No embedded text, no watermarks, no distorted faces or hands.
+- imagePrompt must be written in English and describe a clean, professional, text-free, logo-free 16:9 editorial illustration for the French article. No embedded text, no watermarks, no distorted faces or hands. Whenever people or places are depicted, show Black Africans in authentic African settings and reflect teChia's African and diaspora audience; never default to white, European or American people/settings.
 - ctaTitle, ctaDescription and ctaLabel translate the source CTA. Return an empty string for any CTA field that has no source value.
 - suggestedSlug must be lowercase, URL-safe, hyphenated, and based on the French title.
 - Return JSON only with exactly these keys: title, suggestedSlug, excerpt, articleContent, seoTitle, metaDescription, focusKeyword, imagePrompt, imageAltText, suggestedCategory, suggestedTags, ctaTitle, ctaDescription, ctaLabel.`,

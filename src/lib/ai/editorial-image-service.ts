@@ -266,7 +266,7 @@ export async function generateEditorialImage(input: z.infer<typeof editorialImag
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
           body: JSON.stringify({
             model,
-            prompt: `${validated.data.imagePrompt}\n\nStyle: professional, clean, premium digital solutions brand, text-free, logo-free, no watermarks, no embedded typography, landscape 16:9 editorial artwork.`,
+            prompt: `${validated.data.imagePrompt}\n\nStyle: professional, clean, premium digital solutions brand, text-free, logo-free, no watermarks, no embedded typography, landscape 16:9 editorial artwork. People and places must depict Black Africans in authentic African settings; never default to white, European or American people/settings.`,
             n: 1,
             size: IMAGE_SIZE,
             quality: "high",
@@ -367,7 +367,9 @@ export async function editEditorialImageInstruction(input: {
     instruction,
     "Preserve the overall composition, crop, subjects, objects, colours, lighting, camera angle, graphic style, and brand feel.",
     "Apply only the requested correction. Do not add text, watermarks, logos, captions, or unrelated changes.",
+    "Follow the instruction exactly and completely, especially corrections to people, ethnicity, anatomy, objects, or setting.",
     "If the instruction refers to an anatomical or object defect, fix only that defect and keep everything else unchanged.",
+    "People and places must depict Black Africans in authentic African settings unless the instruction explicitly requires a different documented location.",
     input.articleTitle ? `Article title for context: "${input.articleTitle}".` : "",
   ].filter(Boolean).join(" ");
 

@@ -480,7 +480,7 @@ export async function generateSocialGraphic(
 
   const finalPrompt =
     (prompt && prompt.trim()) ||
-    `A premium, professional, human-designed editorial illustration for a social media post about: "${article.title}". ${article.excerpt}. Modern digital business, innovation, technology, growth, trust. Clean composition, rich visual detail, cinematic lighting, no text, no logos, no watermarks.`;
+    `A premium, professional, human-designed editorial illustration for a social media post about: "${article.title}". ${article.excerpt}. Modern digital business, innovation, technology, growth, trust. Clean composition, rich visual detail, cinematic lighting, no text, no logos, no watermarks. Whenever people or places are depicted, show Black Africans in authentic African settings.`;
 
   let providerGenerated = false;
   let b64: string | null = null;
@@ -496,7 +496,7 @@ export async function generateSocialGraphic(
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
           model,
-          prompt: `${finalPrompt}\n\nStyle: premium teChia brand aesthetic — deep navy, electric blue, cyan accents, modern, trustworthy, professional, no text, no logos, no watermarks, high resolution.`,
+          prompt: `${finalPrompt}\n\nStyle: premium teChia brand aesthetic — deep navy, electric blue, cyan accents, modern, trustworthy, professional, no text, no logos, no watermarks, high resolution. People and places must depict Black Africans in authentic African settings; never default to white, European or American people/settings.`,
           n: 1,
           size: isSquare ? "1024x1024" : "1024x1536",
           quality: "high",
